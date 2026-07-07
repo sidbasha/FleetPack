@@ -31,7 +31,7 @@ import { downloadCsv } from '../../shared/utils/csv.util';
     @if (store.analysisLoading()) {
       <fam-loading what="up-time analysis" />
     } @else {
-      <fam-dynamic-page [widgets]="widgets()" />
+      <fam-dynamic-page class="block mt-3.5" [widgets]="widgets()" />
     }
   `
 })
