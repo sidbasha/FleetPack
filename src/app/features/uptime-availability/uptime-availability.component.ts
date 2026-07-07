@@ -2,9 +2,9 @@ import { Component, OnInit, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ChartConfiguration } from 'chart.js';
 import { UptimeStore } from '../../core/state/uptime.store';
-import { LoadingComponent } from '../../shared/components/ui.components';
+import { KpiComponent, LoadingComponent } from '../../shared/components/ui.components';
 import { DynamicPageComponent } from '../../shared/dynamic/dynamic-page.component';
-import { WidgetConfig } from '../../shared/dynamic/widget.model';
+import { KpiItem, WidgetConfig } from '../../shared/dynamic/widget.model';
 import { downloadCsv } from '../../shared/utils/csv.util';
 
 /**
@@ -15,7 +15,7 @@ import { downloadCsv } from '../../shared/utils/csv.util';
 @Component({
   selector: 'fam-uptime-availability',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, LoadingComponent, DynamicPageComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, KpiComponent, LoadingComponent, DynamicPageComponent],
   template: `
     <div class="flex flex-wrap items-center gap-3">
       <div>
@@ -29,6 +29,19 @@ import { downloadCsv } from '../../shared/utils/csv.util';
     @if (store.availabilityLoading()) {
       <fam-loading what="fleet availability" />
     } @else {
+      <div class="my-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-5 items-stretch">
+        @for (k of availabilityKpis(); track k.label) {
+          <fam-kpi
+            class="block h-full [&_.panel]:h-full [&_.panel]:min-h-24"
+            [label]="k.label"
+            [value]="k.value"
+            [unit]="k.unit ?? ''"
+            [sub]="k.sub ?? ''"
+            [accent]="k.accent ?? false"
+          />
+        }
+      </div>
+
       <fam-dynamic-page [widgets]="topWidgets()" />
 
       <!-- Tool level analysis: routed tabs (each tab is a registered widget) -->
@@ -63,20 +76,22 @@ export class UptimeAvailabilityComponent implements OnInit {
     return [...new Set(['Axion_T2500', ...top])];
   });
 
+  readonly availabilityKpis = computed<KpiItem[]>(() => {
+    const data = this.store.availability();
+    if (!data) return [];
+    return [
+      { label: '13W Rolling Avg', value: data.kpis.thirteenWeekRollingAvg, unit: '%', accent: true, sub: '±0 W/W' },
+      { label: '4W Rolling Avg', value: data.kpis.fourWeekRollingAvg, unit: '%', sub: 'Last 4-week window' },
+      { label: 'Current Week', value: data.kpis.currentWeek, unit: '%', sub: `${data.kpis.currentWeekLabel} · ±0 W/W Δ` },
+      { label: 'MTBr Avg', value: data.kpis.mtbrAvgHrs, unit: ' hrs' },
+      { label: 'Total Downtime', value: data.kpis.totalDowntimeHrs, unit: ' hrs', sub: '52W period' }
+    ];
+  });
+
   readonly topWidgets = computed<WidgetConfig[]>(() => {
     const data = this.store.availability();
     if (!data) return [];
     return [
-      {
-        id: 'availability-kpis', type: 'kpi-grid', frameless: true,
-        kpis: [
-          { label: '13W Rolling Avg', value: data.kpis.thirteenWeekRollingAvg, unit: '%', accent: true, sub: '±0 W/W' },
-          { label: '4W Rolling Avg', value: data.kpis.fourWeekRollingAvg, unit: '%', sub: 'Last 4-week window' },
-          { label: 'Current Week', value: data.kpis.currentWeek, unit: '%', sub: `${data.kpis.currentWeekLabel} · ±0 W/W Δ` },
-          { label: 'MTBr Avg', value: data.kpis.mtbrAvgHrs, unit: ' hrs' },
-          { label: 'Total Downtime', value: data.kpis.totalDowntimeHrs, unit: ' hrs', sub: '52W period' }
-        ]
-      },
       {
         id: 'availability-trend', type: 'chart', badge: 'FAM', colSpan: 4,
         title: 'Fleet Uptime / Downtime Trend',
