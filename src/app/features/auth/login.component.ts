@@ -45,7 +45,7 @@ import { AuthService } from '../../core/auth/auth.service';
           <div class="panel p-6">
             <div>
               <h2 class="text-xl font-bold text-slate-900">Login</h2>
-              <p class="mt-1 text-sm text-slate-500">Use the dummy credentials below to enter the dashboard.</p>
+              <!-- <p class="mt-1 text-sm text-slate-500">Use the dummy credentials below to enter the dashboard.</p> -->
             </div>
 
             <form class="mt-6 space-y-4" [formGroup]="form" (ngSubmit)="submit()">
@@ -84,11 +84,6 @@ import { AuthService } from '../../core/auth/auth.service';
               </button>
             </form>
 
-            <div class="mt-5 rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs text-slate-600">
-              <p class="font-semibold text-slate-700">Dummy login</p>
-              <p class="mt-1">Username: <span class="font-mono">system-admin</span></p>
-              <p>Password: <span class="font-mono">admin123</span></p>
-            </div>
           </div>
         </div>
       </section>
