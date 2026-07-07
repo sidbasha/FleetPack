@@ -1,0 +1,35 @@
+{
+  "name": "fleetpack-fam",
+  "version": "3.0.0",
+  "description": "KLA FleetPack — Fleet Availability Module (FAM). Nexus Theme v2. Angular 22 + Tailwind 4 + Signals state + Mock API.",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve --open",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/cdk": "^22.0.0",
+    "@angular/common": "^22.0.0",
+    "@angular/compiler": "^22.0.0",
+    "@angular/core": "^22.0.0",
+    "@angular/forms": "^22.0.0",
+    "@angular/platform-browser": "^22.0.0",
+    "@angular/router": "^22.0.0",
+    "chart.js": "^4.5.0",
+    "ng2-charts": "^6.0.1",
+    "rxjs": "^7.8.2",
+    "tslib": "^2.8.0",
+    "zone.js": "~0.15.1"
+  },
+  "devDependencies": {
+    "@angular/build": "^22.0.0",
+    "@angular/cli": "^22.0.0",
+    "@angular/compiler-cli": "^22.0.0",
+    "@tailwindcss/postcss": "^4.1.0",
+    "postcss": "^8.5.0",
+    "tailwindcss": "^4.1.0",
+    "typescript": "~6.0.0"
+  }
+}
