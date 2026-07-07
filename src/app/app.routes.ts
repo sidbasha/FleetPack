@@ -1,10 +1,19 @@
 import { Routes } from '@angular/router';
+import { authChildGuard, authGuard } from './core/auth/auth.guard';
 import { ShellComponent } from './layout/shell.component';
 
 export const routes: Routes = [
   {
+    path: 'login',
+    title: 'FAM · Login',
+    loadComponent: () =>
+      import('./features/auth/login.component').then(m => m.LoginComponent)
+  },
+  {
     path: '',
     component: ShellComponent,
+    canActivate: [authGuard],
+    canActivateChild: [authChildGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'fleet-availability/up-time/analysis' },
 

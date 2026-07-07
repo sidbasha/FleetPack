@@ -3,6 +3,7 @@ import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from 
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { routes } from './app.routes';
+import { authInterceptor } from './core/auth/auth.interceptor';
 import { mockApiInterceptor } from './core/mock-api/mock-api.interceptor';
 import { registerBuiltInWidgets } from './shared/dynamic/register-widgets';
 
@@ -16,7 +17,7 @@ export const appConfig: ApplicationConfig = {
     ),
     // Mock API — remove this interceptor (or swap for auth/error interceptors)
     // when integrating a real backend. See the developer guide, §API integration.
-    provideHttpClient(withInterceptors([mockApiInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, mockApiInterceptor])),
     provideCharts(withDefaultRegisterables()),
     provideAppInitializer(() => registerBuiltInWidgets())
   ]
