@@ -1,4 +1,5 @@
 import { Component, Input } from '@angular/core';
+import { SHARED_UI_TEXT } from '../../core/constants/app.constants';
 import { TrendPillComponent } from '../components/ui.components';
 import { ColumnDef, TableWidget } from './widget.model';
 
@@ -20,11 +21,11 @@ type Row = Record<string, unknown>;
         </thead>
         <tbody class="divide-y divide-slate-100">
           @for (g of groups(); track g.key) {
-            @if (g.key !== NO_GROUP) {
+            @if (g.key !== text.table.noGroupKey) {
               <tr class="bg-indigo-50/60">
                 <td [attr.colspan]="widget.groupAction ? widget.columns.length - 1 : widget.columns.length"
                     class="px-3 py-1.5 text-[11px] font-bold text-indigo-800">
-                  {{ g.key }} <span class="font-medium text-indigo-400">· {{ g.rows.length }} rows</span>
+                  {{ g.key }} <span class="font-medium text-indigo-400">· {{ g.rows.length }} {{ text.table.rowsSuffix }}</span>
                 </td>
                 @if (widget.groupAction) {
                   <td class="px-3 py-1.5 text-right">
@@ -68,12 +69,12 @@ type Row = Record<string, unknown>;
 
     @if (widget.pagination || widget.footer) {
       <div class="px-4 py-3 border-t border-slate-100 flex items-center justify-between gap-3 text-[11px] text-slate-400">
-        <span>{{ widget.footer ?? '' }}</span>
+        <span>{{ widget.footer ?? text.table.emptyFooter }}</span>
         @if (widget.pagination; as p) {
           <span class="flex items-center gap-2 text-xs text-slate-500">
-            <button class="btn-ghost" (click)="p.onPrev()" [disabled]="p.page === 1">‹ Prev</button>
-            Page <b>{{ p.page }}</b> of {{ p.pageCount }}
-            <button class="btn-ghost" (click)="p.onNext()" [disabled]="p.page === p.pageCount">Next ›</button>
+            <button class="btn-ghost" (click)="p.onPrev()" [disabled]="p.page === 1">{{ text.table.previousPage }}</button>
+            {{ text.table.pagePrefix }} <b>{{ p.page }}</b> {{ text.table.pageConnector }} {{ p.pageCount }}
+            <button class="btn-ghost" (click)="p.onNext()" [disabled]="p.page === p.pageCount">{{ text.table.nextPage }}</button>
           </span>
         }
       </div>
@@ -83,11 +84,11 @@ type Row = Record<string, unknown>;
 export class TableWidgetComponent {
   @Input({ required: true }) widget!: TableWidget<Row>;
 
-  readonly NO_GROUP = '__nogroup__';
+  readonly text = SHARED_UI_TEXT;
 
   groups(): { key: string; rows: Row[] }[] {
     const { rows, groupBy } = this.widget;
-    if (!groupBy) return [{ key: this.NO_GROUP, rows }];
+    if (!groupBy) return [{ key: this.text.table.noGroupKey, rows }];
     const map = new Map<string, Row[]>();
     for (const r of rows) {
       const k = groupBy(r);
@@ -118,7 +119,7 @@ export class TableWidgetComponent {
   cellText(c: ColumnDef<Row>, row: Row): string {
     if (c.format) return c.format(row);
     const v = this.cellValue(c, row);
-    return v === null || v === undefined || v === '' ? '—' : String(v);
+    return v === null || v === undefined || v === '' ? this.text.table.noValue : String(v);
   }
 
   extraClass(c: ColumnDef<Row>, row: Row): string {

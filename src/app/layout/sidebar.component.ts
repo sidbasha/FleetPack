@@ -1,8 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-
-interface NavItem { label: string; path: string; icon: string; }
-interface NavGroup { heading: string; items: NavItem[]; }
+import { APP_BRAND, APP_ROUTES, NAV_GROUPS, SIDEBAR_TEXT } from '../core/constants/app.constants';
 
 @Component({
   selector: 'fam-sidebar',
@@ -10,19 +8,20 @@ interface NavGroup { heading: string; items: NavItem[]; }
   imports: [RouterLink, RouterLinkActive],
   template: `
     <aside class="w-60 shrink-0 h-screen sticky top-0 bg-nexus-950 text-slate-300 flex flex-col">
-      <!-- Brand -->
-      <a routerLink="/" class="flex items-center gap-2.5 px-4 h-14 border-b border-white/10">
-        <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 grid place-items-center text-white font-extrabold text-sm">F</span>
+      <a [routerLink]="routes.home" class="flex items-center gap-2.5 px-4 h-14 border-b border-white/10">
+        <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 grid place-items-center text-white font-extrabold text-sm">
+          {{ brand.mark }}
+        </span>
         <span class="leading-tight">
-          <span class="block text-sm font-bold text-white tracking-wide">FleetPack</span>
-          <span class="block text-[10px] text-slate-400">KLA Corporation</span>
+          <span class="block text-sm font-bold text-white tracking-wide">{{ brand.name }}</span>
+          <span class="block text-[10px] text-slate-400">{{ brand.company }}</span>
         </span>
       </a>
 
       <nav class="flex-1 overflow-y-auto px-2.5 py-4 space-y-5">
         <div>
-          <a routerLink="/" class="nav-link" routerLinkActive="nav-active" [routerLinkActiveOptions]="{exact:true}">
-            <span class="nav-ico">▦</span> Dashboard
+          <a [routerLink]="routes.home" class="nav-link" routerLinkActive="nav-active" [routerLinkActiveOptions]="{exact:true}">
+            <span class="nav-ico">{{ sidebar.dashboardIcon }}</span> {{ sidebar.dashboardLabel }}
           </a>
         </div>
 
@@ -43,9 +42,11 @@ interface NavGroup { heading: string; items: NavItem[]; }
       </nav>
 
       <div class="px-4 py-3 border-t border-white/10">
-        <a class="nav-link !px-0 cursor-pointer"><span class="nav-ico">⚙</span> Settings</a>
+        <a class="nav-link !px-0 cursor-pointer">
+          <span class="nav-ico">{{ sidebar.settingsIcon }}</span> {{ sidebar.settingsLabel }}
+        </a>
         <p class="mt-2 text-[9px] leading-relaxed text-slate-500">
-          © 2026 KLA Corporation. All Rights Reserved.<br />v2.26.1.13100
+          {{ brand.copyright }}<br />{{ brand.version }}
         </p>
       </div>
     </aside>
@@ -63,25 +64,8 @@ interface NavGroup { heading: string; items: NavItem[]; }
   `]
 })
 export class SidebarComponent {
-  groups: NavGroup[] = [
-    {
-      heading: 'Modules · Fleet Availability',
-      items: [
-        { label: 'Up+Time Analysis', path: '/fleet-availability/up-time/analysis', icon: '↗' },
-        { label: 'Up+Time Availability', path: '/fleet-availability/up-time/availability', icon: '▤' },
-        { label: 'Alarm Explorer', path: '/alarm-explorer', icon: '🔔' },
-        { label: 'Fleet Configuration', path: '/fleet-configuration', icon: '⚒' },
-        { label: 'Fleet Productivity', path: '/fleet-productivity', icon: '▲' }
-      ]
-    },
-    {
-      heading: 'Workspace',
-      items: [
-        { label: 'TQual', path: '/tqual', icon: '✓' },
-        { label: 'My Reports', path: '/my-reports', icon: '▧' },
-        { label: 'Innovation Lab', path: '/innovation-lab', icon: '✦' },
-        { label: 'Engineering Utilities', path: '/engineering-utilities', icon: '⌘' }
-      ]
-    }
-  ];
+  readonly brand = APP_BRAND;
+  readonly groups = NAV_GROUPS;
+  readonly routes = APP_ROUTES;
+  readonly sidebar = SIDEBAR_TEXT;
 }

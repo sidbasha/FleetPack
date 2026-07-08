@@ -3,17 +3,10 @@ import { NavigationEnd, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 import { AuthService, AuthUser } from '../core/auth/auth.service';
-import { FilterStore } from '../core/state/filter.store';
+import { APP_ROUTES, AUTH_CONFIG, FILTER_OPTIONS, TOPBAR_TEXT } from '../core/constants/app.constants';
 import { ApiService } from '../core/services/api.service';
 import { GlobalFilters } from '../core/models/models';
-
-const FALLBACK_USER: AuthUser = {
-  name: 'System Admin',
-  username: 'system-admin',
-  initials: 'SA',
-  role: 'Administrator',
-  email: 'system-admin@fleetpack.local'
-};
+import { FilterStore } from '../core/state/filter.store';
 
 @Component({
   selector: 'fam-topbar',
@@ -23,19 +16,19 @@ const FALLBACK_USER: AuthUser = {
       <nav class="flex items-center gap-1.5 text-xs text-slate-400 min-w-0">
         @for (crumb of breadcrumbs(); track $index; let last = $last) {
           <span [class]="last ? 'font-semibold text-slate-800 truncate' : 'truncate'">{{ crumb }}</span>
-          @if (!last) { <span class="text-slate-300">/</span> }
+          @if (!last) { <span class="text-slate-300">{{ text.breadcrumbSeparator }}</span> }
         }
       </nav>
 
       <div class="flex-1"></div>
 
       <div class="hidden lg:flex items-center gap-2">
-        <label class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Fleet</label>
+        <label class="text-[10px] font-bold uppercase tracking-wide text-slate-400">{{ text.fleetLabel }}</label>
         <select class="filter-select" [value]="store.fleet()" (change)="onFleet($event)">
           @for (f of store.fleets(); track f) { <option [value]="f">{{ f }}</option> }
         </select>
 
-        <label class="text-[10px] font-bold uppercase tracking-wide text-slate-400 ml-2">Duration</label>
+        <label class="text-[10px] font-bold uppercase tracking-wide text-slate-400 ml-2">{{ text.durationLabel }}</label>
         <select class="filter-select" [value]="store.filters().duration" (change)="onDuration($event)">
           @for (d of durations; track d) { <option [value]="d">{{ d }}</option> }
         </select>
@@ -46,8 +39,12 @@ const FALLBACK_USER: AuthUser = {
       </div>
 
       <div class="relative flex items-center gap-3 pl-3 border-l border-slate-200">
-        <button class="text-xs font-bold text-slate-400 hover:text-indigo-600" title="Notifications">N</button>
-        <button class="text-xs font-bold text-slate-400 hover:text-indigo-600" title="Messages">M</button>
+        <button class="text-xs font-bold text-slate-400 hover:text-indigo-600" title="{{ text.notificationsTitle }}">
+          {{ text.notificationsShortLabel }}
+        </button>
+        <button class="text-xs font-bold text-slate-400 hover:text-indigo-600" title="{{ text.messagesTitle }}">
+          {{ text.messagesShortLabel }}
+        </button>
         <button
           type="button"
           class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 grid place-items-center text-[11px] font-bold hover:bg-indigo-200"
@@ -66,15 +63,15 @@ const FALLBACK_USER: AuthUser = {
             </div>
             <dl class="pt-3 space-y-1.5 text-xs">
               <div class="flex justify-between gap-2">
-                <dt class="text-slate-400">Username</dt>
+                <dt class="text-slate-400">{{ text.usernameLabel }}</dt>
                 <dd class="text-slate-700 font-medium truncate">{{ user().username }}</dd>
               </div>
               <div class="flex justify-between gap-2">
-                <dt class="text-slate-400">Email</dt>
+                <dt class="text-slate-400">{{ text.emailLabel }}</dt>
                 <dd class="text-slate-700 font-medium truncate">{{ user().email }}</dd>
               </div>
               <div class="flex justify-between gap-2">
-                <dt class="text-slate-400">Fleet</dt>
+                <dt class="text-slate-400">{{ text.fleetLabel }}</dt>
                 <dd class="text-slate-700 font-medium truncate">{{ store.fleet() }}</dd>
               </div>
             </dl>
@@ -83,7 +80,7 @@ const FALLBACK_USER: AuthUser = {
               class="mt-4 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:border-red-200 hover:bg-red-50 hover:text-red-700 transition-colors"
               (click)="logout()"
             >
-              Sign out
+              {{ text.signOutLabel }}
             </button>
           </div>
         }
@@ -92,16 +89,42 @@ const FALLBACK_USER: AuthUser = {
   `
 })
 export class TopbarComponent implements OnInit {
-  store = inject(FilterStore);
-  private api = inject(ApiService);
-  private router = inject(Router);
-  private auth = inject(AuthService);
+  readonly store = inject(FilterStore);
+  readonly text = TOPBAR_TEXT;
+  readonly durations: GlobalFilters['duration'][] = [...FILTER_OPTIONS.durations];
+  readonly showUserPopup = signal(false);
 
-  durations: GlobalFilters['duration'][] = ['Last 4 Weeks', 'Last 13 Weeks', 'Last 52 Weeks'];
-  showUserPopup = signal(false);
-  user = computed(() => this.auth.user() ?? FALLBACK_USER);
-
+  private readonly api = inject(ApiService);
+  private readonly auth = inject(AuthService);
   private readonly el = inject(ElementRef);
+  private readonly router = inject(Router);
+
+  readonly user = computed<AuthUser>(() => this.auth.user() ?? AUTH_CONFIG.fallbackUser);
+
+  private readonly url = toSignal(
+    this.router.events.pipe(
+      filter(e => e instanceof NavigationEnd),
+      map(e => (e as NavigationEnd).urlAfterRedirects),
+      startWith(this.router.url)
+    ),
+    { initialValue: this.router.url }
+  );
+
+  readonly breadcrumbs = computed(() => {
+    const segs = this.url().split('?')[0].split('/').filter(Boolean);
+    const pretty = (s: string) =>
+      decodeURIComponent(s)
+        .replace(/-/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase())
+        .replace('Up Time', this.text.breadcrumbReplacements.upTime)
+        .replace('Tqual', this.text.breadcrumbReplacements.tqual);
+
+    return [this.text.rootBreadcrumb, ...segs.map(pretty)];
+  });
+
+  ngOnInit(): void {
+    this.api.getFleets().subscribe(fleets => this.store.setFleets(fleets));
+  }
 
   toggleUserPopup(e: Event): void {
     e.stopPropagation();
@@ -115,30 +138,6 @@ export class TopbarComponent implements OnInit {
     }
   }
 
-  private url = toSignal(
-    this.router.events.pipe(
-      filter(e => e instanceof NavigationEnd),
-      map(e => (e as NavigationEnd).urlAfterRedirects),
-      startWith(this.router.url)
-    ),
-    { initialValue: this.router.url }
-  );
-
-  breadcrumbs = computed(() => {
-    const segs = this.url().split('?')[0].split('/').filter(Boolean);
-    const pretty = (s: string) =>
-      decodeURIComponent(s)
-        .replace(/-/g, ' ')
-        .replace(/\b\w/g, c => c.toUpperCase())
-        .replace('Up Time', 'Up+Time')
-        .replace('Tqual', 'TQual');
-    return ['Dashboard', ...segs.map(pretty)];
-  });
-
-  ngOnInit(): void {
-    this.api.getFleets().subscribe(fleets => this.store.setFleets(fleets));
-  }
-
   onFleet(e: Event): void {
     this.store.setFleet((e.target as HTMLSelectElement).value);
   }
@@ -149,6 +148,6 @@ export class TopbarComponent implements OnInit {
 
   logout(): void {
     this.auth.logout();
-    void this.router.navigate(['/login']);
+    void this.router.navigate([APP_ROUTES.login]);
   }
 }
