@@ -35,7 +35,7 @@ import { downloadCsv } from '../../shared/utils/csv.util';
     @if (store.eventsLoading()) {
       <fam-loading what="alarm events" />
     } @else {
-      <fam-dynamic-page [widgets]="widgets()" />
+      <fam-dynamic-page class="block mt-3.5" [widgets]="widgets()" />
     }
   `
 })

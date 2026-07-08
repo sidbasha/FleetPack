@@ -42,7 +42,7 @@ import { downloadCsv } from '../../shared/utils/csv.util';
         }
       </div>
 
-      <fam-dynamic-page [widgets]="topWidgets()" />
+      <fam-dynamic-page class="block mt-3.5" [widgets]="topWidgets()" />
 
       <!-- Tool level analysis: routed tabs (each tab is a registered widget) -->
       <section class="panel">
@@ -64,7 +64,7 @@ import { downloadCsv } from '../../shared/utils/csv.util';
         </div>
       </section>
 
-      <fam-dynamic-page [widgets]="bottomWidgets()" />
+      <fam-dynamic-page class="block mt-3.5" [widgets]="bottomWidgets()" />
     }
   `
 })

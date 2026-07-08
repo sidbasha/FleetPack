@@ -34,7 +34,7 @@ const CAT_COLORS: Record<AlarmCategory, string> = {
     @if (store.fleetLoading()) {
       <fam-loading what="fleet alarm detail" />
     } @else {
-      <fam-dynamic-page [widgets]="widgets()" />
+      <fam-dynamic-page class="block mt-3.5" [widgets]="widgets()" />
     }
   `
 })

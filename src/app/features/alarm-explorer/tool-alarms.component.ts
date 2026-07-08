@@ -41,7 +41,7 @@ import { AlarmDefinition } from '../../core/models/models';
     @if (store.toolLoading()) {
       <fam-loading what="tool alarms" />
     } @else {
-      <fam-dynamic-page [widgets]="widgets()" />
+      <fam-dynamic-page class="block mt-3.5" [widgets]="widgets()" />
     }
   `
 })

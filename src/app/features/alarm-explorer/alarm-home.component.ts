@@ -35,7 +35,7 @@ const CAT_COLORS: Record<AlarmCategory, string> = {
     @if (store.homeLoading()) {
       <fam-loading what="alarm volume" />
     } @else {
-      <fam-dynamic-page [widgets]="widgets()" />
+      <fam-dynamic-page class="block mt-3.5"   [widgets]="widgets()" />
     }
   `
 })
