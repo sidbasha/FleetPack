@@ -1,0 +1,36 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Angular in Chrome",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:4200",
+      "webRoot": "${workspaceFolder}",
+      "sourceMaps": true,
+      "preLaunchTask": "ng serve",
+      "sourceMapPathOverrides": {
+        "webpack:///./src/*": "${workspaceFolder}/src/*",
+        "webpack:///src/*": "${workspaceFolder}/src/*",
+        "vite:///*": "${workspaceFolder}/*",
+        "ng:///*": "${workspaceFolder}/*",
+        "/*": "${workspaceFolder}/*"
+      },
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**",
+        "**/@vite/client/**"
+      ]
+    },
+    {
+      "name": "Attach to Node.js",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "restart": true,
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    }
+  ]
+}
