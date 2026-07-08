@@ -9,7 +9,7 @@ npm install
 npm start          # ng serve --open → http://localhost:4200
 ```
 
-Requires Node 20.19+ or 22.12+ (Angular 22).
+Requires Node 18.19+, 20.11+, or 22.0+ (Angular 20).
 
 ## Screens & routes
 
