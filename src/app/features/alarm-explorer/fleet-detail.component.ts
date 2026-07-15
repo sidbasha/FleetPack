@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnChanges, computed, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AlarmStore } from '../../core/state/alarm.store';
 import { KpiComponent, LoadingComponent } from '../../shared/components/ui.components';
@@ -16,6 +16,7 @@ const CAT_COLORS: Record<AlarmCategory, string> = {
 @Component({
   selector: 'fam-fleet-detail',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, KpiComponent, LoadingComponent, DynamicPageComponent],
   template: `
     <div class="flex flex-wrap items-center gap-3">

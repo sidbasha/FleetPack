@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { UptimeStore } from '../../core/state/uptime.store';
 import { FilterStore } from '../../core/state/filter.store';
 import { KpiComponent, LoadingComponent } from '../../shared/components/ui.components';
@@ -15,6 +15,7 @@ import { downloadCsv } from '../../shared/utils/csv.util';
 @Component({
   selector: 'fam-uptime-analysis',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [KpiComponent, LoadingComponent, DynamicPageComponent],
   template: `
     <div class="flex flex-wrap items-center gap-3">
@@ -53,19 +54,49 @@ export class UptimeAnalysisComponent implements OnInit {
     );
   });
 
-  /** The whole page as data. */
-  readonly widgets = computed<WidgetConfig[]>(() => {
-    const data = this.store.analysis();
-    const trend = this.store.trend();
-    if (!data || !trend) return [];
-    const weeks = this.weeks();
+  // Each panel is its own computed() so an unrelated signal change (e.g.
+  // toggling includeTools) only rebuilds the widget(s) that actually
+  // depend on it — the two Chart.js widgets keep a stable object
+  // reference and skip a needless redraw.
 
+  readonly trendWidget = computed<WidgetConfig>(() => {
+    const trend = this.store.trend() ?? [];
     const trend1w = trend.find(w => w.RollingWindow === 1)?.UptimeInfo ?? [];
     const trend13w = trend.find(w => w.RollingWindow === 13)?.UptimeInfo ?? [];
     const periodAvg = trend1w.length
       ? trend1w.reduce((sum, p) => sum + p.UptimePercentage, 0) / trend1w.length
       : 0;
 
+    return {
+      id: 'uptime-trend', type: 'chart', badge: 'FAM',
+      title: 'Up+Time · Uptime Trend',
+      legend: [
+        { label: '1 Week Rolling', color: '#6366f1' },
+        { label: '13 Week Rolling', color: '#a78bfa' },
+        { label: 'Period Average', color: '#cbd5e1' }
+      ],
+      chartType: 'line',
+      data: {
+        labels: trend1w.map(p => p.GranulariReferencePoint),
+        datasets: [
+          { label: '1 Week Rolling', data: trend1w.map(p => p.UptimePercentage), borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,.12)', fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2 },
+          { label: '13 Week Rolling', data: trend13w.map(p => p.UptimePercentage), borderColor: '#a78bfa', tension: 0.35, pointRadius: 0, borderWidth: 2 },
+          { label: 'Period Average', data: trend1w.map(() => periodAvg), borderColor: '#cbd5e1', borderDash: [6, 4], pointRadius: 0, borderWidth: 1.5 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+        scales: {
+          y: { min: 75, max: 100, ticks: { callback: v => `${v}%`, font: { size: 10 } }, grid: { color: '#f1f5f9' } },
+          x: { ticks: { font: { size: 10 }, maxTicksLimit: 12, autoSkip: true }, grid: { display: false } }
+        }
+      }
+    };
+  });
+
+  readonly breakdownWidget = computed<WidgetConfig>(() => {
+    const weeks = this.weeks();
     const breakdownColumns: ColumnDef<UptimeBreakdownRow>[] = [
       {
         key: 'label', header: 'Work Week',
@@ -80,88 +111,71 @@ export class UptimeAnalysisComponent implements OnInit {
       }))
     ];
 
-    return [
-      {
-        id: 'uptime-trend', type: 'chart', badge: 'FAM',
-        title: 'Up+Time · Uptime Trend',
-        legend: [
-          { label: '1 Week Rolling', color: '#6366f1' },
-          { label: '13 Week Rolling', color: '#a78bfa' },
-          { label: 'Period Average', color: '#cbd5e1' }
-        ],
-        chartType: 'line',
-        data: {
-          labels: trend1w.map(p => p.GranulariReferencePoint),
-          datasets: [
-            { label: '1 Week Rolling', data: trend1w.map(p => p.UptimePercentage), borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,.12)', fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2 },
-            { label: '13 Week Rolling', data: trend13w.map(p => p.UptimePercentage), borderColor: '#a78bfa', tension: 0.35, pointRadius: 0, borderWidth: 2 },
-            { label: 'Period Average', data: trend1w.map(() => periodAvg), borderColor: '#cbd5e1', borderDash: [6, 4], pointRadius: 0, borderWidth: 1.5 }
-          ]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
-          scales: {
-            y: { min: 75, max: 100, ticks: { callback: v => `${v}%`, font: { size: 10 } }, grid: { color: '#f1f5f9' } },
-            x: { ticks: { font: { size: 10 }, maxTicksLimit: 12, autoSkip: true }, grid: { display: false } }
-          }
+    return {
+      id: 'uptime-breakdown', type: 'table',
+      title: 'Uptime Data · Rolling + Tool + Grouped',
+      actions: [
+        { label: (this.includeTools() ? '✓ ' : '') + 'Tool-wise', run: () => this.includeTools.update(v => !v) },
+        { label: (this.includeSw() ? '✓ ' : '') + 'Grouped SW Version', run: () => this.includeSw.update(v => !v) },
+        { label: 'CSV', run: () => this.exportCsv() }
+      ],
+      columns: breakdownColumns,
+      rows: this.visibleRows(),
+      trackKey: 'label'
+    };
+  });
+
+  readonly topUnavailableWidget = computed<WidgetConfig>(() => {
+    const topUnavailable = this.store.analysis()?.topUnavailable ?? [];
+    return {
+      id: 'top-unavailable', type: 'chart', badge: 'FAM', colSpan: 3,
+      title: 'Top 10 Unavailable Tools',
+      legend: [
+        { label: 'Unscheduled', color: '#ef4444' },
+        { label: 'Scheduled', color: '#8b5cf6' },
+        { label: 'Non-Scheduled', color: '#94a3b8' }
+      ],
+      chartType: 'bar', height: 256,
+      footnote: 'No additional tools in range · hours over selected period',
+      data: {
+        labels: topUnavailable.map(t => t.toolId),
+        datasets: [
+          { label: 'Unscheduled', data: topUnavailable.map(t => t.unscheduledHrs), backgroundColor: '#ef4444', stack: 's' },
+          { label: 'Scheduled', data: topUnavailable.map(t => t.scheduledHrs), backgroundColor: '#8b5cf6', stack: 's' },
+          { label: 'Non-Scheduled', data: topUnavailable.map(t => t.nonScheduledHrs), backgroundColor: '#94a3b8', stack: 's' }
+        ]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { stacked: true, title: { display: true, text: 'Hours', font: { size: 10 } }, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } },
+          y: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } }
         }
-      },
-      {
-        id: 'uptime-breakdown', type: 'table',
-        title: 'Uptime Data · Rolling + Tool + Grouped',
-        actions: [
-          { label: (this.includeTools() ? '✓ ' : '') + 'Tool-wise', run: () => this.includeTools.update(v => !v) },
-          { label: (this.includeSw() ? '✓ ' : '') + 'Grouped SW Version', run: () => this.includeSw.update(v => !v) },
-          { label: 'CSV', run: () => this.exportCsv() }
-        ],
-        columns: breakdownColumns,
-        rows: this.visibleRows(),
-        trackKey: 'label'
-      },
-      {
-        id: 'top-unavailable', type: 'chart', badge: 'FAM', colSpan: 3,
-        title: 'Top 10 Unavailable Tools',
-        legend: [
-          { label: 'Unscheduled', color: '#ef4444' },
-          { label: 'Scheduled', color: '#8b5cf6' },
-          { label: 'Non-Scheduled', color: '#94a3b8' }
-        ],
-        chartType: 'bar', height: 256,
-        footnote: 'No additional tools in range · hours over selected period',
-        data: {
-          labels: data.topUnavailable.map(t => t.toolId),
-          datasets: [
-            { label: 'Unscheduled', data: data.topUnavailable.map(t => t.unscheduledHrs), backgroundColor: '#ef4444', stack: 's' },
-            { label: 'Scheduled', data: data.topUnavailable.map(t => t.scheduledHrs), backgroundColor: '#8b5cf6', stack: 's' },
-            { label: 'Non-Scheduled', data: data.topUnavailable.map(t => t.nonScheduledHrs), backgroundColor: '#94a3b8', stack: 's' }
-          ]
-        },
-        options: {
-          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { stacked: true, title: { display: true, text: 'Hours', font: { size: 10 } }, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } },
-            y: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } }
-          }
-        }
-      },
-      {
-        id: 'downtime-categories', type: 'table', badge: 'FAM', colSpan: 3,
-        title: 'Downtime Category Details',
-        subtitle: 'Distribution by period',
-        actions: [{ label: '↓ Download CSV', run: () => this.exportCsv() }],
-        columns: [
-          { key: 'category', header: 'Category', classFn: () => 'font-medium' },
-          { key: 'periodPct', header: 'Period (%) ▼', align: 'right', kind: 'mono', format: r => r.periodPct.toFixed(2), classFn: () => 'font-semibold' },
-          { key: 'thirteenWeekPct', header: '13-Week (%)', align: 'right', kind: 'mono', format: r => r.thirteenWeekPct.toFixed(2), classFn: () => 'text-slate-400' },
-          { key: 'fourWeekPct', header: '4-Week (%)', align: 'right', kind: 'mono', format: r => r.fourWeekPct.toFixed(2), classFn: () => 'text-slate-400' },
-          { key: 'wowDelta', header: 'W/W Δ', align: 'right', kind: 'trend', trendBadWhenUp: true, value: r => r.wowDelta === 0 ? null : r.wowDelta }
-        ],
-        rows: data.downtimeCategories,
-        trackKey: 'category'
       }
-    ];
+    };
+  });
+
+  readonly downtimeCategoriesWidget = computed<WidgetConfig>(() => ({
+    id: 'downtime-categories', type: 'table', badge: 'FAM', colSpan: 3,
+    title: 'Downtime Category Details',
+    subtitle: 'Distribution by period',
+    actions: [{ label: '↓ Download CSV', run: () => this.exportCsv() }],
+    columns: [
+      { key: 'category', header: 'Category', classFn: () => 'font-medium' },
+      { key: 'periodPct', header: 'Period (%) ▼', align: 'right', kind: 'mono', format: r => r.periodPct.toFixed(2), classFn: () => 'font-semibold' },
+      { key: 'thirteenWeekPct', header: '13-Week (%)', align: 'right', kind: 'mono', format: r => r.thirteenWeekPct.toFixed(2), classFn: () => 'text-slate-400' },
+      { key: 'fourWeekPct', header: '4-Week (%)', align: 'right', kind: 'mono', format: r => r.fourWeekPct.toFixed(2), classFn: () => 'text-slate-400' },
+      { key: 'wowDelta', header: 'W/W Δ', align: 'right', kind: 'trend', trendBadWhenUp: true, value: r => r.wowDelta === 0 ? null : r.wowDelta }
+    ],
+    rows: this.store.analysis()?.downtimeCategories ?? [],
+    trackKey: 'category'
+  }));
+
+  /** The whole page as data. */
+  readonly widgets = computed<WidgetConfig[]>(() => {
+    if (!this.store.analysis() || !this.store.trend()) return [];
+    return [this.trendWidget(), this.breakdownWidget(), this.topUnavailableWidget(), this.downtimeCategoriesWidget()];
   });
 
   ngOnInit(): void {

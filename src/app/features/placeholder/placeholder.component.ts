@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
@@ -15,6 +15,7 @@ const MODULE_INFO: Record<string, { title: string; blurb: string; icon: string }
 @Component({
   selector: 'fam-placeholder',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink],
   template: `
     <div class="panel max-w-2xl mx-auto mt-10 p-10 text-center">

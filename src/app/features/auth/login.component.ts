@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
@@ -7,6 +7,7 @@ import { APP_BRAND, APP_ROUTES, AUTH_CONFIG, LOGIN_TEXT } from '../../core/const
 @Component({
   selector: 'fam-login',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReactiveFormsModule],
   template: `
     <main class="min-h-screen bg-slate-100 grid lg:grid-cols-[minmax(0,1fr)_460px]">

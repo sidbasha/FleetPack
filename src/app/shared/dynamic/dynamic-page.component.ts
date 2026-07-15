@@ -1,4 +1,4 @@
-import { Component, Input, Type } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, Type } from '@angular/core';
 import { NgComponentOutlet, NgTemplateOutlet } from '@angular/common';
 import {
   ChartWidget, ComponentWidget, KpiGridWidget, RankedListWidget, TableWidget, WidgetConfig
@@ -15,6 +15,7 @@ import { TableWidgetComponent } from './table-widget.component';
 @Component({
   selector: 'fam-dynamic-widget',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     NgComponentOutlet, NgTemplateOutlet,
     KpiGridWidgetComponent, ChartWidgetComponent, RankedListWidgetComponent, TableWidgetComponent
@@ -84,6 +85,7 @@ export class DynamicWidgetComponent {
 @Component({
   selector: 'fam-dynamic-page',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DynamicWidgetComponent],
   template: `
     <div class="grid grid-cols-1 xl:grid-cols-6 gap-5">

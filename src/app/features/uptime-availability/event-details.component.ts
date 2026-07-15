@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { UptimeStore } from '../../core/state/uptime.store';
 import { DynamicWidgetComponent } from '../../shared/dynamic/dynamic-page.component';
 import { TableWidget } from '../../shared/dynamic/widget.model';
@@ -13,6 +13,7 @@ import { downloadCsv } from '../../shared/utils/csv.util';
 @Component({
   selector: 'fam-event-details',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DynamicWidgetComponent],
   template: `
     <div class="flex items-center justify-between mb-3">

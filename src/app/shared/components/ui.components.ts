@@ -1,10 +1,11 @@
 import { DecimalPipe, NgClass } from '@angular/common';
-import { Component, Input, booleanAttribute } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, booleanAttribute } from '@angular/core';
 import { SHARED_UI_TEXT } from '../../core/constants/app.constants';
 
 @Component({
   selector: 'fam-kpi',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgClass],
   template: `
     <div class="panel px-5 py-4 flex flex-col justify-center gap-1">
@@ -27,6 +28,7 @@ export class KpiComponent {
 @Component({
   selector: 'fam-loading',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="panel p-6 flex items-center gap-3 text-sm text-slate-400" role="status">
       <span class="w-4 h-4 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin"></span>
@@ -42,6 +44,7 @@ export class LoadingComponent {
 @Component({
   selector: 'fam-state-legend',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
       <span class="chip"><i class="chip-dot bg-state-production"></i>{{ text.stateLegend.production }}</span>
@@ -61,6 +64,7 @@ export class StateLegendComponent {
 @Component({
   selector: 'fam-trend',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DecimalPipe, NgClass],
   template: `
     @if (value === null) {

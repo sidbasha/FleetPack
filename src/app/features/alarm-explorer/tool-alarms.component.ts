@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnChanges, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AlarmStore } from '../../core/state/alarm.store';
@@ -14,6 +14,7 @@ import { AlarmDefinition } from '../../core/models/models';
 @Component({
   selector: 'fam-tool-alarms',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, FormsModule, LoadingComponent, DynamicPageComponent],
   template: `
     <div class="flex flex-wrap items-center gap-3">

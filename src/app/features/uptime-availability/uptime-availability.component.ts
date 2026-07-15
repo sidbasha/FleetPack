@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ChartConfiguration } from 'chart.js';
 import { UptimeStore } from '../../core/state/uptime.store';
@@ -15,6 +15,7 @@ import { downloadCsv } from '../../shared/utils/csv.util';
 @Component({
   selector: 'fam-uptime-availability',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, RouterLinkActive, RouterOutlet, KpiComponent, LoadingComponent, DynamicPageComponent],
   template: `
     <div class="flex flex-wrap items-center gap-3">

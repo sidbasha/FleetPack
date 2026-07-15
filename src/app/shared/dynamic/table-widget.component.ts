@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { SHARED_UI_TEXT } from '../../core/constants/app.constants';
 import { TrendPillComponent } from '../components/ui.components';
 import { ColumnDef, TableWidget } from './widget.model';
@@ -8,6 +8,7 @@ type Row = Record<string, unknown>;
 @Component({
   selector: 'fam-table-widget',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TrendPillComponent],
   template: `
     <div class="overflow-x-auto">

@@ -1,10 +1,11 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { APP_BRAND, APP_ROUTES, NAV_GROUPS, SIDEBAR_TEXT } from '../core/constants/app.constants';
 
 @Component({
   selector: 'fam-sidebar',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, RouterLinkActive],
   template: `
     <aside class="w-60 shrink-0 h-screen sticky top-0 bg-nexus-950 text-slate-300 flex flex-col">

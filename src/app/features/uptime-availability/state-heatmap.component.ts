@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { UptimeStore } from '../../core/state/uptime.store';
 import { StateLegendComponent } from '../../shared/components/ui.components';
@@ -16,6 +16,7 @@ const STATE_BG: Record<string, string> = {
 @Component({
   selector: 'fam-state-heatmap',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgClass, StateLegendComponent],
   template: `
     <div class="flex flex-wrap items-center justify-between gap-3 mb-3">

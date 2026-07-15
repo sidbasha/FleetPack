@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AuthService } from '../core/auth/auth.service';
 import { APP_BRAND, AUTH_CONFIG } from '../core/constants/app.constants';
@@ -8,6 +8,7 @@ import { TopbarComponent } from './topbar.component';
 @Component({
   selector: 'fam-shell',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, SidebarComponent, TopbarComponent],
   template: `
     <div class="flex min-h-screen">

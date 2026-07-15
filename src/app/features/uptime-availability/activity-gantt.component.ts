@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { DecimalPipe, NgClass } from '@angular/common';
 import { UptimeStore } from '../../core/state/uptime.store';
 import { StateLegendComponent } from '../../shared/components/ui.components';
@@ -15,6 +15,7 @@ const STATE_BG: Record<string, string> = {
 @Component({
   selector: 'fam-activity-gantt',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DecimalPipe, NgClass, StateLegendComponent],
   template: `
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">

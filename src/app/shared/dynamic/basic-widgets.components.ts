@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { BaseChartDirective } from 'ng2-charts';
 import { ActiveElement } from 'chart.js';
 import { KpiComponent, TrendPillComponent } from '../components/ui.components';
@@ -8,6 +8,7 @@ import { ChartWidget, KpiGridWidget, RankedListWidget } from './widget.model';
 @Component({
   selector: 'fam-kpi-grid-widget',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [KpiComponent],
   template: `
     <div class="grid gap-4" style="grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));">
@@ -25,6 +26,7 @@ export class KpiGridWidgetComponent {
 @Component({
   selector: 'fam-chart-widget',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [BaseChartDirective],
   template: `
     <div class="p-4" [style.height.px]="widget.height ?? 288">
@@ -55,6 +57,7 @@ export class ChartWidgetComponent {
 @Component({
   selector: 'fam-ranked-list-widget',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TrendPillComponent],
   template: `
     <ul class="divide-y divide-slate-100">

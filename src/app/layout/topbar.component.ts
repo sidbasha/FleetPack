@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
@@ -11,6 +11,7 @@ import { FilterStore } from '../core/state/filter.store';
 @Component({
   selector: 'fam-topbar',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="h-14 sticky top-0 z-20 bg-white/90 backdrop-blur-sm border-b border-slate-200 flex items-center gap-4 px-5">
       <nav class="flex items-center gap-1.5 text-xs text-slate-400 min-w-0">

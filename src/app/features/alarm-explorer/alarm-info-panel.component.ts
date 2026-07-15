@@ -1,4 +1,4 @@
-import { Component, Input, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, inject } from '@angular/core';
 import { DecimalPipe, NgClass } from '@angular/common';
 import { AlarmStore } from '../../core/state/alarm.store';
 import { AlarmCategory } from '../../core/models/models';
@@ -18,6 +18,7 @@ const CAT_DOT: Record<AlarmCategory, string> = {
 @Component({
   selector: 'fam-alarm-info-panel',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DecimalPipe, NgClass],
   template: `
     <aside class="panel sticky top-[72px]">

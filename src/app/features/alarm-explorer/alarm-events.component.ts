@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnChanges, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AlarmStore, RecipeFilter } from '../../core/state/alarm.store';
 import { KpiComponent, LoadingComponent } from '../../shared/components/ui.components';
@@ -9,6 +9,7 @@ import { downloadCsv } from '../../shared/utils/csv.util';
 @Component({
   selector: 'fam-alarm-events',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, KpiComponent, LoadingComponent, DynamicPageComponent],
   template: `
     <div class="flex flex-wrap items-center gap-3">
