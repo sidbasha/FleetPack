@@ -64,6 +64,22 @@ export interface UptimeAnalysisResponse {
   kpis: { oneWeekRolling: number; thirteenWeekRolling: number };
 }
 
+// ── Up-Time Trend (granular history, PascalCase — mirrors upstream API contract) ──
+export interface UptimeInfoPoint {
+  GranulariReferencePoint: string; // e.g. "2026-29" (year-dayOfYear)
+  UptimePercentage: number;
+  UptimeDurationHrs: number;
+  DowntimeDurationHrs: number;
+  NoStateDurationHrs: number;
+}
+
+export interface UptimeTrendWindow {
+  RollingWindow: number; // e.g. 1, 13
+  UptimeInfo: UptimeInfoPoint[];
+}
+
+export type UptimeTrendResponse = UptimeTrendWindow[];
+
 // ── Up-Time Availability ──
 export interface AvailabilityKpis {
   thirteenWeekRollingAvg: number;
@@ -103,6 +119,8 @@ export interface GanttSegment {
   startHour: number; // 0..24 fractional
   endHour: number;
   label?: string;    // e.g. "1.9h"
+  /** Recipe/task context from a correlated segment activity, e.g. "Recipe Run · Fail (0xc82f001a)". */
+  detail?: string;
 }
 
 export interface GanttDay {
@@ -131,10 +149,55 @@ export interface AvailabilityResponse {
   topUnavailable: { toolId: string; hrs: number }[];
   heatmap: HeatmapDay[];
   stateTotals: StateTotals;
-  gantt: GanttDay[];
-  ganttSummary: { avgProductionPct: number; totalDowntimeHrs: number };
-  events: ToolEvent[];
   downtimeCategories: DowntimeCategory[];
+}
+
+// ── Tool State Segments — raw feed (mixed casing mirrors upstream API contract).
+// Single source of truth: both the Activity Gantt bars and the Event Details
+// rows are derived from this instead of being separately mocked. ──
+export interface StateSegment {
+  ToolDetail: string | null;
+  segmentId: number;
+  sourceName: 'system' | 'tool';
+  stateName: string; // raw upstream label, e.g. "standby"
+  start: string;      // ISO datetime
+  end: string;        // ISO datetime
+  segmentDurationHrs: number;
+  metadata: unknown | null;
+}
+
+export interface StateSegmentsResponse {
+  stateSegments: StateSegment[];
+}
+
+// ── Segment Activities — task/recipe-level detail within a tool's
+// Production windows (getSegmentActivities). Correlated with StateSegment
+// at generation time so the Activity Gantt and Event Details tables can
+// enrich themselves from this same underlying data. ──
+export interface SegmentActivityParams {
+  [key: string]: string | number | null;
+}
+
+export interface SegmentActivity {
+  modelId: string;
+  toolId: number;
+  eventStart: string; // ISO datetime
+  eventEnd: string;   // ISO datetime
+  duration: number;
+  segmentType: string; // e.g. "TaskSegment"
+  SegmentName: string;  // casing mirrors upstream API contract
+  params: SegmentActivityParams;
+}
+
+export interface SegmentActivitiesResponse {
+  version: string;
+  statusCode: number;
+  message: string;
+  isError: boolean | null;
+  responseException: unknown | null;
+  result: SegmentActivity[];
+  /** Not present in the upstream payload — added by the mock for pagination UI. */
+  totalCount: number;
 }
 
 // ── Alarm Explorer ──

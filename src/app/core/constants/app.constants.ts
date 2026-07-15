@@ -46,6 +46,7 @@ export const APP_ROUTE_PATHS = {
   heatmap: 'heatmap',
   gantt: 'gantt',
   events: 'events',
+  segmentActivities: 'activities',
   alarmExplorer: 'alarm-explorer',
   alarmFleetDetail: 'alarm-explorer/fleet/:fleetId',
   alarmToolAlarms: 'alarm-explorer/fleet/:fleetId/tool/:toolId',

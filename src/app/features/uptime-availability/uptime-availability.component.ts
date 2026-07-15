@@ -26,7 +26,7 @@ import { downloadCsv } from '../../shared/utils/csv.util';
       <button class="btn-primary self-center" (click)="exportCsv()">↓ Export</button>
     </div>
 
-    @if (store.availabilityLoading()) {
+    @if (store.availabilityLoading() || store.segmentsLoading() || store.segmentActivitiesLoading()) {
       <fam-loading what="fleet availability" />
     } @else {
       <div class="my-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-5 items-stretch">
@@ -57,6 +57,7 @@ import { downloadCsv } from '../../shared/utils/csv.util';
             <a routerLink="heatmap" routerLinkActive="tab-btn-active" class="tab-btn">State Heatmap</a>
             <a routerLink="gantt" routerLinkActive="tab-btn-active" class="tab-btn">Activity Gantt</a>
             <a routerLink="events" routerLinkActive="tab-btn-active" class="tab-btn">Event Details</a>
+            <a routerLink="activities" routerLinkActive="tab-btn-active" class="tab-btn">Segment Activities</a>
           </nav>
         </div>
         <div class="p-4">

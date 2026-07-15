@@ -28,7 +28,7 @@ import { downloadCsv } from '../../shared/utils/csv.util';
       <button class="btn-primary self-center" (click)="exportCsv()">↓ Export</button>
     </div>
 
-    @if (store.analysisLoading()) {
+    @if (store.analysisLoading() || store.trendLoading()) {
       <fam-loading what="up-time analysis" />
     } @else {
       <fam-dynamic-page class="block mt-3.5" [widgets]="widgets()" />
@@ -56,8 +56,15 @@ export class UptimeAnalysisComponent implements OnInit {
   /** The whole page as data. */
   readonly widgets = computed<WidgetConfig[]>(() => {
     const data = this.store.analysis();
-    if (!data) return [];
+    const trend = this.store.trend();
+    if (!data || !trend) return [];
     const weeks = this.weeks();
+
+    const trend1w = trend.find(w => w.RollingWindow === 1)?.UptimeInfo ?? [];
+    const trend13w = trend.find(w => w.RollingWindow === 13)?.UptimeInfo ?? [];
+    const periodAvg = trend1w.length
+      ? trend1w.reduce((sum, p) => sum + p.UptimePercentage, 0) / trend1w.length
+      : 0;
 
     const breakdownColumns: ColumnDef<UptimeBreakdownRow>[] = [
       {
@@ -84,11 +91,11 @@ export class UptimeAnalysisComponent implements OnInit {
         ],
         chartType: 'line',
         data: {
-          labels: data.weekly.map(w => w.workWeek),
+          labels: trend1w.map(p => p.GranulariReferencePoint),
           datasets: [
-            { label: '1 Week Rolling', data: data.weekly.map(w => w.oneWeekRolling), borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,.12)', fill: true, tension: 0.35, pointRadius: 3, borderWidth: 2 },
-            { label: '13 Week Rolling', data: data.weekly.map(w => w.thirteenWeekRolling), borderColor: '#a78bfa', tension: 0.35, pointRadius: 0, borderWidth: 2 },
-            { label: 'Period Average', data: data.weekly.map(w => w.periodAverage), borderColor: '#cbd5e1', borderDash: [6, 4], pointRadius: 0, borderWidth: 1.5 }
+            { label: '1 Week Rolling', data: trend1w.map(p => p.UptimePercentage), borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,.12)', fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2 },
+            { label: '13 Week Rolling', data: trend13w.map(p => p.UptimePercentage), borderColor: '#a78bfa', tension: 0.35, pointRadius: 0, borderWidth: 2 },
+            { label: 'Period Average', data: trend1w.map(() => periodAvg), borderColor: '#cbd5e1', borderDash: [6, 4], pointRadius: 0, borderWidth: 1.5 }
           ]
         },
         options: {
@@ -96,7 +103,7 @@ export class UptimeAnalysisComponent implements OnInit {
           plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
           scales: {
             y: { min: 75, max: 100, ticks: { callback: v => `${v}%`, font: { size: 10 } }, grid: { color: '#f1f5f9' } },
-            x: { ticks: { font: { size: 10 } }, grid: { display: false } }
+            x: { ticks: { font: { size: 10 }, maxTicksLimit: 12, autoSkip: true }, grid: { display: false } }
           }
         }
       },

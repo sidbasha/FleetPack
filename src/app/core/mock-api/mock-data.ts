@@ -1,8 +1,9 @@
 import {
   AlarmCategory, AlarmDefinition, AlarmEvent, AlarmHomeResponse, AlarmEventsResponse,
   AvailabilityResponse, DowntimeCategory, FleetAlarmDetailResponse, FleetAlarmSummary,
-  GanttDay, GanttSegment, HeatmapDay, ToolAlarmDetailResponse, ToolEvent, ToolState,
-  UptimeAnalysisResponse, WeeklyUptimePoint
+  HeatmapDay, SegmentActivitiesResponse, SegmentActivity, StateSegment, StateSegmentsResponse,
+  ToolAlarmDetailResponse, ToolState, UptimeAnalysisResponse, UptimeInfoPoint,
+  UptimeTrendResponse, WeeklyUptimePoint
 } from '../models/models';
 
 // Deterministic PRNG so the mock API is stable across reloads.
@@ -68,6 +69,42 @@ export function buildUptimeAnalysis(): UptimeAnalysisResponse {
 }
 
 // ─────────────────────────────────────────────────────────────
+// 1b) Fleet Up-Time Trend — granular history (2000 pts / rolling window)
+// ─────────────────────────────────────────────────────────────
+const TREND_ANCHOR = new Date(2026, 6, 14); // "today" — most recent granular point
+
+function buildUptimeInfo(rand: () => number, baseline: number, volatility: number, count = 100): UptimeInfoPoint[] {
+  const points: UptimeInfoPoint[] = [];
+  for (let i = count - 1; i >= 0; i--) {
+    const d = new Date(TREND_ANCHOR);
+    d.setDate(d.getDate() - i);
+
+    const pct = Math.max(0, Math.min(100, baseline + Math.sin(i / 37) * volatility + (rand() - 0.5) * volatility));
+    const uptimeHrs = Math.round(pct / 100 * 24 * 100) / 100;
+    const remaining = 24 - uptimeHrs;
+    const downSplit = rand();
+    const downtimeHrs = Math.round(remaining * downSplit * 100) / 100;
+    const noStateHrs = Math.round((remaining - remaining * downSplit) * 100) / 100;
+
+    points.push({
+      GranulariReferencePoint: getWorkWeek(d),
+      UptimePercentage: Math.round(pct * 100) / 100,
+      UptimeDurationHrs: uptimeHrs,
+      DowntimeDurationHrs: downtimeHrs,
+      NoStateDurationHrs: noStateHrs
+    });
+  }
+  return points;
+}
+
+export function buildUptimeTrend(): UptimeTrendResponse {
+  return [
+    { RollingWindow: 1, UptimeInfo: buildUptimeInfo(mulberry32(123), 92, 8) },
+    { RollingWindow: 13, UptimeInfo: buildUptimeInfo(mulberry32(456), 91, 4) }
+  ];
+}
+
+// ─────────────────────────────────────────────────────────────
 // 2) Fleet Up-Time Availability (heatmap / gantt / events)
 // ─────────────────────────────────────────────────────────────
 const HEATMAP_STATES: ToolState[] = ['Production', 'Engineering', 'Standby', 'Scheduled Downtime', 'Unscheduled Downtime', 'Gap'];
@@ -93,80 +130,171 @@ function buildHeatmap(rand: () => number): HeatmapDay[] {
   return days;
 }
 
-function seg(state: ToolState, startHour: number, endHour: number, label?: string): GanttSegment {
-  return { state, startHour, endHour, label };
+// ─────────────────────────────────────────────────────────────
+// 2b) Tool State Segments — raw feed backing both the Activity
+// Gantt bars and the Event Details rows (single source of truth,
+// see core/state/segment-derivation.util.ts for the derivation)
+// ─────────────────────────────────────────────────────────────
+const SEGMENT_STATES: { name: string; weight: number }[] = [
+  { name: 'production', weight: 0.62 },
+  { name: 'engineering', weight: 0.10 },
+  { name: 'standby', weight: 0.10 },
+  { name: 'scheduled downtime', weight: 0.08 },
+  { name: 'unscheduled downtime', weight: 0.10 }
+];
+
+function pickSegmentState(rand: () => number): string {
+  const r = rand();
+  let acc = 0;
+  for (const s of SEGMENT_STATES) {
+    acc += s.weight;
+    if (r < acc) return s.name;
+  }
+  return SEGMENT_STATES[0].name;
 }
 
-function buildGantt(): GanttDay[] {
-  return [
-    {
-      day: 'Sat', date: '05-09', availabilityPct: 77, downtimeHrs: 3.2,
-      sysRow: [seg('Production', 0, 9.5), seg('Unscheduled Downtime', 9.5, 11.4, '1.9h'), seg('Production', 11.4, 17.7, '6.3h'), seg('Standby', 17.7, 24)],
-      toolRow: [seg('Production', 0, 8.3, '8.3h'), seg('Engineering', 8.3, 10.5), seg('Production', 10.5, 18.2, '7.7h'), seg('Standby', 18.2, 24)]
-    },
-    {
-      day: 'Fri', date: '05-08', availabilityPct: 78, downtimeHrs: 3.6,
-      sysRow: [seg('Production', 0, 8.9, '8.9h'), seg('Scheduled Downtime', 8.9, 12.5), seg('Production', 12.5, 18.6, '6.1h'), seg('Standby', 18.6, 24)],
-      toolRow: [seg('Production', 0, 6.9, '6.9h'), seg('Standby', 6.9, 9), seg('Production', 9, 16.2, '7.2h'), seg('Engineering', 16.2, 18.6), seg('Production', 18.6, 24, '5.4h')]
-    },
-    {
-      day: 'Thu', date: '05-07', availabilityPct: 100, downtimeHrs: 0,
-      sysRow: [seg('Production', 0, 12), seg('Production', 12, 24)],
-      toolRow: [seg('Production', 0, 5.1, '5.1h'), seg('Standby', 5.1, 7.4), seg('Production', 7.4, 10.7, '3.3h'), seg('Production', 10.7, 16.4, '5.7h'), seg('Production', 16.4, 24)]
-    },
-    {
-      day: 'Wed', date: '05-06', availabilityPct: 71, downtimeHrs: 7.1,
-      sysRow: [seg('Production', 0, 5), seg('Unscheduled Downtime', 5, 6.5, '1.5h'), seg('Production', 6.5, 11.5, '5.0h'), seg('Scheduled Downtime', 11.5, 15.5, '4.0h'), seg('Production', 15.5, 22), seg('Standby', 22, 24)],
-      toolRow: [seg('Production', 0, 5, '5.0h'), seg('Engineering', 5, 7.2, '2.2h'), seg('Production', 7.2, 12.2), seg('Unscheduled Downtime', 12.2, 13.8, '1.6h'), seg('Production', 13.8, 21, '7.1h'), seg('Standby', 21, 24)]
-    },
-    {
-      day: 'Tue', date: '05-05', availabilityPct: 97, downtimeHrs: 0,
-      sysRow: [seg('Production', 0, 24)],
-      toolRow: [seg('Production', 0, 7.2, '7.2h'), seg('Standby', 7.2, 9.4, '2.2h'), seg('Production', 9.4, 16.9, '7.5h'), seg('Production', 16.9, 24)]
-    },
-    {
-      day: 'Mon', date: '05-04', availabilityPct: 94, downtimeHrs: 1.5,
-      sysRow: [seg('Production', 0, 13.5), seg('Scheduled Downtime', 13.5, 15), seg('Production', 15, 24)],
-      toolRow: [seg('Production', 0, 2.4, '2.4h'), seg('Engineering', 2.4, 5), seg('Production', 5, 8.9, '3.9h'), seg('Production', 8.9, 13.6, '4.7h'), seg('Production', 13.6, 24)]
-    },
-    {
-      day: 'Sun', date: '05-03', availabilityPct: 82, downtimeHrs: 2.6,
-      sysRow: [seg('Unscheduled Downtime', 0, 8.7, '8.7h'), seg('Production', 8.7, 12.4, '3.7h'), seg('Production', 12.4, 24)],
-      toolRow: [seg('Standby', 0, 2.5, '2.5h'), seg('Production', 2.5, 10.7, '8.2h'), seg('Engineering', 10.7, 13.3, '2.6h'), seg('Production', 13.3, 17.3, '4.0h'), seg('Production', 17.3, 24, '3.4h')]
-    }
-  ];
+function buildDayTrack(rand: () => number, day: Date, sourceName: 'system' | 'tool', idSeed: number): StateSegment[] {
+  const segments: StateSegment[] = [];
+  let cursorMin = 0; // whole minutes — avoids float drift when clamped at day end
+  let id = idSeed;
+  while (cursorMin < 1440) {
+    const durMin = Math.min(1440 - cursorMin, Math.round((1 + rand() * 7) * 10) * 6); // multiples of 6 min (0.1h)
+    const start = new Date(day);
+    start.setHours(0, 0, 0, 0);
+    start.setMinutes(cursorMin);
+    const end = new Date(start);
+    end.setMinutes(end.getMinutes() + durMin);
+
+    segments.push({
+      ToolDetail: null,
+      segmentId: id++,
+      sourceName,
+      stateName: pickSegmentState(rand),
+      start: start.toISOString(),
+      end: end.toISOString(),
+      segmentDurationHrs: Math.round((durMin / 60) * 100) / 100,
+      metadata: null
+    });
+    cursorMin += durMin;
+  }
+  return segments;
 }
 
-function buildToolEvents(rand: () => number): ToolEvent[] {
-  const states: ToolState[] = ['Production', 'Engineering', 'Production', 'Unscheduled Downtime', 'Scheduled Downtime', 'Production'];
-  const sources: ToolEvent['source'][] = ['MES', 'E10', 'Auto', 'Manual'];
-  const events: ToolEvent[] = [];
-  let id = 1;
-  for (let d = 0; d < 100; d++) {
-    const day = new Date(2026, 4, 8);
-    day.setDate(day.getDate() - d);
-    const date = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
-    let cursor = 0;
-    const n = 4 + Math.floor(rand() * 3);
-    for (let e = 0; e < n && cursor < 23; e++) {
-      const dur = Math.round((0.5 + rand() * 7.5) * 100) / 100;
-      const end = Math.min(24, cursor + dur);
-      const fmt = (h: number) => `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}:00`;
-      const state = states[Math.floor(rand() * states.length)];
-      events.push({
-        id: id++,
-        date,
-        startTime: fmt(cursor),
-        endTime: end === 24 ? '24:00:00' : fmt(end),
-        durationHrs: Math.round((end - cursor) * 100) / 100,
-        source: sources[Math.floor(rand() * sources.length)],
-        state,
-        details: state === 'Production' ? (rand() < 0.85 ? 'JobStatus: Pass' : 'JobStatus: Fail') : ''
+export function buildStateSegments(toolId: string, days = 14): StateSegmentsResponse {
+  const rand = mulberry32(toolId.length * 97 + days);
+  const anchor = new Date(2026, 6, 15); // "today"
+  const stateSegments: StateSegment[] = [];
+  let idSeed = 100000;
+  for (let i = days - 1; i >= 0; i--) {
+    const day = new Date(anchor);
+    day.setDate(day.getDate() - i);
+    stateSegments.push(...buildDayTrack(rand, day, 'system', idSeed)); idSeed += 1000;
+    stateSegments.push(...buildDayTrack(rand, day, 'tool', idSeed)); idSeed += 1000;
+  }
+  return { stateSegments };
+}
+
+// ─────────────────────────────────────────────────────────────
+// 2c) Segment Activities — task/recipe-level detail generated
+// inside the 'tool' track's Production windows, so it correlates
+// with the same StateSegment data backing the Gantt/Event tables.
+// ─────────────────────────────────────────────────────────────
+const RECIPE_SEGMENT_NAMES = ['Recipe Editor', 'Recipe Run', 'Wafer Process', 'Lot Load', 'Lot Unload'];
+const RECIPE_IDS = [
+  'Chelsie\\MetroHost\\2_XYS_TIS_fail_UI',
+  'KT_CSE\\Config\\DAD Calibration\\DAD_Calibration',
+  'Chelsie\\MetroHost\\3_ABC_Wafer_Scan',
+  'KT_CSE\\Recipe\\Standard_Metrology_Run'
+];
+const ERROR_CODES: [string, string][] = [
+  ['0x0', 'Success'],
+  ['0xc82f001a', 'Lot Run Failed. Pass/Fail criteria were not met.'],
+  ['0x1', 'Incorrect function.'],
+  ['0x8007000e', 'Not enough memory resources.']
+];
+
+function toolIdToNumber(toolId: string): number {
+  let h = 0;
+  for (let i = 0; i < toolId.length; i++) h = (h * 31 + toolId.charCodeAt(i)) >>> 0;
+  return 4000000 + (h % 999999);
+}
+
+function buildSegmentActivitiesRaw(toolId: string): SegmentActivity[] {
+  const rand = mulberry32(toolId.length * 71 + 13);
+  const numericToolId = toolIdToNumber(toolId);
+  const productionWindows = buildStateSegments(toolId).stateSegments
+    .filter(s => s.sourceName === 'tool' && s.stateName === 'production');
+
+  const activities: SegmentActivity[] = [];
+  for (const win of productionWindows) {
+    const start = new Date(win.start);
+    const totalMin = win.segmentDurationHrs * 60;
+    const count = 1 + Math.floor(rand() * 3);
+    let cursorMin = 0;
+    for (let i = 0; i < count && cursorMin < totalMin; i++) {
+      const durMin = Math.min(totalMin - cursorMin, Math.round(5 + rand() * 40));
+      const actStart = new Date(start.getTime() + cursorMin * 60000);
+      const actEnd = new Date(actStart.getTime() + durMin * 60000);
+      const failed = rand() < 0.12;
+      const [errorCode, errorDesc] = failed ? ERROR_CODES[1 + Math.floor(rand() * (ERROR_CODES.length - 1))] : ERROR_CODES[0];
+      const wafersTotal = 1 + Math.floor(rand() * 25);
+      const wafersFailed = failed ? wafersTotal : 0;
+
+      activities.push({
+        modelId: 'Archer700AIM',
+        toolId: numericToolId,
+        eventStart: actStart.toISOString(),
+        eventEnd: actEnd.toISOString(),
+        duration: Math.round((durMin / 60) * 100) / 100,
+        segmentType: 'TaskSegment',
+        SegmentName: RECIPE_SEGMENT_NAMES[Math.floor(rand() * RECIPE_SEGMENT_NAMES.length)],
+        params: {
+          'Port': 1 + Math.floor(rand() * 4),
+          'LotID': `${1 + Math.floor(rand() * 9)}_XYS_TIS_${failed ? 'fail' : 'pass'}`,
+          'Carrier ID': '',
+          'Recipe ID': RECIPE_IDS[Math.floor(rand() * RECIPE_IDS.length)],
+          'Error Code': errorCode,
+          'NexusJobID': 500000 + Math.floor(rand() * 99999),
+          'Operator Name': 'OPERATOR',
+          'ToolSWversion': '17.90.05.20400',
+          'Wafers Failed': wafersFailed,
+          'Wafers Passed': wafersTotal - wafersFailed,
+          'Error Facility': failed ? 'RESULT_HANDLER' : '',
+          'Number Of Wafers': wafersTotal,
+          'Failure Percentage': `${Math.round((wafersFailed / wafersTotal) * 100)}%`,
+          'RecipeModifiedDate': '2025-12-10 09:54:12',
+          'Wafer Handling Mode': 'Auto',
+          'Iterations Per Wafer': 1,
+          'Error Code Description': errorDesc,
+          'Number of Failed Sites': failed ? Math.floor(rand() * 30) : 0,
+          'Number of Measure Sites': Math.floor(rand() * 10)
+        }
       });
-      cursor = end;
+      cursorMin += durMin;
     }
   }
-  return events;
+  return activities;
+}
+
+export function buildSegmentActivities(
+  toolId: string, startTime: string, endTime: string, pageNumber = 0, pageSize = 500
+): SegmentActivitiesResponse {
+  const all = buildSegmentActivitiesRaw(toolId)
+    .filter(a => a.eventStart >= startTime && a.eventStart <= endTime)
+    .sort((a, b) => b.eventStart.localeCompare(a.eventStart));
+
+  const offset = pageNumber * pageSize;
+  const result = all.slice(offset, offset + pageSize);
+
+  return {
+    version: '1.0.0.0',
+    statusCode: 0,
+    message: result.length ? 'Data Found' : 'No Data Found',
+    isError: null,
+    responseException: null,
+    result,
+    totalCount: all.length
+  };
 }
 
 export function buildAvailability(): AvailabilityResponse {
@@ -198,9 +326,6 @@ export function buildAvailability(): AvailabilityResponse {
     topUnavailable: [{ toolId: 'Axion_T2500', hrs: 1202 }],
     heatmap: buildHeatmap(mulberry32(7)),
     stateTotals: { production: 368, engineering: 59, standby: 52, scheduledDT: 69, unscheduledDT: 47 },
-    gantt: buildGantt(),
-    ganttSummary: { avgProductionPct: 85.5, totalDowntimeHrs: 17.9 },
-    events: buildToolEvents(mulberry32(11)),
     downtimeCategories: [
       { category: 'Unknown', periodPct: 99.45, thirteenWeekPct: 99.2, fourWeekPct: 99.6, wowDelta: 0 },
       { category: 'Planned Repair', periodPct: 3.57, thirteenWeekPct: 3.4, fourWeekPct: 3.7, wowDelta: 0 },

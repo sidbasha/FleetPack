@@ -44,6 +44,11 @@ export const routes: Routes = [
             path: APP_ROUTE_PATHS.events,
             loadComponent: () =>
               import('./features/uptime-availability/event-details.component').then(m => m.EventDetailsComponent)
+          },
+          {
+            path: APP_ROUTE_PATHS.segmentActivities,
+            loadComponent: () =>
+              import('./features/uptime-availability/segment-activities.component').then(m => m.SegmentActivitiesComponent)
           }
         ]
       },

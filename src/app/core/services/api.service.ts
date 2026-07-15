@@ -3,7 +3,8 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
   AlarmEventsResponse, AlarmHomeResponse, AvailabilityResponse,
-  FleetAlarmDetailResponse, ToolAlarmDetailResponse, UptimeAnalysisResponse
+  FleetAlarmDetailResponse, SegmentActivitiesResponse, StateSegmentsResponse, ToolAlarmDetailResponse,
+  UptimeAnalysisResponse, UptimeTrendResponse
 } from '../models/models';
 
 @Injectable({ providedIn: 'root' })
@@ -21,9 +22,34 @@ export class ApiService {
     });
   }
 
+  getUptimeTrend(fleet: string): Observable<UptimeTrendResponse> {
+    return this.http.get<UptimeTrendResponse>(`${this.base}/uptime/trend`, {
+      params: new HttpParams().set('fleet', fleet)
+    });
+  }
+
   getAvailability(fleet: string): Observable<AvailabilityResponse> {
     return this.http.get<AvailabilityResponse>(`${this.base}/uptime/availability`, {
       params: new HttpParams().set('fleet', fleet)
+    });
+  }
+
+  getStateSegments(toolId: string): Observable<StateSegmentsResponse> {
+    return this.http.get<StateSegmentsResponse>(`${this.base}/tools/state-segments`, {
+      params: new HttpParams().set('toolIds', toolId)
+    });
+  }
+
+  getSegmentActivities(
+    toolId: string, startTime: string, endTime: string, pageNumber = 0, pageSize = 500
+  ): Observable<SegmentActivitiesResponse> {
+    return this.http.get<SegmentActivitiesResponse>(`${this.base}/tools/segment-activities`, {
+      params: new HttpParams()
+        .set('toolId', toolId)
+        .set('startTime', startTime)
+        .set('endTime', endTime)
+        .set('pageNumber', pageNumber)
+        .set('pageSize', pageSize)
     });
   }
 

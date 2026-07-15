@@ -25,7 +25,7 @@ import { downloadCsv } from '../../shared/utils/csv.util';
 export class EventDetailsComponent {
   store = inject(UptimeStore);
 
-  total = computed(() => this.store.availability()?.events.length ?? 0);
+  total = computed(() => this.store.events().length);
 
   readonly tableWidget = computed<TableWidget<ToolEvent>>(() => ({
     id: 'tool-events', type: 'table', frameless: true,
@@ -62,7 +62,7 @@ export class EventDetailsComponent {
   }));
 
   exportCsv(): void {
-    const all = this.store.availability()?.events ?? [];
+    const all = this.store.events();
     downloadCsv('tool-events.csv', [
       ['Date', 'Start', 'End', 'DurationHrs', 'Source', 'State', 'Details'],
       ...all.map(e => [e.date, e.startTime, e.endTime, e.durationHrs, e.source, e.state, e.details])

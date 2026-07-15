@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { DecimalPipe, NgClass } from '@angular/common';
 import { UptimeStore } from '../../core/state/uptime.store';
 import { StateLegendComponent } from '../../shared/components/ui.components';
@@ -20,11 +20,11 @@ const STATE_BG: Record<string, string> = {
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
       <div class="flex items-end gap-6">
         <div>
-          <span class="kpi-value text-indigo-600">{{ summary()?.avgProductionPct | number:'1.1-1' }}%</span>
+          <span class="kpi-value text-indigo-600">{{ summary().avgProductionPct | number:'1.1-1' }}%</span>
           <span class="kpi-label block mt-1">Avg Production</span>
         </div>
         <div>
-          <span class="kpi-value">{{ summary()?.totalDowntimeHrs | number:'1.1-1' }}</span>
+          <span class="kpi-value">{{ summary().totalDowntimeHrs | number:'1.1-1' }}</span>
           <span class="kpi-label block mt-1">Total Downtime (hrs)</span>
         </div>
         <div>
@@ -65,7 +65,7 @@ const STATE_BG: Record<string, string> = {
                   <div class="absolute inset-y-0 group" [ngClass]="bg(s)"
                        [style.left.%]="s.startHour / 24 * 100"
                        [style.width.%]="(s.endHour - s.startHour) / 24 * 100"
-                       [title]="s.state + ' · ' + (s.endHour - s.startHour).toFixed(1) + 'h'">
+                       [title]="tooltip(s)">
                     @if (s.label) { <span class="absolute inset-0 grid place-items-center text-[9px] font-semibold text-white/95">{{ s.label }}</span> }
                   </div>
                 }
@@ -78,7 +78,7 @@ const STATE_BG: Record<string, string> = {
                   <div class="absolute inset-y-0" [ngClass]="bg(s)"
                        [style.left.%]="s.startHour / 24 * 100"
                        [style.width.%]="(s.endHour - s.startHour) / 24 * 100"
-                       [title]="s.state + ' · ' + (s.endHour - s.startHour).toFixed(1) + 'h'">
+                       [title]="tooltip(s)">
                     @if (s.label) { <span class="absolute inset-0 grid place-items-center text-[9px] font-semibold text-white/95">{{ s.label }}</span> }
                   </div>
                 }
@@ -120,11 +120,15 @@ export class ActivityGanttComponent {
   page = signal(1);
   dayShift = signal(false);
 
-  gantt = computed(() => this.store.availability()?.gantt ?? []);
-  summary = computed(() => this.store.availability()?.ganttSummary ?? null);
+  gantt = this.store.gantt;
+  summary = this.store.ganttSummary;
 
   bg(s: GanttSegment): string {
     return STATE_BG[s.state] ?? 'bg-state-gap';
+  }
+  tooltip(s: GanttSegment): string {
+    const base = `${s.state} · ${(s.endHour - s.startHour).toFixed(1)}h`;
+    return s.detail ? `${base} · ${s.detail}` : base;
   }
   prev(): void { this.page.update(p => Math.max(1, p - 1)); }
   next(): void { this.page.update(p => Math.min(13, p + 1)); }
