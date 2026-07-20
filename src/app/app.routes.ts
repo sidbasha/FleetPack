@@ -80,7 +80,13 @@ export const routes: Routes = [
         path,
         loadComponent: () =>
           import('./features/placeholder/placeholder.component').then(m => m.PlaceholderComponent)
-      }))
+      })),
+      {
+        path: APP_ROUTE_PATHS.devComponentCatalog,
+        title: ROUTE_TITLES.devComponentCatalog,
+        loadComponent: () =>
+          import('./features/dev/component-catalog.component').then(m => m.ComponentCatalogComponent)
+      }
     ]
   },
   { path: APP_ROUTE_PATHS.wildcard, redirectTo: APP_ROUTE_PATHS.root }
