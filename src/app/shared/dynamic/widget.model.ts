@@ -34,6 +34,12 @@ export interface WidgetToggle {
   onChange: (checked: boolean) => void;
 }
 
+export interface WidgetSearch {
+  placeholder?: string;
+  value: string;
+  onChange: (value: string) => void;
+}
+
 export interface WidgetBase {
   /** Unique per page — used for @for tracking. */
   id: string;
@@ -57,6 +63,8 @@ export interface WidgetBase {
   tabs?: WidgetTabs;
   /** Single boolean switch shown in the header (e.g. a "Period" toggle). */
   toggle?: WidgetToggle;
+  /** Inline search box shown in the header. */
+  search?: WidgetSearch;
   /** Adds a collapse chevron before the title; body hides when `collapsed`. */
   collapsible?: boolean;
   collapsed?: boolean;
@@ -71,6 +79,8 @@ export interface KpiItem {
   unit?: string;
   sub?: string;
   accent?: boolean;
+  /** Renders the value in red, e.g. a downtime total. */
+  danger?: boolean;
 }
 export interface KpiGridWidget extends WidgetBase {
   type: 'kpi-grid';
@@ -89,7 +99,7 @@ export interface ChartWidget extends WidgetBase {
   onPointClick?: (datasetIndex: number, index: number) => void;
 }
 
-export type CellKind = 'text' | 'mono' | 'badge' | 'dot' | 'trend' | 'progress';
+export type CellKind = 'text' | 'mono' | 'badge' | 'dot' | 'trend' | 'progress' | 'text-bar' | 'row-actions';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ColumnDef<Row = any> {
@@ -98,6 +108,8 @@ export interface ColumnDef<Row = any> {
   align?: 'left' | 'right';
   kind?: CellKind;
   width?: string;
+  /** Enable click-to-sort on the header. */
+  sortable?: boolean;
   /** Override the raw value (defaults to row[key]). */
   value?: (row: Row) => unknown;
   /** Override the rendered text (defaults to String(value)). */
@@ -110,10 +122,14 @@ export interface ColumnDef<Row = any> {
   dotClassMap?: Record<string, string>;
   /** kind 'trend': whether an increase is bad (alarms) vs good (uptime). */
   trendBadWhenUp?: boolean;
-  /** kind 'progress': denominator the raw value is scaled against for bar width. Default 100. */
+  /** kind 'progress' | 'text-bar': denominator the raw value is scaled against for bar width. Default 100. */
   progressMax?: number;
-  /** kind 'progress': per-row bar fill color, e.g. row => 'bg-red-500'. Default indigo. */
+  /** kind 'progress' | 'text-bar': per-row bar fill color, e.g. row => 'bg-red-500'. Default indigo. */
   barClass?: (row: Row) => string;
+  /** kind 'text-bar': the number driving the bar width, when it isn't the same as the cell's text value. */
+  barValue?: (row: Row) => number;
+  /** kind 'row-actions': small icon buttons, e.g. [{ icon: '🗑', run: r => … }]. */
+  rowActions?: { icon: string; title?: string; variant?: 'icon' | 'button'; run: (row: Row) => void }[];
 }
 
 export interface PaginationConfig {
@@ -136,8 +152,10 @@ export interface TableWidget<Row = any> extends WidgetBase {
   selectedKey?: string | null;
   /** Group rows under sub-header rows (e.g. events by day). Return null to leave a row ungrouped (no header). */
   groupBy?: (row: Row) => string | null;
-  /** 'accent' (default): indigo header with row count. 'plain': muted uppercase section divider. */
-  groupHeaderStyle?: 'accent' | 'plain';
+  /** 'accent' (default): indigo header with row count. 'plain': muted uppercase section divider. 'light': white header, bold label, count pill, solid action button. */
+  groupHeaderStyle?: 'accent' | 'plain' | 'light';
+  /** Unit label after the row count, e.g. 'row(s)' (default) or 'events'. */
+  groupCountLabel?: string;
   groupAction?: { label: string; run: (group: string) => void };
   pagination?: PaginationConfig;
   footer?: string;
@@ -147,12 +165,18 @@ export interface RankedItem {
   key: string;
   rank?: number;
   title: string;
+  /** Extra classes for the title, e.g. 'text-indigo-600 font-mono' to render it link-styled. */
+  titleClass?: string;
   subtitle?: string;
+  /** Extra classes for the subtitle. Defaults to muted small text. */
+  subtitleClass?: string;
   value: string | number;
   /** Show a trend pill; null renders '—'. Omit entirely to hide. */
   trendPct?: number | null;
   /** 0–100 progress bar under the title. */
   barPct?: number;
+  /** CSS color for the progress bar, e.g. '#ef4444'. Default indigo. */
+  barColor?: string;
 }
 export interface RankedListWidget extends WidgetBase {
   type: 'ranked-list';

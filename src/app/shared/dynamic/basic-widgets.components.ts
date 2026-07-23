@@ -74,11 +74,11 @@ export class ChartWidgetComponent {
               <span class="w-6 h-6 shrink-0 rounded-md bg-slate-100 grid place-items-center text-[11px] font-bold text-slate-500 group-hover:bg-indigo-100 group-hover:text-indigo-700">{{ it.rank }}</span>
             }
             <span class="flex-1 min-w-0">
-              <span class="block text-xs font-semibold text-slate-700 group-hover:text-indigo-700 truncate">{{ it.title }}</span>
-              @if (it.subtitle) { <span class="block text-[10px] text-slate-400 truncate">{{ it.subtitle }}</span> }
+              <span class="block text-xs font-semibold truncate" [class]="it.titleClass ?? 'text-slate-700 group-hover:text-indigo-700'">{{ it.title }}</span>
+              @if (it.subtitle) { <span class="block truncate" [class]="it.subtitleClass ?? 'text-[10px] text-slate-400'">{{ it.subtitle }}</span> }
               @if (it.barPct != null) {
                 <span class="block mt-1.5">
-                  <base-progress-bar [value]="it.barPct!" [showLabel]="false" [height]="8" />
+                  <base-progress-bar [value]="it.barPct!" [color]="it.barColor ?? '#6366f1'" [showLabel]="false" [height]="8" />
                 </span>
               }
             </span>

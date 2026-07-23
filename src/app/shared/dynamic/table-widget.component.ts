@@ -28,6 +28,7 @@ type Row = Record<string, unknown>;
       [showSearch]="false"
       [groupBy]="widget().groupBy ?? null"
       [groupHeaderStyle]="widget().groupHeaderStyle ?? 'accent'"
+      [groupCountLabel]="widget().groupCountLabel ?? 'row(s)'"
       [groupActionLabel]="widget().groupAction?.label ?? ''"
       [highlightKey]="widget().selectedKey ?? null"
       emptyTitle="No records"
@@ -65,6 +66,7 @@ export class TableWidgetComponent {
       kind: mono ? 'text' : ((c.kind ?? 'text') as Exclude<import('./widget.model').CellKind, 'mono'>),
       align: c.align === 'right' ? 'right' : 'left',
       width: c.width,
+      sortable: c.sortable,
       value: c.value,
       format: c.format ? (row) => c.format!(row) : undefined,
       cellClass: (row) =>
@@ -73,7 +75,9 @@ export class TableWidgetComponent {
       dotClassMap: c.dotClassMap,
       trendBadWhenUp: c.trendBadWhenUp,
       progressMax: c.progressMax,
-      barClass: c.barClass
+      barClass: c.barClass,
+      barValue: c.barValue,
+      rowActions: c.rowActions
     };
   }
 

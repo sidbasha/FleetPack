@@ -138,11 +138,26 @@ interface StickyMeta {
                   {{ g.key }}
                 </td>
               </tr>
+            } @else if (g.key !== null && groupHeaderStyle() === 'light') {
+              <tr class="bg-white">
+                <td [attr.colspan]="groupActionLabel() ? colspan() - 1 : colspan()"
+                    class="px-3 py-2.5 text-[13px] font-bold text-slate-800">
+                  {{ g.key }}
+                  <span class="ml-1.5 text-[10px] font-semibold text-slate-500 bg-slate-100 rounded-full px-2 py-0.5 align-middle">
+                    {{ g.rows.length }} {{ groupCountLabel() }}
+                  </span>
+                </td>
+                @if (groupActionLabel()) {
+                  <td class="px-3 py-2.5 text-right">
+                    <button type="button" class="btn-primary" (click)="groupAction.emit(g.key!)">{{ groupActionLabel() }}</button>
+                  </td>
+                }
+              </tr>
             } @else if (g.key !== null) {
               <tr class="bg-indigo-50/60">
                 <td [attr.colspan]="groupActionLabel() ? colspan() - 1 : colspan()"
                     class="px-3 py-1.5 text-[11px] font-bold text-indigo-800">
-                  {{ g.key }} <span class="font-medium text-indigo-400">· {{ g.rows.length }} row(s)</span>
+                  {{ g.key }} <span class="font-medium text-indigo-400">· {{ g.rows.length }} {{ groupCountLabel() }}</span>
                 </td>
                 @if (groupActionLabel()) {
                   <td class="px-3 py-1.5 text-right">
@@ -208,6 +223,14 @@ interface StickyMeta {
                           <span class="text-[10px] font-semibold text-slate-500 tabular-nums">{{ progressLabel(c, row) }}</span>
                         </span>
                       }
+                      @case ('text-bar') {
+                        <span class="inline-flex flex-col items-start gap-1">
+                          <span class="font-semibold" [class]="extraClass(c, row)">{{ cellText(c, row) }}</span>
+                          <span class="h-1 w-16 rounded-full bg-slate-100 overflow-hidden">
+                            <span class="block h-full rounded-full" [class]="progressBarClass(c, row)" [style.width.%]="textBarPct(c, row)"></span>
+                          </span>
+                        </span>
+                      }
                       @case ('sparkline') {
                         <base-sparkline [data]="sparkData(c, row)" />
                       }
@@ -217,6 +240,21 @@ interface StickyMeta {
                            [target]="(c.linkExternal ?? true) ? '_blank' : '_self'"
                            rel="noopener"
                            (click)="$event.stopPropagation()">{{ cellText(c, row) }}</a>
+                      }
+                      @case ('row-actions') {
+                        <span class="inline-flex items-center gap-3 justify-end w-full">
+                          @for (a of c.rowActions ?? []; track $index) {
+                            @if (a.variant === 'button') {
+                              <button type="button" class="btn-ghost border border-slate-200 py-1! px-2.5! text-[11px]"
+                                      [attr.aria-label]="a.title ?? null" [title]="a.title ?? ''"
+                                      (click)="$event.stopPropagation(); a.run(row)">{{ a.icon }}</button>
+                            } @else {
+                              <button type="button" class="text-slate-400 hover:text-indigo-600"
+                                      [attr.aria-label]="a.title ?? null" [title]="a.title ?? ''"
+                                      (click)="$event.stopPropagation(); a.run(row)">{{ a.icon }}</button>
+                            }
+                          }
+                        </span>
                       }
                       @default {
                         <span [class]="extraClass(c, row)">{{ cellText(c, row) }}</span>
@@ -290,8 +328,10 @@ export class BaseTableComponent<T = BaseRow> {
   readonly groupBy = input<((row: T) => string | null) | null>(null);
   /** When set, group headers get an action button emitting (groupAction). */
   readonly groupActionLabel = input('');
-  /** 'accent' (default): indigo header with row count. 'plain': muted uppercase section divider. */
-  readonly groupHeaderStyle = input<'accent' | 'plain'>('accent');
+  /** 'accent' (default): indigo header with row count. 'plain': muted uppercase section divider. 'light': white header, bold label, count pill, solid action button. */
+  readonly groupHeaderStyle = input<'accent' | 'plain' | 'light'>('accent');
+  /** Unit label after the row count, e.g. 'row(s)' (default) or 'events'. */
+  readonly groupCountLabel = input('row(s)');
   /** Highlight the row whose trackKey value matches (external selection). */
   readonly highlightKey = input<string | null>(null);
   readonly emptyTitle = input('No matching records');
@@ -596,12 +636,26 @@ export class BaseTableComponent<T = BaseRow> {
     return isNaN(v) ? 0 : Math.min(100, Math.max(0, Math.round(v)));
   }
 
-  /** Bar width as a % of `progressMax` (defaults to 100, i.e. the raw value is already 0–100). */
+  /**
+   * Bar width as a % of `progressMax` (defaults to 100, i.e. the raw value is
+   * already 0–100). Any positive value gets a minimum visible sliver — on a
+   * skewed dataset (one dominant value, several tiny ones) a strict linear
+   * scale would render the small rows as an invisible 0px bar.
+   */
   progressBarPct(c: BaseColumnDef<T>, row: T): number {
-    const v = Number(this.cellValue(c, row));
-    if (isNaN(v)) return 0;
-    const max = c.progressMax ?? 100;
-    return Math.min(100, Math.max(0, Math.round((v / max) * 100)));
+    return this.barPct(Number(this.cellValue(c, row)), c.progressMax ?? 100);
+  }
+
+  /** Same scaling as `progressBarPct`, but reads `barValue` (kind 'text-bar') instead of the cell's own value. */
+  textBarPct(c: BaseColumnDef<T>, row: T): number {
+    const raw = c.barValue ? c.barValue(row) : this.cellValue(c, row);
+    return this.barPct(Number(raw), c.progressMax ?? 100);
+  }
+
+  private barPct(v: number, max: number): number {
+    if (isNaN(v) || v <= 0) return 0;
+    const pct = Math.min(100, (v / max) * 100);
+    return Math.max(Math.round(pct), 4);
   }
 
   progressBarClass(c: BaseColumnDef<T>, row: T): string {

@@ -3,7 +3,19 @@ import { UptimeStore } from '../../core/state/uptime.store';
 import { DynamicWidgetComponent } from '../../shared/dynamic/dynamic-page.component';
 import { TableWidget } from '../../shared/dynamic/widget.model';
 import { ToolEvent } from '../../core/models/models';
-import { downloadCsv } from '../../shared/utils/csv.util';
+
+const STATE_BAR_CLASS: Record<string, string> = {
+  'Production': 'bg-state-production', 'Engineering': 'bg-state-engineering', 'Standby': 'bg-state-standby',
+  'Scheduled Downtime': 'bg-state-scheduled', 'Unscheduled Downtime': 'bg-state-unscheduled'
+};
+
+const STATE_BADGE_CLASS: Record<string, string> = {
+  'Production': 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  'Engineering': 'bg-blue-50 text-blue-700 border border-blue-200',
+  'Standby': 'bg-violet-50 text-violet-700 border border-violet-200',
+  'Scheduled Downtime': 'bg-amber-50 text-amber-700 border border-amber-200',
+  'Unscheduled Downtime': 'bg-red-50 text-red-700 border border-red-200'
+};
 
 /**
  * Event Details tab — a single dynamic TableWidget with day grouping,
@@ -16,10 +28,6 @@ import { downloadCsv } from '../../shared/utils/csv.util';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DynamicWidgetComponent],
   template: `
-    <div class="flex items-center justify-between mb-3">
-      <p class="text-[11px] text-slate-400">{{ total() }} records · grouped by day, most recent first</p>
-      <button class="btn-ghost" (click)="exportCsv()">↓ Download CSV</button>
-    </div>
     <fam-dynamic-widget [widget]="tableWidget()" />
   `
 })
@@ -30,24 +38,32 @@ export class EventDetailsComponent {
 
   readonly tableWidget = computed<TableWidget<ToolEvent>>(() => ({
     id: 'tool-events', type: 'table', frameless: true,
+    groupHeaderStyle: 'light', groupCountLabel: 'events',
+    footer: `${this.total()} of ${this.total()} records`,
     columns: [
-      { key: 'startTime', header: 'Start Time', kind: 'mono' },
-      { key: 'endTime', header: 'End Time', kind: 'mono' },
-      { key: 'durationHrs', header: 'Duration', align: 'right', kind: 'mono', format: r => r.durationHrs.toFixed(2) },
+      { key: 'startTime', header: 'Start Time', kind: 'mono', sortable: true },
+      { key: 'endTime', header: 'End Time', kind: 'mono', sortable: true },
       {
-        key: 'source', header: 'Source', kind: 'badge',
-        badgeClassMap: { MES: 'bg-slate-100 text-slate-500', E10: 'bg-slate-100 text-slate-500', Auto: 'bg-slate-100 text-slate-500', Manual: 'bg-slate-100 text-slate-500' }
+        key: 'durationHrs', header: 'Duration', align: 'right', kind: 'progress', width: '160px',
+        format: r => r.durationHrs.toFixed(2), progressMax: 24,
+        barClass: r => STATE_BAR_CLASS[r.state] ?? 'bg-slate-400'
       },
+      { key: 'source', header: 'Source', classFn: () => 'text-slate-500' },
       {
-        key: 'state', header: 'State', kind: 'dot',
-        dotClassMap: {
-          'Production': 'bg-state-production', 'Engineering': 'bg-state-engineering', 'Standby': 'bg-state-standby',
-          'Scheduled Downtime': 'bg-state-scheduled', 'Unscheduled Downtime': 'bg-state-unscheduled'
-        }
+        key: 'state', header: 'State', kind: 'badge',
+        format: r => `• ${r.state}`,
+        badgeClassMap: STATE_BADGE_CLASS
       },
       {
         key: 'details', header: 'Details',
         classFn: r => r.details === 'JobStatus: Fail' ? 'text-red-500 font-semibold' : 'text-slate-400'
+      },
+      {
+        key: 'actions', header: 'Actions', align: 'right', kind: 'row-actions',
+        rowActions: [
+          { icon: '🗑', title: 'Delete event', run: r => console.info(`[FAM] Delete event ${r.id}`) },
+          { icon: '✎', title: 'Edit event', run: r => console.info(`[FAM] Edit event ${r.id}`) }
+        ]
       }
     ],
     rows: this.store.pagedEvents(),
@@ -61,12 +77,4 @@ export class EventDetailsComponent {
       onNext: () => this.store.nextEventPage()
     }
   }));
-
-  exportCsv(): void {
-    const all = this.store.events();
-    downloadCsv('tool-events.csv', [
-      ['Date', 'Start', 'End', 'DurationHrs', 'Source', 'State', 'Details'],
-      ...all.map(e => [e.date, e.startTime, e.endTime, e.durationHrs, e.source, e.state, e.details])
-    ]);
-  }
 }

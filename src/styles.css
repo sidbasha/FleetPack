@@ -19,9 +19,9 @@
   --color-nexus-violet: #8b5cf6;
 
   --color-state-production: #16a34a;
-  --color-state-engineering: #f59e0b;
-  --color-state-standby: #38bdf8;
-  --color-state-scheduled: #8b5cf6;
+  --color-state-engineering: #3b82f6;
+  --color-state-standby: #8b5cf6;
+  --color-state-scheduled: #f59e0b;
   --color-state-unscheduled: #ef4444;
   --color-state-gap: #cbd5e1;
 
@@ -41,7 +41,7 @@
   .panel { @apply bg-white rounded-xl border border-slate-200 shadow-panel; }
   .panel-header { @apply flex items-center justify-between px-4 py-3 border-b border-slate-100; }
   .panel-title { @apply text-sm font-semibold text-slate-800; }
-  .badge-fam { @apply ml-2 text-[10px] font-bold tracking-wider text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-sm px-1.5 py-0.5; }
+  .badge-fam { @apply ml-2 text-[10px] font-bold tracking-wider text-white bg-emerald-600 rounded-sm px-1.5 py-0.5; }
   .kpi-value { @apply text-2xl font-bold text-slate-900 leading-none; }
   .kpi-label { @apply text-[11px] font-medium uppercase tracking-wide text-slate-400; }
   .filter-select { @apply text-xs font-medium bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 hover:border-indigo-300 focus:outline-hidden focus:ring-2 focus:ring-indigo-200 cursor-pointer; }

@@ -184,7 +184,8 @@ export const SHARED_UI_TEXT = {
     standby: 'Standby',
     scheduledDowntime: 'Scheduled DT',
     unscheduledDowntime: 'Unscheduled DT',
-    gap: 'Gap'
+    gap: 'Gap',
+    dayShift: 'Day Shift'
   },
   table: {
     noGroupKey: '__nogroup__',

@@ -139,7 +139,7 @@ export interface ToolEvent {
 export interface AvailabilityResponse {
   kpis: AvailabilityKpis;
   trend: FleetTrendPoint[];
-  topUnavailable: { toolId: string; hrs: number }[];
+  topUnavailable: { toolId: string; hrs: number; unscheduledHrs: number; scheduledHrs: number; nonScheduledHrs: number }[];
   heatmap: HeatmapDay[];
   stateTotals: StateTotals;
   downtimeCategories: DowntimeCategory[];
@@ -253,7 +253,7 @@ export interface AlarmHomeResponse {
 export interface FleetAlarmDetailResponse {
   fleet: FleetAlarmSummary;
   toolDistribution: { toolId: string; byCategory: Record<AlarmCategory, number> }[];
-  topAlarms: { rank: number; alarmId: string; description: string; count: number }[];
+  topAlarms: { rank: number; alarmId: string; description: string; count: number; category: AlarmCategory }[];
   tools: ToolAlarmSummary[];
   swVersions: string[];
   topCategory: AlarmCategory;

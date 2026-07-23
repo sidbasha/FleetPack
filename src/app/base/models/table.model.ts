@@ -25,8 +25,10 @@ export type BaseCellKind =
   | 'trend'     // ▲/▼ % pill (BaseTrendComponent)
   | 'image'     // thumbnail <img>, value = URL
   | 'progress'  // 0–100 progress bar
+  | 'text-bar'  // colored label with a thin proportional bar underneath
   | 'sparkline' // mini line chart, value = number[]
   | 'link'      // anchor; href from linkHref(row)
+  | 'row-actions' // small icon buttons, e.g. delete/edit
   | 'template'; // custom ng-template (see BaseCellDirective)
 
 export interface BaseColumnDef<T = BaseRow> {
@@ -77,10 +79,14 @@ export interface BaseColumnDef<T = BaseRow> {
   linkHref?: (row: T) => string;
   /** kind 'link': open in new tab. Default true. */
   linkExternal?: boolean;
-  /** kind 'progress': denominator the raw value is scaled against for bar width. Default 100. */
+  /** kind 'progress' | 'text-bar': denominator the raw value is scaled against for bar width. Default 100. */
   progressMax?: number;
-  /** kind 'progress': per-row bar fill color, e.g. row => 'bg-red-500'. Default indigo. */
+  /** kind 'progress' | 'text-bar': per-row bar fill color, e.g. row => 'bg-red-500'. Default indigo. */
   barClass?: (row: T) => string;
+  /** kind 'text-bar': the number driving the bar width, when it isn't the same as the cell's text value. */
+  barValue?: (row: T) => number;
+  /** kind 'row-actions': small icon buttons, e.g. [{ icon: '🗑', run: r => … }]. */
+  rowActions?: { icon: string; title?: string; variant?: 'icon' | 'button'; run: (row: T) => void }[];
 }
 
 export interface BaseSortEvent {

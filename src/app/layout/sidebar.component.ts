@@ -10,7 +10,7 @@ import { APP_BRAND, APP_ROUTES, NAV_GROUPS, SIDEBAR_TEXT } from '../core/constan
   template: `
     <aside class="w-60 shrink-0 h-screen sticky top-0 bg-nexus-950 text-slate-300 flex flex-col">
       <a [routerLink]="routes.home" class="flex items-center gap-2.5 px-4 h-14 border-b border-white/10">
-        <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 grid place-items-center text-white font-extrabold text-sm">
+        <span class="w-8 h-8 rounded-lg bg-emerald-600 grid place-items-center text-white font-extrabold text-sm">
           {{ brand.mark }}
         </span>
         <span class="leading-tight">

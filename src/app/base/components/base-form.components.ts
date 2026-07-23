@@ -236,7 +236,7 @@ export interface BaseSelectOption<V = unknown> {
               [disabled]="disabled() || formDisabled()"
               (click)="toggle()">
         <span [class.text-slate-400]="selectedLabel() === null">{{ selectedLabel() ?? placeholder() }}</span>
-        <span class="text-slate-300 text-[10px] ml-2">{{ open() ? '▲' : '▼' }}</span>
+        @if (showChevron()) { <span class="text-slate-300 text-[10px] ml-2">{{ open() ? '▲' : '▼' }}</span> }
       </button>
 
       @if (open()) {
@@ -276,6 +276,8 @@ export class BaseSelectComponent<V = unknown> extends BaseControl<V | null> {
   readonly disabled = input(false);
   /** Adds a filter box inside the dropdown. */
   readonly searchable = input(false);
+  /** Hides the ▲/▼ chevron, e.g. to look like a plain input box. */
+  readonly showChevron = input(true);
 
   /** Fired with the full option object when a selection is made. */
   readonly optionSelected = output<BaseSelectOption<V>>();

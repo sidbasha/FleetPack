@@ -314,7 +314,7 @@ export function buildAvailability(): AvailabilityResponse {
       totalDowntimeHrs: 1385
     },
     trend,
-    topUnavailable: [{ toolId: 'Axion_T2500', hrs: 1202 }],
+    topUnavailable: [{ toolId: 'Axion_T2500', hrs: 1202, unscheduledHrs: 980, scheduledHrs: 180, nonScheduledHrs: 42 }],
     heatmap: buildHeatmap(mulberry32(7)),
     stateTotals: { production: 368, engineering: 59, standby: 52, scheduledDT: 69, unscheduledDT: 47 },
     downtimeCategories: [
@@ -391,11 +391,11 @@ export function buildFleetDetail(fleetId: string): FleetAlarmDetailResponse {
       }
     })),
     topAlarms: [
-      { rank: 1, alarmId: 'ALM-4521', description: 'Wafer Handler Position Error', count: 47 },
-      { rank: 2, alarmId: 'ALM-3892', description: 'Pressure Sensor Out of Range', count: 38 },
-      { rank: 3, alarmId: 'ALM-5501', description: 'Data Checksum Mismatch', count: 24 },
-      { rank: 4, alarmId: 'ALM-2211', description: 'Robot Arm Calibration Drift', count: 19 },
-      { rank: 5, alarmId: 'ALM-6701', description: 'Vacuum Pressure Drop', count: 16 }
+      { rank: 1, alarmId: 'ALM-4521', description: 'Wafer Handler Position Error', count: 47, category: 'Equipment Safety' },
+      { rank: 2, alarmId: 'ALM-3892', description: 'Pressure Sensor Out of Range', count: 38, category: 'Equipment Safety' },
+      { rank: 3, alarmId: 'ALM-5501', description: 'Data Checksum Mismatch', count: 24, category: 'Data Integrity' },
+      { rank: 4, alarmId: 'ALM-2211', description: 'Robot Arm Calibration Drift', count: 19, category: 'Attention Flags' },
+      { rank: 5, alarmId: 'ALM-6701', description: 'Vacuum Pressure Drop', count: 16, category: 'Equipment Safety' }
     ],
     tools,
     swVersions: ['6.48.203', '8.50.303'],

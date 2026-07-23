@@ -58,12 +58,14 @@ export class LoadingComponent {
       <span class="chip"><i class="chip-dot bg-state-scheduled"></i>{{ text.stateLegend.scheduledDowntime }}</span>
       <span class="chip"><i class="chip-dot bg-state-unscheduled"></i>{{ text.stateLegend.unscheduledDowntime }}</span>
       @if (withGap) { <span class="chip"><i class="chip-dot bg-state-gap"></i>{{ text.stateLegend.gap }}</span> }
+      @if (withDayShift) { <span class="chip"><i class="chip-dot bg-slate-100 border border-slate-200"></i>{{ text.stateLegend.dayShift }}</span> }
     </div>
   `
 })
 export class StateLegendComponent {
   readonly text = SHARED_UI_TEXT;
   @Input({ transform: booleanAttribute }) withGap = false;
+  @Input({ transform: booleanAttribute }) withDayShift = false;
 }
 
 /** @deprecated Use <base-trend> from the base module. */

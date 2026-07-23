@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, Input, Type } from '@angular/core';
 import { NgComponentOutlet, NgTemplateOutlet } from '@angular/common';
-import { BaseTabsComponent, BaseToggleComponent } from '../../base';
+import { BaseSearchInputComponent, BaseTabsComponent, BaseToggleComponent } from '../../base';
 import {
   ChartWidget, ComponentWidget, KpiGridWidget, RankedListWidget, TableWidget, WidgetConfig
 } from './widget.model';
@@ -18,7 +18,7 @@ import { TableWidgetComponent } from './table-widget.component';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    NgComponentOutlet, NgTemplateOutlet, BaseTabsComponent, BaseToggleComponent,
+    NgComponentOutlet, NgTemplateOutlet, BaseTabsComponent, BaseToggleComponent, BaseSearchInputComponent,
     KpiGridWidgetComponent, ChartWidgetComponent, RankedListWidgetComponent, TableWidgetComponent
   ],
   template: `
@@ -26,7 +26,7 @@ import { TableWidgetComponent } from './table-widget.component';
       <ng-container [ngTemplateOutlet]="body" />
     } @else {
       <section class="panel h-full flex flex-col">
-        @if (widget.title || widget.actions?.length || widget.dateRange || widget.tabs || widget.toggle) {
+        @if (widget.title || widget.actions?.length || widget.dateRange || widget.tabs || widget.toggle || widget.search) {
           <div class="panel-header flex-wrap gap-2">
             <h2 class="panel-title inline-flex items-center gap-2">
               @if (widget.collapsible) {
@@ -52,6 +52,9 @@ import { TableWidgetComponent } from './table-widget.component';
               }
               @if (widget.toggle; as tg) {
                 <base-toggle [checked]="tg.checked" [label]="tg.label" (checkedChange)="tg.onChange($event)" />
+              }
+              @if (widget.search; as s) {
+                <base-search-input [placeholder]="s.placeholder ?? 'Search…'" (search)="s.onChange($event)" />
               }
               @if (widget.actionsLabel) {
                 <span class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{{ widget.actionsLabel }}</span>
