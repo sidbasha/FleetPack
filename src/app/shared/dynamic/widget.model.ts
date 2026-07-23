@@ -33,7 +33,6 @@ export interface WidgetBase {
   frameless?: boolean;
 }
 
-// ── KPI grid ──
 export interface KpiItem {
   label: string;
   value: string | number;
@@ -46,7 +45,6 @@ export interface KpiGridWidget extends WidgetBase {
   kpis: KpiItem[];
 }
 
-// ── Chart (Chart.js) ──
 export interface ChartWidget extends WidgetBase {
   type: 'chart';
   chartType: ChartType;
@@ -59,7 +57,6 @@ export interface ChartWidget extends WidgetBase {
   onPointClick?: (datasetIndex: number, index: number) => void;
 }
 
-// ── Table ──
 export type CellKind = 'text' | 'mono' | 'badge' | 'dot' | 'trend';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -108,7 +105,6 @@ export interface TableWidget<Row = any> extends WidgetBase {
   footer?: string;
 }
 
-// ── Ranked list (drill-down lists with rank/trend/bar) ──
 export interface RankedItem {
   key: string;
   rank?: number;
@@ -128,7 +124,6 @@ export interface RankedListWidget extends WidgetBase {
   onItemClick?: (item: RankedItem) => void;
 }
 
-// ── Arbitrary component (registry or direct type) ──
 export interface ComponentWidget extends WidgetBase {
   type: 'component';
   /** Direct component class… */

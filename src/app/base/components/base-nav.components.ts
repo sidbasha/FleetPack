@@ -11,13 +11,6 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * BASE MODULE · Navigation components
- * ─────────────────────────────────────────────────────────────────────────────
- */
-
-// ── <base-breadcrumbs> ──────────────────────────────────────────────────────
 export interface BaseBreadcrumbItem {
   label: string;
   /** Router path. When present, the crumb navigates via routerLink. */
@@ -67,7 +60,6 @@ export class BaseBreadcrumbsComponent {
   readonly itemClick = output<{ item: BaseBreadcrumbItem; index: number }>();
 }
 
-// ── <base-tabs> ─────────────────────────────────────────────────────────────
 export interface BaseTabItem {
   id: string;
   label: string;
@@ -137,7 +129,6 @@ export class BaseTabsComponent {
   }
 }
 
-// ── <base-dropdown-menu> ────────────────────────────────────────────────────
 export interface BaseMenuItem {
   id: string;
   label: string;

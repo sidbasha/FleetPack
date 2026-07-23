@@ -4,7 +4,6 @@ import { ActiveElement } from 'chart.js';
 import { BaseKpiCardComponent, BaseProgressBarComponent, BaseTrendComponent } from '../../base';
 import { ChartWidget, KpiGridWidget, RankedListWidget } from './widget.model';
 
-// ── KPI grid ──
 @Component({
   selector: 'fam-kpi-grid-widget',
   standalone: true,
@@ -22,7 +21,6 @@ export class KpiGridWidgetComponent {
   @Input({ required: true }) widget!: KpiGridWidget;
 }
 
-// ── Chart.js chart ──
 @Component({
   selector: 'fam-chart-widget',
   standalone: true,
@@ -53,7 +51,6 @@ export class ChartWidgetComponent {
   }
 }
 
-// ── Ranked drill-down list ──
 @Component({
   selector: 'fam-ranked-list-widget',
   standalone: true,

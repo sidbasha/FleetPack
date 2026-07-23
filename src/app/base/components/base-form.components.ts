@@ -51,7 +51,6 @@ const INPUT_CLS = `w-full border rounded-lg px-3 py-2 text-xs text-slate-700 bg-
 const HINT_CLS = `mt-1 text-[11px] text-slate-400`;
 const ERROR_CLS = `mt-1 text-[11px] font-medium text-red-500`;
 
-// ── <base-button> ───────────────────────────────────────────────────────────
 @Component({
   selector: 'base-button',
   standalone: true,
@@ -97,7 +96,6 @@ export class BaseButtonComponent {
   }[this.size()]));
 }
 
-// ── <base-text-input> ───────────────────────────────────────────────────────
 @Component({
   selector: 'base-text-input',
   standalone: true,
@@ -170,7 +168,6 @@ export class BaseTextInputComponent extends BaseControl<string> {
   writeValue(v: string): void { this.value.set(v ?? ''); }
 }
 
-// ── <base-textarea> ─────────────────────────────────────────────────────────
 @Component({
   selector: 'base-textarea',
   standalone: true,
@@ -218,7 +215,6 @@ export class BaseTextareaComponent extends BaseControl<string> {
   writeValue(v: string): void { this.value.set(v ?? ''); }
 }
 
-// ── <base-select> ───────────────────────────────────────────────────────────
 export interface BaseSelectOption<V = unknown> {
   label: string;
   value: V;
@@ -330,7 +326,6 @@ export class BaseSelectComponent<V = unknown> extends BaseControl<V | null> {
   writeValue(v: V | null): void { this.value.set(v); }
 }
 
-// ── <base-checkbox> ─────────────────────────────────────────────────────────
 @Component({
   selector: 'base-checkbox',
   standalone: true,
@@ -362,7 +357,6 @@ export class BaseCheckboxComponent extends BaseControl<boolean> {
   writeValue(v: boolean): void { this.checked.set(!!v); }
 }
 
-// ── <base-radio-group> ──────────────────────────────────────────────────────
 @Component({
   selector: 'base-radio-group',
   standalone: true,
@@ -404,7 +398,6 @@ export class BaseRadioGroupComponent<V = unknown> extends BaseControl<V | null> 
   writeValue(v: V | null): void { this.value.set(v); }
 }
 
-// ── <base-toggle> ───────────────────────────────────────────────────────────
 @Component({
   selector: 'base-toggle',
   standalone: true,

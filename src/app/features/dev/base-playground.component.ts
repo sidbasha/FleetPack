@@ -100,7 +100,6 @@ function mockRows(n: number): ToolRow[] {
   ],
   template: `
     <div class="space-y-5">
-      <!-- breadcrumbs + tabs -->
       <div class="panel px-4 py-3 flex flex-wrap items-center justify-between gap-3">
         <base-breadcrumbs [items]="crumbs" (itemClick)="log('breadcrumb itemClick', $event.item.label)" />
         <base-dropdown-menu label="Bulk actions" align="right" [items]="menuItems"
@@ -113,7 +112,6 @@ function mockRows(n: number): ToolRow[] {
           @switch (activeTab()) {
             @case ('table') { <p class="text-xs text-slate-500">Table demo below — all six core features live.</p> }
             @case ('forms') {
-              <!-- FORM CONTROLS -->
               <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
                 <base-text-input label="Tool ID" placeholder="e.g. KLA-1042" [(value)]="toolId"
                                  [clearable]="true" hint="Search by exact id"
@@ -163,7 +161,6 @@ function mockRows(n: number): ToolRow[] {
         </div>
       </div>
 
-      <!-- modal -->
       <base-modal [(open)]="openModal" title="Edit tool" size="md" (closed)="log('modal closed', $event)">
         <div class="space-y-3">
           <base-text-input label="Tool ID" [(value)]="toolId" />
@@ -175,7 +172,6 @@ function mockRows(n: number): ToolRow[] {
         </div>
       </base-modal>
 
-      <!-- KPI cards -->
       <div class="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <base-kpi-card label="Fleet Uptime" [value]="94.2" unit="%" [trendPct]="1.8" [accent]="true" />
         <base-kpi-card label="Active Alarms" [value]="128" [trendPct]="-6.4" [trendBadWhenUp]="true" />
@@ -193,7 +189,6 @@ function mockRows(n: number): ToolRow[] {
         <button class="btn-ghost" (click)="addDynamicColumn()">+ Add column</button>
       </div>
 
-      <!-- the flagship table -->
       <base-table class="panel block overflow-hidden"
         [columns]="columns()"
         [rows]="rows()"
@@ -229,7 +224,6 @@ function mockRows(n: number): ToolRow[] {
         </ng-template>
       </base-table>
 
-      <!-- event log -->
       <div class="panel">
         <div class="panel-header">
           <span class="panel-title">Event log</span>
@@ -241,7 +235,6 @@ function mockRows(n: number): ToolRow[] {
         </div>
       </div>
 
-      <!-- standalone primitives -->
       <div class="panel p-4 flex flex-wrap items-center gap-4">
         <base-badge label="PRODUCTION" colorClass="bg-emerald-50 text-emerald-600" [dot]="true" />
         <base-badge label="DOWN" colorClass="bg-red-50 text-red-600" [dot]="true" />
@@ -284,7 +277,6 @@ export class BasePlaygroundComponent {
 
   private dynamicCount = 0;
 
-  // ── shared/common component demo state ──
   readonly crumbs = [
     { label: 'Home', icon: '🏠', url: '/' },
     { label: 'Fleet Availability' },

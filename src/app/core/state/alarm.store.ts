@@ -14,7 +14,6 @@ export type RecipeFilter = 'all' | 'with' | 'without';
 export class AlarmStore {
   private api = inject(ApiService);
 
-  // ── Server state (per-level cached queries) ──
   readonly homeQuery = createQuery(
     () => this.api.getAlarmHome(),
     { cacheTtlMs: 300_000 }
@@ -45,13 +44,11 @@ export class AlarmStore {
     this.homeQuery.error() ?? this.fleetQuery.error() ?? this.toolQuery.error() ?? this.eventsQuery.error()
   );
 
-  // ── UI state: inspected alarm side panel ──
   readonly inspectedAlarmId = signal<string | null>(null);
   readonly inspectedAlarm = computed(() =>
     this.toolAlarms()?.alarms.find(a => a.alarmId === this.inspectedAlarmId()) ?? null
   );
 
-  // ── Derived: event filtering + paging ──
   private readonly allEvents = computed(() => this.events()?.events ?? []);
   private readonly recipeFilterCtl = createListFilter(this.allEvents, 'all' as RecipeFilter, (e, f) =>
     f === 'all' ? true : f === 'with' ? !!e.recipe : !e.recipe
@@ -63,7 +60,6 @@ export class AlarmStore {
   readonly eventPage = this.eventsPager.page;
   readonly eventPageCount = this.eventsPager.pageCount;
 
-  // ── Actions ──
   loadHome(): void {
     this.homeQuery.load();
   }

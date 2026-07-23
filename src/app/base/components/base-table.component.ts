@@ -68,7 +68,6 @@ interface StickyMeta {
     .bt-head-sticky .bt-sticky-th { z-index: 14; top: 0; }
   `],
   template: `
-    <!-- toolbar -->
     @if (showSearch()) {
       <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-100">
         <base-search-input [placeholder]="searchPlaceholder()" (search)="onQuickSearch($event)" />
@@ -109,7 +108,6 @@ interface StickyMeta {
             }
           </tr>
 
-          <!-- per-column filter row -->
           @if (showFilterRow() && hasFilterableColumn()) {
             <tr class="bg-white">
               @if (selectable() === 'multiple') { <th class="px-2 py-1.5"></th> }
@@ -232,7 +230,6 @@ interface StickyMeta {
       </table>
     </div>
 
-    <!-- footer / pagination -->
     @if (paginate()) {
       <div class="px-4 py-3 border-t border-slate-100">
         <base-paginator
@@ -246,7 +243,6 @@ interface StickyMeta {
   `
 })
 export class BaseTableComponent<T = BaseRow> {
-  // ── props (inputs) ────────────────────────────────────────────────────────
   /** Dynamic column definitions — plain data, changeable at runtime. */
   readonly columns = input.required<BaseColumnDef<T>[]>();
   /** Row objects. In server-side mode, the current page only. */
@@ -291,7 +287,6 @@ export class BaseTableComponent<T = BaseRow> {
   readonly emptyTitle = input('No matching records');
   readonly emptyHint = input('Try adjusting filters or search.');
 
-  // ── events (outputs) ──────────────────────────────────────────────────────
   readonly rowClick = output<BaseRowClickEvent<T>>();
   readonly cellClick = output<BaseCellClickEvent<T>>();
   readonly sortChange = output<BaseSortEvent>();
@@ -301,10 +296,8 @@ export class BaseTableComponent<T = BaseRow> {
   /** Fired with the group key when a group-header action button is clicked. */
   readonly groupAction = output<string>();
 
-  // ── projected custom cell templates ───────────────────────────────────────
   private readonly cellTemplates = contentChildren(BaseCellDirective<T>);
 
-  // ── internal state ────────────────────────────────────────────────────────
   readonly sortState = signal<BaseSortEvent>({ key: null, direction: null });
   readonly quickText = signal('');
   readonly columnFilters = signal<Record<string, string>>({});
@@ -317,7 +310,7 @@ export class BaseTableComponent<T = BaseRow> {
     queueMicrotask(() => this.pageSize.set(this.initialPageSize()));
   }
 
-  // ── derived view pipeline: filter → sort → paginate ───────────────────────
+  // derived view pipeline: filter → sort → paginate
   readonly visibleColumns = computed(() => {
     const cols = this.columns().filter(c => !c.hidden);
     // keep authoring order, but pin left-sticky first / right-sticky last so
@@ -430,7 +423,6 @@ export class BaseTableComponent<T = BaseRow> {
     return rows.length > 0 && rows.every(r => this.selected().has(this.rowTrack(r)));
   });
 
-  // ── event handlers ────────────────────────────────────────────────────────
   toggleSort(key: string): void {
     const s = this.sortState();
     const next: BaseSortEvent =
@@ -510,7 +502,6 @@ export class BaseTableComponent<T = BaseRow> {
     return this.selected().has(this.rowTrack(row));
   }
 
-  // ── template helpers ──────────────────────────────────────────────────────
   templateFor(key: string) {
     return this.cellTemplates().find(t => t.baseCell() === key)?.template ?? null;
   }

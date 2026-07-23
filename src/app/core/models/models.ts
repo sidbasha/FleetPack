@@ -1,7 +1,3 @@
-// ─────────────────────────────────────────────────────────────
-// FleetPack · FAM — Domain models
-// ─────────────────────────────────────────────────────────────
-
 export type ToolState =
   | 'Production'
   | 'Engineering'
@@ -19,7 +15,6 @@ export type AlarmCategory =
 
 export type Severity = 'Fatal' | 'Non-Fatal';
 
-// ── Global filters ──
 export interface GlobalFilters {
   fleet: string;
   dateFrom: string; // yyyy/MM/dd
@@ -27,7 +22,6 @@ export interface GlobalFilters {
   duration: 'Last 4 Weeks' | 'Last 13 Weeks' | 'Last 52 Weeks';
 }
 
-// ── Up-Time Analysis ──
 export interface WeeklyUptimePoint {
   workWeek: string;        // e.g. 2025-46
   oneWeekRolling: number;  // %
@@ -80,7 +74,6 @@ export interface UptimeTrendWindow {
 
 export type UptimeTrendResponse = UptimeTrendWindow[];
 
-// ── Up-Time Availability ──
 export interface AvailabilityKpis {
   thirteenWeekRollingAvg: number;
   fourWeekRollingAvg: number;
@@ -200,7 +193,6 @@ export interface SegmentActivitiesResponse {
   totalCount: number;
 }
 
-// ── Alarm Explorer ──
 export interface FleetAlarmSummary {
   rank: number;
   fleetId: string;

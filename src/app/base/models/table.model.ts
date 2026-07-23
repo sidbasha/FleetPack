@@ -79,8 +79,6 @@ export interface BaseColumnDef<T = BaseRow> {
   linkExternal?: boolean;
 }
 
-// ── events ─────────────────────────────────────────────────────────────────
-
 export interface BaseSortEvent {
   /** Column key, or null when sorting is cleared. */
   key: string | null;

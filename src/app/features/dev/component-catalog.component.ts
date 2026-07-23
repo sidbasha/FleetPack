@@ -51,7 +51,6 @@ const SHARED_GROUPS = ['Shared · UI Atoms', 'Shared · Dynamic Widgets'];
       </div>
     </div>
 
-    <!-- ── Shared UI atoms ── -->
     <section class="mt-6">
       <h2 class="text-xs font-bold uppercase tracking-wide text-slate-400 mb-3">Shared · UI Atoms</h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -78,13 +77,11 @@ const SHARED_GROUPS = ['Shared · UI Atoms', 'Shared · Dynamic Widgets'];
       </div>
     </section>
 
-    <!-- ── Shared dynamic widgets (also demonstrates fam-dynamic-page + fam-dynamic-widget) ── -->
     <section class="mt-8">
       <h2 class="text-xs font-bold uppercase tracking-wide text-slate-400 mb-3">Shared · Dynamic Widgets</h2>
       <fam-dynamic-page [widgets]="widgetSamples" />
     </section>
 
-    <!-- ── Everything else, grouped, rendered live ── -->
     <section class="mt-8">
       <div class="flex flex-wrap items-center gap-3 mb-4">
         <h2 class="text-xs font-bold uppercase tracking-wide text-slate-400">Layout &amp; Feature Screens</h2>
@@ -177,8 +174,6 @@ export class ComponentCatalogComponent {
     }
     return [...byGroup.entries()].map(([name, items]) => ({ name, items }));
   });
-
-  // ── Sample widget configs for the Dynamic Widgets showcase ──
 
   private readonly kpiGridSample: KpiGridWidget = {
     id: 'preview-kpi-grid', type: 'kpi-grid', badge: 'FAM', title: 'KPI Grid', colSpan: 6,

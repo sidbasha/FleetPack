@@ -30,25 +30,19 @@ export const mockApiInterceptor: HttpInterceptorFn = (req, next) => {
   const respond = (body: unknown) =>
     of(new HttpResponse({ status: 200, body })).pipe(delay(280 + Math.random() * 320));
 
-  // /api/fleets
   if (path === 'fleets') return respond(FLEETS);
 
-  // /api/uptime/analysis
   if (path === 'uptime/analysis') return respond(buildUptimeAnalysis());
 
-  // /api/uptime/trend
   if (path === 'uptime/trend') return respond(buildUptimeTrend());
 
-  // /api/uptime/availability
   if (path === 'uptime/availability') return respond(buildAvailability());
 
-  // /api/tools/state-segments
   if (parts[0] === 'tools' && parts[1] === 'state-segments') {
     const toolId = url.searchParams.get('toolIds') ?? 'Axion_T2500';
     return respond(buildStateSegments(toolId));
   }
 
-  // /api/tools/segment-activities
   if (parts[0] === 'tools' && parts[1] === 'segment-activities') {
     const toolId = url.searchParams.get('toolId') ?? 'Axion_T2500';
     const startTime = url.searchParams.get('startTime') ?? '1970-01-01T00:00:00.000Z';
@@ -58,10 +52,8 @@ export const mockApiInterceptor: HttpInterceptorFn = (req, next) => {
     return respond(buildSegmentActivities(toolId, startTime, endTime, pageNumber, pageSize));
   }
 
-  // /api/alarms/home
   if (path === 'alarms/home') return respond(buildAlarmHome());
 
-  // /api/alarms/fleets/:fleetId[...]
   if (parts[0] === 'alarms' && parts[1] === 'fleets' && parts[2]) {
     const fleetId = parts[2];
     if (parts.length === 3) return respond(buildFleetDetail(fleetId));

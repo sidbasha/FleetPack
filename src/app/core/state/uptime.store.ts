@@ -20,7 +20,6 @@ export class UptimeStore {
   private api = inject(ApiService);
   private filterStore = inject(FilterStore);
 
-  // ── Server state ──
   readonly analysisQuery = createQuery(
     (fleet: string) => this.api.getUptimeAnalysis(fleet),
     { cacheTtlMs: 300_000 }
@@ -57,24 +56,22 @@ export class UptimeStore {
     ?? this.segmentsQuery.error() ?? this.segmentActivitiesQuery.error()
   );
 
-  // ── UI state ──
   readonly selectedTool = signal<string>('Axion_T2500');
 
-  // ── Derived: Gantt bars + Event Details rows share the raw state-segments
-  // feed, enriched with the correlated segment-activities feed ──
+  // Gantt bars + Event Details rows share the raw state-segments feed,
+  // enriched with the correlated segment-activities feed.
   readonly stateSegments = computed(() => this.segmentsQuery.data()?.stateSegments ?? []);
   readonly segmentActivities = computed(() => this.segmentActivitiesQuery.data()?.result ?? []);
   readonly gantt = computed(() => deriveGantt(this.stateSegments(), this.segmentActivities()));
   readonly ganttSummary = computed(() => deriveGanttSummary(this.gantt()));
   readonly events = computed(() => deriveEvents(this.stateSegments(), this.segmentActivities()));
 
-  // ── Derived: event paging ──
   readonly eventsPager = createPagination(this.events, 20);
   readonly pagedEvents = this.eventsPager.paged;
   readonly eventPage = this.eventsPager.page;
   readonly eventPageCount = this.eventsPager.pageCount;
 
-  // ── Derived: segment-activities paging (client-side over the fetched page) ──
+  // segment-activities paging is client-side over the fetched page
   readonly segmentActivitiesPager = createPagination(this.segmentActivities, 20);
   readonly pagedSegmentActivities = this.segmentActivitiesPager.paged;
   readonly segmentActivitiesPage = this.segmentActivitiesPager.page;

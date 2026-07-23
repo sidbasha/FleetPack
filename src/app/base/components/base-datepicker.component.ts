@@ -64,21 +64,18 @@ const sameDay = (a: Date | null, b: Date | null) =>
 
       @if (open()) {
         <div class="absolute z-30 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-lg p-3">
-          <!-- month header -->
           <div class="flex items-center justify-between mb-2">
             <button type="button" class="btn-ghost" (click)="shiftMonth(-1)" aria-label="Previous month">‹</button>
             <span class="text-xs font-bold text-slate-700">{{ monthLabel() }}</span>
             <button type="button" class="btn-ghost" (click)="shiftMonth(1)" aria-label="Next month">›</button>
           </div>
 
-          <!-- weekday header -->
           <div class="grid grid-cols-7 mb-1">
             @for (d of weekdays; track $index) {
               <span class="text-center text-[10px] font-semibold text-slate-400">{{ d }}</span>
             }
           </div>
 
-          <!-- day grid -->
           <div class="grid grid-cols-7 gap-y-0.5">
             @for (c of cells(); track $index) {
               <button type="button"

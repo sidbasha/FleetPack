@@ -9,7 +9,6 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-// ── <base-badge> ────────────────────────────────────────────────────────────
 @Component({
   selector: 'base-badge',
   standalone: true,
@@ -31,7 +30,6 @@ export class BaseBadgeComponent {
   readonly dot = input(false);
 }
 
-// ── <base-trend> ────────────────────────────────────────────────────────────
 @Component({
   selector: 'base-trend',
   standalone: true,
@@ -64,7 +62,6 @@ export class BaseTrendComponent {
   });
 }
 
-// ── <base-kpi-card> ─────────────────────────────────────────────────────────
 @Component({
   selector: 'base-kpi-card',
   standalone: true,
@@ -104,7 +101,6 @@ export class BaseKpiCardComponent {
   readonly cardClick = output<void>();
 }
 
-// ── <base-loading> ──────────────────────────────────────────────────────────
 @Component({
   selector: 'base-loading',
   standalone: true,
@@ -120,7 +116,6 @@ export class BaseLoadingComponent {
   readonly message = input('Loading…');
 }
 
-// ── <base-empty-state> ──────────────────────────────────────────────────────
 @Component({
   selector: 'base-empty-state',
   standalone: true,
@@ -147,7 +142,6 @@ export class BaseEmptyStateComponent {
   readonly action = output<void>();
 }
 
-// ── <base-sparkline> ────────────────────────────────────────────────────────
 /** Dependency-free inline SVG mini chart. Used by the table's 'sparkline' cell
  *  kind, and reusable anywhere on its own. */
 @Component({

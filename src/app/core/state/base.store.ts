@@ -127,8 +127,6 @@ export function createQuery<T, P extends unknown[] = []>(
   };
 }
 
-// ── Pagination ──
-
 export interface Pagination<T> {
   page: Signal<number>;
   pageSize: Signal<number>;
@@ -169,8 +167,6 @@ export function createPagination<T>(source: Signal<T[]>, initialPageSize = 20): 
     }
   };
 }
-
-// ── Predicate filtering ──
 
 export interface ListFilter<T, F> {
   criteria: Signal<F>;

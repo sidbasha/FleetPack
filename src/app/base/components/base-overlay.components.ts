@@ -13,13 +13,6 @@ import {
 } from '@angular/core';
 
 /**
- * ─────────────────────────────────────────────────────────────────────────────
- * BASE MODULE · Overlay & feedback components
- * ─────────────────────────────────────────────────────────────────────────────
- */
-
-// ── <base-modal> ────────────────────────────────────────────────────────────
-/**
  * Content-projected dialog.
  *   <base-modal [(open)]="showEdit" title="Edit tool" size="md">
  *     ...body...
@@ -80,7 +73,6 @@ export class BaseModalComponent {
   }
 }
 
-// ── [baseTooltip] directive ─────────────────────────────────────────────────
 /** Attach to any element: <button baseTooltip="Refresh data" tooltipPosition="top"> */
 @Directive({ selector: '[baseTooltip]', standalone: true })
 export class BaseTooltipDirective {
@@ -127,7 +119,6 @@ export class BaseTooltipDirective {
   }
 }
 
-// ── <base-alert> ────────────────────────────────────────────────────────────
 @Component({
   selector: 'base-alert',
   standalone: true,
@@ -168,7 +159,6 @@ export class BaseAlertComponent {
   }[this.kind()]));
 }
 
-// ── <base-progress-bar> ─────────────────────────────────────────────────────
 @Component({
   selector: 'base-progress-bar',
   standalone: true,
@@ -194,7 +184,6 @@ export class BaseProgressBarComponent {
   readonly clamped = computed(() => Math.min(100, Math.max(0, Math.round(this.value()))));
 }
 
-// ── <base-skeleton> ─────────────────────────────────────────────────────────
 /** Loading placeholder block. Repeat with @for for lists. */
 @Component({
   selector: 'base-skeleton',

@@ -25,9 +25,6 @@ export const FLEETS = ['INTEL_ARCHER800AIM', 'Axion Fleet', 'Fleet 001', 'Fleet 
 
 const CATEGORIES: AlarmCategory[] = ['Equipment Safety', 'Attention Flags', 'Data Integrity', 'Irrecoverable'];
 
-// ─────────────────────────────────────────────────────────────
-// 1) Fleet Up-Time Analysis
-// ─────────────────────────────────────────────────────────────
 export function buildUptimeAnalysis(): UptimeAnalysisResponse {
   const oneWeek = [96.9, 93.2, 97.8, 88.1, 83.9, 88.2, 97.8, 96.9, 96.2, 96.2, 98.6, 91.4, 97.6];
   const thirteenWeek = [94.9, 91.2, 95.8, 86.1, 81.9, 86.2, 95.8, 94.9, 94.2, 95.6, 89.4, 95.6, 99.6];
@@ -68,9 +65,6 @@ export function buildUptimeAnalysis(): UptimeAnalysisResponse {
   };
 }
 
-// ─────────────────────────────────────────────────────────────
-// 1b) Fleet Up-Time Trend — granular history (2000 pts / rolling window)
-// ─────────────────────────────────────────────────────────────
 const TREND_ANCHOR = new Date(2026, 6, 14); // "today" — most recent granular point
 
 function buildUptimeInfo(rand: () => number, baseline: number, volatility: number, count = 100): UptimeInfoPoint[] {
@@ -104,9 +98,6 @@ export function buildUptimeTrend(): UptimeTrendResponse {
   ];
 }
 
-// ─────────────────────────────────────────────────────────────
-// 2) Fleet Up-Time Availability (heatmap / gantt / events)
-// ─────────────────────────────────────────────────────────────
 const HEATMAP_STATES: ToolState[] = ['Production', 'Engineering', 'Standby', 'Scheduled Downtime', 'Unscheduled Downtime', 'Gap'];
 
 function buildHeatmap(rand: () => number): HeatmapDay[] {
@@ -334,9 +325,6 @@ export function buildAvailability(): AvailabilityResponse {
   };
 }
 
-// ─────────────────────────────────────────────────────────────
-// 3) Alarm Explorer
-// ─────────────────────────────────────────────────────────────
 function categorySplit(total: number, rand: () => number): Record<AlarmCategory, number> {
   const w = [0.44, 0.25, 0.2, 0.11].map(x => x * (0.85 + rand() * 0.3));
   const sum = w.reduce((a, b) => a + b, 0);
