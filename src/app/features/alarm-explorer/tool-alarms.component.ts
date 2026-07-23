@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, Input, OnChanges, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AlarmStore } from '../../core/state/alarm.store';
 import { LoadingComponent } from '../../shared/components/ui.components';
+import { BaseBreadcrumbsComponent, BaseButtonComponent, BaseSearchInputComponent, BaseSelectComponent } from '../../base';
 import { DynamicPageComponent } from '../../shared/dynamic/dynamic-page.component';
 import { WidgetConfig } from '../../shared/dynamic/widget.model';
 import { AlarmDefinition } from '../../core/models/models';
@@ -15,14 +15,14 @@ import { AlarmDefinition } from '../../core/models/models';
   selector: 'fam-tool-alarms',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, FormsModule, LoadingComponent, DynamicPageComponent],
+  imports: [
+    LoadingComponent, DynamicPageComponent,
+    BaseBreadcrumbsComponent, BaseSearchInputComponent, BaseSelectComponent, BaseButtonComponent
+  ],
   template: `
     <div class="flex flex-wrap items-center gap-3">
       <div>
-        <p class="text-[11px] text-slate-400">
-          <a routerLink="/alarm-explorer" class="hover:text-indigo-600">Alarm Explorer</a> ›
-          <a [routerLink]="['/alarm-explorer/fleet', fleetId]" class="hover:text-indigo-600">{{ fleetId }}</a> › Tool
-        </p>
+        <base-breadcrumbs class="block mb-0.5" [items]="crumbs()" />
         <h1 class="text-lg font-bold text-slate-900">
           {{ toolId }}
           <span class="ml-2 text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-full px-2.5 py-1">{{ store.toolAlarms()?.totalAlarms }} alarms</span>
@@ -30,13 +30,10 @@ import { AlarmDefinition } from '../../core/models/models';
         </h1>
       </div>
       <div class="flex-1"></div>
-      <input class="filter-select w-52" placeholder="Search alarms…" [ngModel]="search()" (ngModelChange)="search.set($event)" />
-      <select class="filter-select" [ngModel]="severity()" (ngModelChange)="severity.set($event)">
-        <option value="all">All severities</option>
-        <option value="Fatal">Fatal</option>
-        <option value="Non-Fatal">Non-Fatal</option>
-      </select>
-      <button class="btn-primary self-center">↓ Export</button>
+      <base-search-input placeholder="Search alarms…" (search)="search.set($event)" />
+      <base-select class="w-40" [options]="severityOptions" [value]="severity()"
+                   (valueChange)="severity.set($event ?? 'all')" />
+      <base-button variant="primary" (clicked)="exportCsv()">↓ Export</base-button>
     </div>
 
     @if (store.toolLoading()) {
@@ -48,6 +45,14 @@ import { AlarmDefinition } from '../../core/models/models';
 })
 export class ToolAlarmsComponent implements OnChanges {
   @Input({ required: true }) fleetId = '';
+
+  crumbs(): { label: string; url?: string }[] {
+    return [
+      { label: 'Alarm Explorer', url: '/alarm-explorer' },
+      { label: this.fleetId, url: `/alarm-explorer/fleet/${this.fleetId}` },
+      { label: 'Tool' }
+    ];
+  }
   @Input({ required: true }) toolId = '';
 
   store = inject(AlarmStore);
@@ -55,6 +60,13 @@ export class ToolAlarmsComponent implements OnChanges {
 
   readonly search = signal('');
   readonly severity = signal<'all' | 'Fatal' | 'Non-Fatal'>('all');
+  readonly severityOptions: { label: string; value: 'all' | 'Fatal' | 'Non-Fatal' }[] = [
+    { label: 'All severities', value: 'all' },
+    { label: 'Fatal', value: 'Fatal' },
+    { label: 'Non-Fatal', value: 'Non-Fatal' }
+  ];
+
+  exportCsv(): void { /* hook for the CSV util — wired by the app team */ }
 
   private filtered = computed(() => {
     const q = this.search().toLowerCase();

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, Input, OnChanges, computed, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { AlarmStore, RecipeFilter } from '../../core/state/alarm.store';
 import { KpiComponent, LoadingComponent } from '../../shared/components/ui.components';
+import { BaseBreadcrumbsComponent } from '../../base';
 import { DynamicPageComponent } from '../../shared/dynamic/dynamic-page.component';
 import { WidgetConfig } from '../../shared/dynamic/widget.model';
 import { downloadCsv } from '../../shared/utils/csv.util';
@@ -10,15 +10,11 @@ import { downloadCsv } from '../../shared/utils/csv.util';
   selector: 'fam-alarm-events',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, KpiComponent, LoadingComponent, DynamicPageComponent],
+  imports: [KpiComponent, LoadingComponent, DynamicPageComponent, BaseBreadcrumbsComponent],
   template: `
     <div class="flex flex-wrap items-center gap-3">
       <div>
-        <p class="text-[11px] text-slate-400">
-          <a routerLink="/alarm-explorer" class="hover:text-indigo-600">Alarm Explorer</a> ›
-          <a [routerLink]="['/alarm-explorer/fleet', fleetId]" class="hover:text-indigo-600">{{ fleetId }}</a> ›
-          <a [routerLink]="['/alarm-explorer/fleet', fleetId, 'tool', toolId]" class="hover:text-indigo-600">{{ toolId }}</a> › Events
-        </p>
+        <base-breadcrumbs class="block mb-0.5" [items]="crumbs()" />
         <h1 class="text-lg font-bold text-slate-900">
           <span class="font-mono text-indigo-600">{{ alarmId }}</span>
           <span class="text-slate-500 font-medium text-base ml-1">· {{ store.events()?.alarm?.description }}</span>
@@ -42,6 +38,15 @@ import { downloadCsv } from '../../shared/utils/csv.util';
 })
 export class AlarmEventsComponent implements OnChanges {
   @Input({ required: true }) fleetId = '';
+
+  crumbs(): { label: string; url?: string }[] {
+    return [
+      { label: 'Alarm Explorer', url: '/alarm-explorer' },
+      { label: this.fleetId, url: `/alarm-explorer/fleet/${this.fleetId}` },
+      { label: this.toolId, url: `/alarm-explorer/fleet/${this.fleetId}/tool/${this.toolId}` },
+      { label: 'Events' }
+    ];
+  }
   @Input({ required: true }) toolId = '';
   @Input({ required: true }) alarmId = '';
 

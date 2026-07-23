@@ -1,0 +1,13 @@
+/**
+ * BASE MODULE · public API
+ * Import everything from this barrel: import { ... } from '../../base';
+ */
+export * from './models/table.model';
+export * from './directives/cell-template.directive';
+export * from './components/base-table.component';
+export * from './components/base-paginator.component';
+export * from './components/base-ui.components';
+export * from './components/base-form.components';
+export * from './components/base-datepicker.component';
+export * from './components/base-nav.components';
+export * from './components/base-overlay.components';

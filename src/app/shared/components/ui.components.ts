@@ -1,21 +1,28 @@
-import { DecimalPipe, NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Input, booleanAttribute } from '@angular/core';
 import { SHARED_UI_TEXT } from '../../core/constants/app.constants';
+import {
+  BaseKpiCardComponent,
+  BaseLoadingComponent,
+  BaseTrendComponent
+} from '../../base';
 
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * LEGACY SHARED COMPONENTS → thin wrappers over the BASE MODULE
+ *
+ * These selectors (fam-kpi, fam-loading, fam-trend) are kept so existing
+ * feature templates continue to compile, but ALL rendering is delegated to
+ * the base library. New code should import from src/app/base directly.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+/** @deprecated Use <base-kpi-card> from the base module. */
 @Component({
   selector: 'fam-kpi',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgClass],
-  template: `
-    <div class="panel px-5 py-4 flex flex-col justify-center gap-1">
-      <span class="kpi-label">{{ label }}</span>
-      <span class="kpi-value" [ngClass]="accent ? 'text-indigo-600' : ''">
-        {{ value }}<span class="text-sm font-semibold text-slate-400 ml-0.5">{{ unit }}</span>
-      </span>
-      @if (sub) { <span class="text-[11px] text-slate-400">{{ sub }}</span> }
-    </div>
-  `
+  imports: [BaseKpiCardComponent],
+  template: `<base-kpi-card [label]="label" [value]="value" [unit]="unit" [sub]="sub" [accent]="accent" />`
 })
 export class KpiComponent {
   @Input({ required: true }) label = '';
@@ -25,22 +32,20 @@ export class KpiComponent {
   @Input({ transform: booleanAttribute }) accent = false;
 }
 
+/** @deprecated Use <base-loading> from the base module. */
 @Component({
   selector: 'fam-loading',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="panel p-6 flex items-center gap-3 text-sm text-slate-400" role="status">
-      <span class="w-4 h-4 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin"></span>
-      {{ text.loadingPrefix }} {{ what }}
-    </div>
-  `
+  imports: [BaseLoadingComponent],
+  template: `<base-loading [message]="text.loadingPrefix + ' ' + what" />`
 })
 export class LoadingComponent {
   readonly text = SHARED_UI_TEXT;
   @Input() what: string = SHARED_UI_TEXT.loadingDefaultSubject;
 }
 
+/** Domain-specific machine-state legend (colors from the FAM theme). */
 @Component({
   selector: 'fam-state-legend',
   standalone: true,
@@ -61,26 +66,15 @@ export class StateLegendComponent {
   @Input({ transform: booleanAttribute }) withGap = false;
 }
 
+/** @deprecated Use <base-trend> from the base module. */
 @Component({
   selector: 'fam-trend',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DecimalPipe, NgClass],
-  template: `
-    @if (value === null) {
-      <span class="text-[11px] text-slate-300 font-medium">-</span>
-    } @else {
-      <span class="inline-flex items-center gap-0.5 text-[11px] font-semibold rounded-full px-2 py-0.5"
-            [ngClass]="badWhenUp
-              ? (value > 0 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600')
-              : (value > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600')">
-        {{ value > 0 ? text.trendUpIcon : text.trendDownIcon }} {{ value > 0 ? '+' : '' }}{{ value | number: '1.1-1' }}%
-      </span>
-    }
-  `
+  imports: [BaseTrendComponent],
+  template: `<base-trend [value]="value" [badWhenUp]="badWhenUp" />`
 })
 export class TrendPillComponent {
-  readonly text = SHARED_UI_TEXT;
   @Input({ required: true }) value: number | null = null;
   @Input({ transform: booleanAttribute }) badWhenUp = false;
 }

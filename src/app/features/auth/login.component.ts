@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { BaseAlertComponent, BaseButtonComponent, BaseTextInputComponent } from '../../base';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { APP_BRAND, APP_ROUTES, AUTH_CONFIG, LOGIN_TEXT } from '../../core/constants/app.constants';
@@ -8,7 +9,7 @@ import { APP_BRAND, APP_ROUTES, AUTH_CONFIG, LOGIN_TEXT } from '../../core/const
   selector: 'fam-login',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, BaseTextInputComponent, BaseButtonComponent, BaseAlertComponent],
   template: `
     <main class="min-h-screen bg-slate-100 grid lg:grid-cols-[minmax(0,1fr)_460px]">
       <section class="hidden lg:flex relative overflow-hidden bg-slate-950 text-white">
@@ -49,40 +50,19 @@ import { APP_BRAND, APP_ROUTES, AUTH_CONFIG, LOGIN_TEXT } from '../../core/const
               <h2 class="text-xl font-bold text-slate-900">{{ text.title }}</h2>
             </div>
 
+            <!-- BASE MODULE form controls wired via ControlValueAccessor -->
             <form class="mt-6 space-y-4" [formGroup]="form" (ngSubmit)="submit()">
-              <label class="block">
-                <span class="block text-xs font-semibold text-slate-600 mb-1.5">{{ text.usernameLabel }}</span>
-                <input
-                  class="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-hidden focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                  type="text"
-                  autocomplete="username"
-                  formControlName="username"
-                />
-              </label>
-
-              <label class="block">
-                <span class="block text-xs font-semibold text-slate-600 mb-1.5">{{ text.passwordLabel }}</span>
-                <input
-                  class="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-hidden focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                  type="password"
-                  autocomplete="current-password"
-                  formControlName="password"
-                />
-              </label>
+              <base-text-input [label]="text.usernameLabel" formControlName="username" [required]="true" />
+              <base-text-input [label]="text.passwordLabel" type="password" formControlName="password" [required]="true" />
 
               @if (error()) {
-                <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
-                  {{ error() }}
-                </p>
+                <base-alert kind="error" [message]="error()" />
               }
 
-              <button
-                class="w-full rounded-lg bg-indigo-600 px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-                type="submit"
-                [disabled]="form.invalid"
-              >
+              <base-button type="submit" variant="primary" size="lg" [fullWidth]="true"
+                           [disabled]="form.invalid">
                 {{ text.submitLabel }}
-              </button>
+              </base-button>
             </form>
 
           </div>

@@ -86,6 +86,12 @@ export const routes: Routes = [
         title: ROUTE_TITLES.devComponentCatalog,
         loadComponent: () =>
           import('./features/dev/component-catalog.component').then(m => m.ComponentCatalogComponent)
+      },
+      {
+        path: APP_ROUTE_PATHS.devBasePlayground,
+        title: ROUTE_TITLES.devBasePlayground,
+        loadComponent: () =>
+          import('./features/dev/base-playground.component').then(m => m.BasePlaygroundComponent)
       }
     ]
   },

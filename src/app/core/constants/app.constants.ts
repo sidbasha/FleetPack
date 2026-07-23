@@ -35,7 +35,8 @@ export const APP_ROUTES = {
   myReports: '/my-reports',
   innovationLab: '/innovation-lab',
   engineeringUtilities: '/engineering-utilities',
-  devComponentCatalog: '/dev/components'
+  devComponentCatalog: '/dev/components',
+  devBasePlayground: '/dev/base'
 } as const;
 
 export const APP_ROUTE_PATHS = {
@@ -58,7 +59,8 @@ export const APP_ROUTE_PATHS = {
   myReports: 'my-reports',
   innovationLab: 'innovation-lab',
   engineeringUtilities: 'engineering-utilities',
-  devComponentCatalog: 'dev/components'
+  devComponentCatalog: 'dev/components',
+  devBasePlayground: 'dev/base'
 } as const;
 
 export const PLACEHOLDER_ROUTE_PATHS = [
@@ -78,7 +80,8 @@ export const ROUTE_TITLES = {
   alarmFleetDetail: 'FAM · Alarm Explorer · Fleet',
   alarmToolAlarms: 'FAM · Alarm Explorer · Tool',
   alarmEvents: 'FAM · Alarm Explorer · Events',
-  devComponentCatalog: 'FAM · Component Catalog'
+  devComponentCatalog: 'FAM · Component Catalog',
+  devBasePlayground: 'FAM · Base Module Playground'
 } as const;
 
 export const APP_BRAND = {

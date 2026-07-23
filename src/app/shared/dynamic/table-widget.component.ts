@@ -1,142 +1,86 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-import { SHARED_UI_TEXT } from '../../core/constants/app.constants';
-import { TrendPillComponent } from '../components/ui.components';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import {
+  BaseColumnDef,
+  BasePageEvent,
+  BasePaginatorComponent,
+  BaseTableComponent
+} from '../../base';
 import { ColumnDef, TableWidget } from './widget.model';
 
 type Row = Record<string, unknown>;
 
+/**
+ * Adapter: renders the legacy TableWidget config through the BASE MODULE's
+ * <base-table> + <base-paginator>. All table rendering (cells, groups,
+ * selection highlight, pagination UI) is delegated to the base library.
+ */
 @Component({
   selector: 'fam-table-widget',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TrendPillComponent],
+  imports: [BaseTableComponent, BasePaginatorComponent],
   template: `
-    <div class="overflow-x-auto">
-      <table class="w-full">
-        <thead class="bg-slate-50">
-          <tr>
-            @for (c of widget.columns; track c.key) {
-              <th class="table-th" [class.text-right]="c.align === 'right'" [style.width]="c.width ?? null">{{ c.header }}</th>
-            }
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100">
-          @for (g of groups(); track g.key) {
-            @if (g.key !== text.table.noGroupKey) {
-              <tr class="bg-indigo-50/60">
-                <td [attr.colspan]="widget.groupAction ? widget.columns.length - 1 : widget.columns.length"
-                    class="px-3 py-1.5 text-[11px] font-bold text-indigo-800">
-                  {{ g.key }} <span class="font-medium text-indigo-400">· {{ g.rows.length }} {{ text.table.rowsSuffix }}</span>
-                </td>
-                @if (widget.groupAction) {
-                  <td class="px-3 py-1.5 text-right">
-                    <button class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800"
-                            (click)="widget.groupAction!.run(g.key)">{{ widget.groupAction!.label }}</button>
-                  </td>
-                }
-              </tr>
-            }
-            @for (row of g.rows; track trackOf(row)) {
-              <tr [class]="rowClass(row)" (click)="widget.onRowClick?.(row)">
-                @for (c of widget.columns; track c.key) {
-                  <td class="table-td" [class.text-right]="c.align === 'right'">
-                    @switch (c.kind ?? 'text') {
-                      @case ('mono') {
-                        <span class="font-mono" [class]="extraClass(c, row)">{{ cellText(c, row) }}</span>
-                      }
-                      @case ('badge') {
-                        <span class="text-[10px] font-bold rounded-full px-2 py-0.5" [class]="badgeClass(c, row)">{{ cellText(c, row) }}</span>
-                      }
-                      @case ('dot') {
-                        <span class="inline-flex items-center gap-1.5">
-                          <i class="chip-dot rounded-full" [class]="dotClass(c, row)"></i>{{ cellText(c, row) }}
-                        </span>
-                      }
-                      @case ('trend') {
-                        <fam-trend [value]="trendValue(c, row)" [badWhenUp]="c.trendBadWhenUp ?? false" />
-                      }
-                      @default {
-                        <span [class]="extraClass(c, row)">{{ cellText(c, row) }}</span>
-                      }
-                    }
-                  </td>
-                }
-              </tr>
-            }
-          }
-        </tbody>
-      </table>
-    </div>
+    <base-table
+      [columns]="baseColumns()"
+      [rows]="widget().rows"
+      [trackKey]="widget().trackKey"
+      [paginate]="false"
+      [showSearch]="false"
+      [groupBy]="widget().groupBy ?? null"
+      [groupActionLabel]="widget().groupAction?.label ?? ''"
+      [highlightKey]="widget().selectedKey ?? null"
+      emptyTitle="No records"
+      emptyHint=""
+      (groupAction)="widget().groupAction?.run($event)"
+      (rowClick)="widget().onRowClick?.($event.row)" />
 
-    @if (widget.pagination || widget.footer) {
-      <div class="px-4 py-3 border-t border-slate-100 flex items-center justify-between gap-3 text-[11px] text-slate-400">
-        <span>{{ widget.footer ?? text.table.emptyFooter }}</span>
-        @if (widget.pagination; as p) {
-          <span class="flex items-center gap-2 text-xs text-slate-500">
-            <button class="btn-ghost" (click)="p.onPrev()" [disabled]="p.page === 1">{{ text.table.previousPage }}</button>
-            {{ text.table.pagePrefix }} <b>{{ p.page }}</b> {{ text.table.pageConnector }} {{ p.pageCount }}
-            <button class="btn-ghost" (click)="p.onNext()" [disabled]="p.page === p.pageCount">{{ text.table.nextPage }}</button>
-          </span>
+    @if (widget().pagination || widget().footer) {
+      <div class="px-4 py-3 border-t border-slate-100 flex items-center justify-between gap-3">
+        <span class="text-[11px] text-slate-400">{{ widget().footer ?? '' }}</span>
+        @if (widget().pagination; as p) {
+          <base-paginator
+            [page]="p.page"
+            [total]="p.total ?? 0"
+            [pageCountOverride]="p.pageCount"
+            [showPageSize]="false"
+            (pageChange)="onPage($event)" />
         }
       </div>
     }
   `
 })
 export class TableWidgetComponent {
-  @Input({ required: true }) widget!: TableWidget<Row>;
+  readonly widget = input.required<TableWidget<Row>>();
 
-  readonly text = SHARED_UI_TEXT;
+  readonly baseColumns = computed<BaseColumnDef<Row>[]>(() =>
+    this.widget().columns.map(c => this.mapColumn(c))
+  );
 
-  groups(): { key: string; rows: Row[] }[] {
-    const { rows, groupBy } = this.widget;
-    if (!groupBy) return [{ key: this.text.table.noGroupKey, rows }];
-    const map = new Map<string, Row[]>();
-    for (const r of rows) {
-      const k = groupBy(r);
-      const arr = map.get(k) ?? [];
-      arr.push(r);
-      map.set(k, arr);
+  private mapColumn(c: ColumnDef<Row>): BaseColumnDef<Row> {
+    const mono = c.kind === 'mono';
+    return {
+      key: c.key,
+      header: c.header,
+      kind: mono ? 'text' : ((c.kind ?? 'text') as Exclude<import('./widget.model').CellKind, 'mono'>),
+      align: c.align === 'right' ? 'right' : 'left',
+      width: c.width,
+      value: c.value,
+      format: c.format ? (row) => c.format!(row) : undefined,
+      cellClass: (row) =>
+        [mono ? 'font-mono' : '', c.classFn ? c.classFn(row) : ''].join(' ').trim(),
+      badgeClassMap: c.badgeClassMap,
+      dotClassMap: c.dotClassMap,
+      trendBadWhenUp: c.trendBadWhenUp
+    };
+  }
+
+  /** Bridge the paginator's absolute page target to the legacy prev/next API. */
+  onPage(ev: BasePageEvent): void {
+    const p = this.widget().pagination;
+    if (!p) return;
+    const delta = ev.page - p.page;
+    for (let i = 0; i < Math.abs(delta); i++) {
+      delta > 0 ? p.onNext() : p.onPrev();
     }
-    return [...map.entries()].map(([key, rws]) => ({ key, rows: rws }));
-  }
-
-  trackOf(row: Row): unknown {
-    return row[this.widget.trackKey];
-  }
-
-  rowClass(row: Row): string {
-    const clickable = this.widget.onRowClick ? 'cursor-pointer hover:bg-indigo-50/50' : '';
-    const selected =
-      this.widget.selectedKey != null && String(row[this.widget.trackKey]) === this.widget.selectedKey
-        ? 'bg-indigo-50'
-        : '';
-    return `transition-colors ${clickable} ${selected}`.trim();
-  }
-
-  private cellValue(c: ColumnDef<Row>, row: Row): unknown {
-    return c.value ? c.value(row) : row[c.key];
-  }
-
-  cellText(c: ColumnDef<Row>, row: Row): string {
-    if (c.format) return c.format(row);
-    const v = this.cellValue(c, row);
-    return v === null || v === undefined || v === '' ? this.text.table.noValue : String(v);
-  }
-
-  extraClass(c: ColumnDef<Row>, row: Row): string {
-    return c.classFn ? c.classFn(row) : '';
-  }
-
-  badgeClass(c: ColumnDef<Row>, row: Row): string {
-    return c.badgeClassMap?.[String(this.cellValue(c, row))] ?? 'bg-slate-100 text-slate-500';
-  }
-
-  dotClass(c: ColumnDef<Row>, row: Row): string {
-    return c.dotClassMap?.[String(this.cellValue(c, row))] ?? 'bg-state-gap';
-  }
-
-  trendValue(c: ColumnDef<Row>, row: Row): number | null {
-    const v = this.cellValue(c, row);
-    return v === null || v === undefined ? null : Number(v);
   }
 }

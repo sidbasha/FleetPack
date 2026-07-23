@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { BaseChartDirective } from 'ng2-charts';
 import { ActiveElement } from 'chart.js';
-import { KpiComponent, TrendPillComponent } from '../components/ui.components';
+import { BaseKpiCardComponent, BaseProgressBarComponent, BaseTrendComponent } from '../../base';
 import { ChartWidget, KpiGridWidget, RankedListWidget } from './widget.model';
 
 // ── KPI grid ──
@@ -9,11 +9,11 @@ import { ChartWidget, KpiGridWidget, RankedListWidget } from './widget.model';
   selector: 'fam-kpi-grid-widget',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [KpiComponent],
+  imports: [BaseKpiCardComponent],
   template: `
     <div class="grid gap-4" style="grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));">
       @for (k of widget.kpis; track k.label) {
-        <fam-kpi [label]="k.label" [value]="k.value" [unit]="k.unit ?? ''" [sub]="k.sub ?? ''" [accent]="k.accent ?? false" />
+        <base-kpi-card [label]="k.label" [value]="k.value" [unit]="k.unit ?? ''" [sub]="k.sub ?? ''" [accent]="k.accent ?? false" />
       }
     </div>
   `
@@ -58,7 +58,7 @@ export class ChartWidgetComponent {
   selector: 'fam-ranked-list-widget',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TrendPillComponent],
+  imports: [BaseTrendComponent, BaseProgressBarComponent],
   template: `
     <ul class="divide-y divide-slate-100">
       @for (it of widget.items; track it.key) {
@@ -73,14 +73,14 @@ export class ChartWidgetComponent {
               <span class="block text-xs font-semibold text-slate-700 group-hover:text-indigo-700 truncate">{{ it.title }}</span>
               @if (it.subtitle) { <span class="block text-[10px] text-slate-400 truncate">{{ it.subtitle }}</span> }
               @if (it.barPct != null) {
-                <span class="block mt-1.5 h-2 rounded-full bg-slate-100 overflow-hidden">
-                  <span class="block h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" [style.width.%]="it.barPct"></span>
+                <span class="block mt-1.5">
+                  <base-progress-bar [value]="it.barPct!" [showLabel]="false" [height]="8" />
                 </span>
               }
             </span>
             <span class="text-sm font-bold font-mono text-slate-800">{{ it.value }}</span>
             @if (it.trendPct !== undefined) {
-              <fam-trend [value]="it.trendPct ?? null" [badWhenUp]="widget.trendBadWhenUp ?? false" />
+              <base-trend [value]="it.trendPct ?? null" [badWhenUp]="widget.trendBadWhenUp ?? false" />
             }
             @if (widget.onItemClick) { <span class="text-slate-300 group-hover:text-indigo-500">›</span> }
           </button>

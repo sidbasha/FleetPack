@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@a
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ChartConfiguration } from 'chart.js';
 import { UptimeStore } from '../../core/state/uptime.store';
+import { BaseSelectComponent, BaseSelectOption } from '../../base';
 import { KpiComponent, LoadingComponent } from '../../shared/components/ui.components';
 import { DynamicPageComponent } from '../../shared/dynamic/dynamic-page.component';
 import { KpiItem, WidgetConfig } from '../../shared/dynamic/widget.model';
@@ -16,7 +17,7 @@ import { downloadCsv } from '../../shared/utils/csv.util';
   selector: 'fam-uptime-availability',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, KpiComponent, LoadingComponent, DynamicPageComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, KpiComponent, LoadingComponent, DynamicPageComponent, BaseSelectComponent],
   template: `
     <div class="flex flex-wrap items-center gap-3">
       <div>
@@ -50,9 +51,8 @@ import { downloadCsv } from '../../shared/utils/csv.util';
         <div class="panel-header !py-2.5 flex-wrap gap-3">
           <div class="flex items-center gap-3">
             <h2 class="panel-title">Tool Analysis: <span class="text-indigo-600">{{ store.selectedTool() }}</span> <span class="badge-fam">FAM</span></h2>
-            <select class="filter-select" [value]="store.selectedTool()" (change)="onTool($event)">
-              @for (t of toolOptions(); track t) { <option [value]="t">{{ t }}</option> }
-            </select>
+            <base-select class="w-40" [options]="toolSelectOptions()" [value]="store.selectedTool()"
+                         (valueChange)="onToolPick($event)" />
           </div>
           <nav class="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
             <a routerLink="heatmap" routerLinkActive="tab-btn-active" class="tab-btn">State Heatmap</a>
@@ -161,6 +161,14 @@ export class UptimeAvailabilityComponent implements OnInit {
 
   ngOnInit(): void {
     this.store.loadAvailability();
+  }
+
+  readonly toolSelectOptions = computed<BaseSelectOption<string>[]>(() =>
+    this.toolOptions().map(t => ({ label: t, value: t }))
+  );
+
+  onToolPick(v: string | null): void {
+    if (v) this.store.selectedTool.set(v);
   }
 
   onTool(e: Event): void {

@@ -7,32 +7,27 @@ import { APP_ROUTES, AUTH_CONFIG, FILTER_OPTIONS, TOPBAR_TEXT } from '../core/co
 import { ApiService } from '../core/services/api.service';
 import { GlobalFilters } from '../core/models/models';
 import { FilterStore } from '../core/state/filter.store';
+import { BaseBreadcrumbsComponent, BaseSelectComponent, BaseSelectOption } from '../base';
 
 @Component({
   selector: 'fam-topbar',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [BaseSelectComponent, BaseBreadcrumbsComponent],
   template: `
     <header class="h-14 sticky top-0 z-20 bg-white/90 backdrop-blur-sm border-b border-slate-200 flex items-center gap-4 px-5">
-      <nav class="flex items-center gap-1.5 text-xs text-slate-400 min-w-0">
-        @for (crumb of breadcrumbs(); track $index; let last = $last) {
-          <span [class]="last ? 'font-semibold text-slate-800 truncate' : 'truncate'">{{ crumb }}</span>
-          @if (!last) { <span class="text-slate-300">{{ text.breadcrumbSeparator }}</span> }
-        }
-      </nav>
+      <base-breadcrumbs class="min-w-0" [items]="crumbItems()" [separator]="text.breadcrumbSeparator" />
 
       <div class="flex-1"></div>
 
       <div class="hidden lg:flex items-center gap-2">
         <label class="text-[10px] font-bold uppercase tracking-wide text-slate-400">{{ text.fleetLabel }}</label>
-        <select class="filter-select" [value]="store.fleet()" (change)="onFleet($event)">
-          @for (f of store.fleets(); track f) { <option [value]="f">{{ f }}</option> }
-        </select>
+        <base-select class="w-36" [options]="fleetOptions()" [value]="store.fleet()"
+                     (valueChange)="onFleetPick($event)" />
 
         <label class="text-[10px] font-bold uppercase tracking-wide text-slate-400 ml-2">{{ text.durationLabel }}</label>
-        <select class="filter-select" [value]="store.filters().duration" (change)="onDuration($event)">
-          @for (d of durations; track d) { <option [value]="d">{{ d }}</option> }
-        </select>
+        <base-select class="w-32" [options]="durationOptions" [value]="store.filters().duration"
+                     (valueChange)="onDurationPick($event)" />
 
         <span class="ml-2 text-[11px] font-medium text-slate-500 bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5">
           {{ store.dateRangeLabel() }}
@@ -137,6 +132,22 @@ export class TopbarComponent implements OnInit {
     if (this.showUserPopup() && !this.el.nativeElement.contains(e.target)) {
       this.showUserPopup.set(false);
     }
+  }
+
+  readonly durationOptions: BaseSelectOption<string>[] = FILTER_OPTIONS.durations.map(d => ({ label: d, value: d }));
+
+  readonly crumbItems = computed(() => this.breadcrumbs().map(label => ({ label })));
+
+  readonly fleetOptions = computed<BaseSelectOption<string>[]>(() =>
+    this.store.fleets().map(f => ({ label: f, value: f }))
+  );
+
+  onFleetPick(v: string | null): void {
+    if (v) this.store.setFleet(v);
+  }
+
+  onDurationPick(v: string | null): void {
+    if (v) this.store.setDuration(v as GlobalFilters['duration']);
   }
 
   onFleet(e: Event): void {

@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, Input, OnChanges, computed, inject } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { AlarmStore } from '../../core/state/alarm.store';
 import { KpiComponent, LoadingComponent } from '../../shared/components/ui.components';
+import { BaseBreadcrumbsComponent } from '../../base';
 import { DynamicPageComponent } from '../../shared/dynamic/dynamic-page.component';
 import { WidgetConfig } from '../../shared/dynamic/widget.model';
 import { AlarmCategory } from '../../core/models/models';
@@ -17,11 +18,11 @@ const CAT_COLORS: Record<AlarmCategory, string> = {
   selector: 'fam-fleet-detail',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, KpiComponent, LoadingComponent, DynamicPageComponent],
+  imports: [KpiComponent, LoadingComponent, DynamicPageComponent, BaseBreadcrumbsComponent],
   template: `
     <div class="flex flex-wrap items-center gap-3">
       <div>
-        <p class="text-[11px] text-slate-400"><a routerLink="/alarm-explorer" class="hover:text-indigo-600">Alarm Explorer</a> › Fleet</p>
+        <base-breadcrumbs class="block mb-0.5" [items]="crumbs" />
         <h1 class="text-lg font-bold text-slate-900">{{ store.fleetDetail()?.fleet?.fleetName ?? '…' }} <span class="badge-fam">FAM</span></h1>
       </div>
       <div class="flex-1"></div>
@@ -40,6 +41,11 @@ const CAT_COLORS: Record<AlarmCategory, string> = {
   `
 })
 export class FleetDetailComponent implements OnChanges {
+  readonly crumbs = [
+    { label: 'Alarm Explorer', url: '/alarm-explorer' },
+    { label: 'Fleet' }
+  ];
+
   @Input({ required: true }) fleetId = '';
   store = inject(AlarmStore);
   private router = inject(Router);
