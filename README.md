@@ -15,15 +15,15 @@ Requires Node 18.19+, 20.11+, or 22.0+ (Angular 20).
 
 | Route | Screen |
 |---|---|
-| `/fleet-availability/up-time/analysis` | **Fleet Up+Time Analysis** — uptime trend line chart (1W/13W rolling + period average), uptime breakdown table (rolling, tool-wise, grouped by SW version) with toggles + CSV export, Top-10 unavailable tools stacked bar, downtime category details |
-| `/fleet-availability/up-time/availability` | **Fleet Up+Time Availability** — KPI strip (13W/4W rolling, current week, MTBr, total downtime), fleet uptime/downtime combo chart, top unavailable tools, downtime categories |
-| `…/availability/heatmap` | Tab 1 — **24-Hour State Heatmap** (custom CSS-grid, 14 days × hour blocks, state totals) |
-| `…/availability/gantt` | Tab 2 — **Activity Gantt** (Sys E10 / Tool E10 rows per day, segment labels, day-shift mask, daily availability %) |
-| `…/availability/events` | Tab 3 — **Event Details** (grouped-by-day table, source/state/JobStatus, paging, Add Event, CSV) |
-| `/alarm-explorer` | **Alarm Explorer home** — stacked alarm-volume chart by category (trend/Pareto toggle), fleet breakdown drill-down list |
-| `/alarm-explorer/fleet/:fleetId` | **Fleet detail** — tool-level stacked distribution (click a bar to drill down), top alarms, tool summary table |
-| `/alarm-explorer/fleet/:fleetId/tool/:toolId` | **Tool alarm summary** — searchable/filterable alarm table + **Alarm Info** side panel (occurrence stats, recipe context, weekly-trend sparkline) |
-| `…/tool/:toolId/alarm/:alarmId` | **Alarm events** — chronological event log with recipe filter, resolution badges, pagination, CSV |
+| `/fleet-availability/up-time/analysis` | **Fleet Up+Time Analysis** — Uptime/Downtime Trend toggle on the rolling line chart (1W/13W + period average), collapsible uptime breakdown table (rolling, tool-wise, grouped by SW version) with chip-style Tool-wise/Grouped toggles + CSV export, Top-10 unavailable tools stacked bar, downtime category details with colored progress bars |
+| `/fleet-availability/up-time/availability` | **Fleet Up+Time Availability** — single divided KPI strip (13W/4W rolling, current week, MTBr, total downtime in red), Uptime/Downtime Trend line chart, Top-10 unavailable stacked bar with a Non-Scheduled toggle, downtime categories (colored label + underline bar), a collapsible **Tool-Level Analysis Filter** bar (tool picker + live state-count pills) |
+| `…/availability/heatmap` | Tab 1 — **24-Hour State Heatmap** (custom CSS-grid, 14 days × hour blocks; state totals now live in the page-level Tool-Level Analysis Filter bar) |
+| `…/availability/gantt` | Tab 2 — **Activity Gantt** (Sys E10 / Tool E10 rows per day, segment labels, colored availability badges, "Day Shift" as a legend swatch, pagination in the footer) |
+| `…/availability/events` | Tab 3 — **Event Details** (grouped-by-day table with sortable timestamps, progress-bar duration, outlined state badges, delete/edit row actions, paging, Add Event, CSV) |
+| `/alarm-explorer` | **Alarm Explorer home** — Model/Fleet/Category/Duration filter bar, stacked alarm-volume chart by category (Trend/Pareto tabs), fleet breakdown drill-down list |
+| `/alarm-explorer/fleet/:fleetId` | **Fleet detail** — Alarm ID/Tools/Category/SW Version filter bar, 5-metric KPI strip, tool-level stacked distribution (Trend/Pareto tabs, click a bar to drill down), top alarms with category-colored bars, tool summary table |
+| `/alarm-explorer/fleet/:fleetId/tool/:toolId` | **Tool alarm summary** — Alarm ID/Category/Severity/Recipe filter bar + searchable alarm table; selecting a row opens the **Alarm Info** inspector in a slide-over `<base-drawer>` (occurrence stats, recipe context, weekly-trend chart) |
+| `…/tool/:toolId/alarm/:alarmId` | **Alarm events** — Date Range/Recipe/Show/Duration filter bar, 4-metric KPI strip, chronological event log with a recipe tab filter, outlined resolution badges, pagination, CSV |
 | `/fleet-configuration`, `/fleet-productivity`, `/tqual`, `/my-reports`, `/innovation-lab`, `/engineering-utilities` | Placeholder modules wired into nav & routing |
 
 ## Architecture
@@ -51,15 +51,26 @@ Every screen is **configuration, not template**. A page component builds a
 | Widget type | Renderer | Use |
 |---|---|---|
 | `kpi-grid` | KpiGridWidgetComponent | KPI strips |
-| `chart` | ChartWidgetComponent | Any Chart.js chart, drill-down via `onPointClick` |
-| `table` | TableWidgetComponent | Columns config: text/mono/badge/dot/trend cells, grouping, selection, pagination |
-| `ranked-list` | RankedListWidgetComponent | Drill-down lists with rank, trend pill, progress bar |
+| `chart` | ChartWidgetComponent | Any Chart.js chart, drill-down via `onPointClick`; legend renders below the canvas |
+| `table` | TableWidgetComponent | Columns config: text/mono/badge/dot/trend/progress/**text-bar**/**row-actions**/sparkline/link cells, grouping (`groupHeaderStyle`: accent/plain/light), selection, pagination |
+| `ranked-list` | RankedListWidgetComponent | Drill-down lists with rank, trend pill, per-item colored progress bar (`barColor`), custom title/subtitle classes |
 | `component` | NgComponentOutlet | Any component, by class or by registry `name` |
 
-Custom widgets (`state-heatmap`, `activity-gantt`, `event-details`,
-`alarm-info-panel`) are registered by name in `register-widgets.ts`
-(bootstrapped via `provideAppInitializer`), so pages — or future server-driven
-configs — can reference them as `{ type: 'component', name: 'state-heatmap' }`.
+Every non-frameless widget's panel header can also carry, regardless of type:
+`titlePrefix` (muted text before the title), `dateRange` (2-line range top-right),
+`tabs` (segmented pill switch, e.g. Trend/Pareto), `toggle` (a single boolean
+switch), `search` (inline search box), `collapsible`/`collapsed` (accordion
+chevron), and chip-style `actions` (pass `active: boolean` on a `WidgetAction`
+to render it as a toggle chip instead of a plain button). See
+`shared/dynamic/widget.model.ts` for the full `WidgetBase` contract.
+
+Custom widgets (`state-heatmap`, `activity-gantt`, `event-details`) are
+registered by name in `register-widgets.ts` (bootstrapped via
+`provideAppInitializer`), so pages — or future server-driven configs — can
+reference them as `{ type: 'component', name: 'state-heatmap' }`. The Alarm
+Explorer's inspector (`alarm-info-panel`) is imported directly and rendered
+inside a `<base-drawer>` by its host page rather than through the registry,
+since drawer content needs to sit outside the page's widget grid.
 
 ### State management (`core/state/`)
 

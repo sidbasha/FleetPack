@@ -10,7 +10,7 @@ Live demo route: **`/dev/base`** (Component playground with every feature exerci
 
 | Selector | Purpose |
 |---|---|
-| `<base-table>` | Core data table: dynamic columns, pagination, custom cell templates, filters, sticky header + sticky columns, sorting, selection |
+| `<base-table>` | Core data table: dynamic columns (text/number/date/badge/dot/trend/image/progress/text-bar/sparkline/link/row-actions cell kinds), pagination, custom cell templates, filters, sticky header + sticky columns, sorting, selection, grouped rows (accent/plain/light header styles) |
 | `<base-paginator>` | Standalone pagination control (also used inside the table) |
 | `<base-search-input>` | Debounced search box |
 | `<base-kpi-card>` | KPI metric card with optional trend + click event |
@@ -22,13 +22,14 @@ Live demo route: **`/dev/base`** (Component playground with every feature exerci
 | `<base-button>` | Button with variants, sizes, loading state |
 | `<base-text-input>` | Text/number/password input: label, hint, error, prefix/suffix, clearable |
 | `<base-textarea>` | Multiline input with character counter |
-| `<base-select>` | Custom dropdown with optional search |
+| `<base-select>` | Custom dropdown with optional search; `[showChevron]="false"` renders it as a plain input-styled box |
 | `<base-checkbox>` / `<base-radio-group>` / `<base-toggle>` | Choice controls |
 | `<base-datepicker>` | Popup calendar: min/max, disabled-date rule, clearable |
 | `<base-breadcrumbs>` | Navigation trail (routerLink or click events) |
 | `<base-tabs>` | Headless tab bar (underline or pills) |
 | `<base-dropdown-menu>` | Actions menu with icons, dividers, danger items |
 | `<base-modal>` | Content-projected dialog with footer slot |
+| `<base-drawer>` | Content-projected slide-over panel: left/right `side`, configurable `width`, backdrop dim, ESC/backdrop-to-close, footer slot |
 | `[baseTooltip]` | Tooltip directive for any element |
 | `<base-alert>` | Info/success/warning/error banner |
 | `<base-progress-bar>` | Progress with label |
@@ -47,7 +48,20 @@ All form controls expose a two-way `[(value)]` / `[(checked)]` model **and** imp
 <base-breadcrumbs [items]="crumbs" (itemClick)="onCrumb($event)" />
 <base-tabs [tabs]="tabs" [(activeId)]="active" />
 <base-modal [(open)]="show" title="Edit"> ... <div footer>...</div> </base-modal>
+<base-drawer [(open)]="showInspector" side="right" width="460px" [showClose]="false">
+  <fam-alarm-info-panel />
+  <div footer class="w-full flex gap-2">
+    <button class="btn-primary flex-1">View Event Log</button>
+    <button class="btn-ghost flex-1 border border-slate-200">Export</button>
+  </div>
+</base-drawer>
 ```
+
+Note: content passed to `[footer]` must be a **direct child** of `<base-drawer>`
+in the host template — Angular content projection doesn't reach through a
+nested component's own template, so footer buttons can't live inside
+`<fam-alarm-info-panel>` itself if that component is what's projected as the
+drawer's body.
 
 ## Quick start — table
 
@@ -103,10 +117,13 @@ The whole application renders through this module — treat the features as live
   → `<base-table>` + `<base-paginator>` via the `fam-table-widget` adapter
   (`shared/dynamic/table-widget.component.ts`), incl. grouped rows, group actions, highlight.
 - **KPI grids / ranked lists** → `<base-kpi-card>`, `<base-trend>`, `<base-progress-bar>`.
-- **Top bar** → `<base-breadcrumbs>` route trail + `<base-select>` Fleet/Duration filters.
+- **Top bar & page filter bars** (Alarm Explorer, Uptime Availability's Tool-Level
+  Analysis Filter) → `<base-breadcrumbs>` route trail + `<base-select>` filters,
+  several with `[showChevron]="false"` for a plain-input look.
 - **Login** → `<base-text-input formControlName>` (ControlValueAccessor), `<base-button>`, `<base-alert>`.
-- **Alarm Explorer pages** → `<base-breadcrumbs>` trails; Tool page uses
-  `<base-search-input>`, `<base-select>`, `<base-button>`.
+- **Alarm Explorer pages** → `<base-breadcrumbs>` trails; the Tool page uses
+  `<base-search-input>`, `<base-select>`, `<base-button>`, and opens its alarm
+  inspector in a `<base-drawer>` instead of an inline side panel.
 - `fam-kpi` / `fam-loading` / `fam-trend` are **deprecated wrappers** delegating to base —
   new code should import from `src/app/base` directly.
 

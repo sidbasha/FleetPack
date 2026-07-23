@@ -41,9 +41,9 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
 
   { name: 'AlarmHomeComponent', selector: 'fam-alarm-home', group: 'Alarm Explorer', file: 'features/alarm-explorer/alarm-home.component.ts', route: '/alarm-explorer', description: 'Alarm volume chart (trend/pareto), fleet breakdown ranked list.' },
   { name: 'FleetDetailComponent', selector: 'fam-fleet-detail', group: 'Alarm Explorer', file: 'features/alarm-explorer/fleet-detail.component.ts', route: '/alarm-explorer/fleet/:fleetId', description: 'KPIs, tool-level distribution chart, top alarms, tool summary table.' },
-  { name: 'ToolAlarmsComponent', selector: 'fam-tool-alarms', group: 'Alarm Explorer', file: 'features/alarm-explorer/tool-alarms.component.ts', route: '/alarm-explorer/fleet/:fleetId/tool/:toolId', description: 'Searchable/filterable alarm table + info side panel.' },
+  { name: 'ToolAlarmsComponent', selector: 'fam-tool-alarms', group: 'Alarm Explorer', file: 'features/alarm-explorer/tool-alarms.component.ts', route: '/alarm-explorer/fleet/:fleetId/tool/:toolId', description: 'Searchable/filterable alarm table; row click opens the alarm inspector in a base-drawer.' },
   { name: 'AlarmEventsComponent', selector: 'fam-alarm-events', group: 'Alarm Explorer', file: 'features/alarm-explorer/alarm-events.component.ts', route: '/alarm-explorer/fleet/:fleetId/tool/:toolId/alarm/:alarmId', description: 'Chronological alarm event log, recipe filter, pagination, CSV export.' },
-  { name: 'AlarmInfoPanelComponent', selector: 'fam-alarm-info-panel', group: 'Alarm Explorer', file: 'features/alarm-explorer/alarm-info-panel.component.ts', description: "Inspector panel for the selected alarm. Registered widget: 'alarm-info-panel'." },
+  { name: 'AlarmInfoPanelComponent', selector: 'fam-alarm-info-panel', group: 'Alarm Explorer', file: 'features/alarm-explorer/alarm-info-panel.component.ts', description: 'Inspector content for the selected alarm, rendered inside the Tool page\'s base-drawer.' },
 
   { name: 'PlaceholderComponent', selector: 'fam-placeholder', group: 'Placeholder', file: 'features/placeholder/placeholder.component.ts', description: 'Scaffolded "coming soon" screen for modules not yet built.' }
 ];
