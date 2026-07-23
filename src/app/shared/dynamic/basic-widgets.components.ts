@@ -34,6 +34,13 @@ export class KpiGridWidgetComponent {
               [options]="widget.options ?? {}"
               (chartClick)="onClick($event)"></canvas>
     </div>
+    @if (widget.legend?.length) {
+      <div class="flex items-center flex-wrap gap-4 px-4 pb-3 border-t border-slate-100 pt-3">
+        @for (l of widget.legend; track l.label) {
+          <span class="chip"><i class="chip-dot" [style.background]="l.color"></i>{{ l.label }}</span>
+        }
+      </div>
+    }
     @if (widget.footnote) {
       <p class="px-4 pb-3 text-[11px] text-slate-400">{{ widget.footnote }}</p>
     }

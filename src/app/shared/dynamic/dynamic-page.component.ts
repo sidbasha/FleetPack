@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, Input, Type } from '@angular/core';
 import { NgComponentOutlet, NgTemplateOutlet } from '@angular/common';
+import { BaseTabsComponent, BaseToggleComponent } from '../../base';
 import {
   ChartWidget, ComponentWidget, KpiGridWidget, RankedListWidget, TableWidget, WidgetConfig
 } from './widget.model';
@@ -8,16 +9,16 @@ import { ChartWidgetComponent, KpiGridWidgetComponent, RankedListWidgetComponent
 import { TableWidgetComponent } from './table-widget.component';
 
 /**
- * Renders any WidgetConfig: panel chrome (title/badge/legend/actions)
- * plus the type-specific body. 'component' widgets are resolved either
- * from a direct class or by name via the widget registry.
+ * Renders any WidgetConfig: panel chrome (title/badge/date range/tabs/
+ * toggle/actions) plus the type-specific body. 'component' widgets are
+ * resolved either from a direct class or by name via the widget registry.
  */
 @Component({
   selector: 'fam-dynamic-widget',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    NgComponentOutlet, NgTemplateOutlet,
+    NgComponentOutlet, NgTemplateOutlet, BaseTabsComponent, BaseToggleComponent,
     KpiGridWidgetComponent, ChartWidgetComponent, RankedListWidgetComponent, TableWidgetComponent
   ],
   template: `
@@ -25,28 +26,60 @@ import { TableWidgetComponent } from './table-widget.component';
       <ng-container [ngTemplateOutlet]="body" />
     } @else {
       <section class="panel h-full flex flex-col">
-        @if (widget.title || widget.legend?.length || widget.actions?.length) {
+        @if (widget.title || widget.actions?.length || widget.dateRange || widget.tabs || widget.toggle) {
           <div class="panel-header flex-wrap gap-2">
-            <h2 class="panel-title">
-              {{ widget.title }}
-              @if (widget.badge) { <span class="badge-fam">{{ widget.badge }}</span> }
+            <h2 class="panel-title inline-flex items-center gap-2">
+              @if (widget.collapsible) {
+                <button type="button" class="text-slate-400 hover:text-indigo-600 text-[10px] leading-none"
+                        [attr.aria-label]="widget.collapsed ? 'Expand' : 'Collapse'"
+                        (click)="widget.onToggleCollapse?.()">{{ widget.collapsed ? '▸' : '▾' }}</button>
+              }
+              @if (widget.badge) { <span class="badge-fam ml-0!">{{ widget.badge }}</span> }
+              <span>
+                @if (widget.titlePrefix) { <span class="font-normal text-slate-400 mr-1">{{ widget.titlePrefix }}</span> }
+                {{ widget.title }}
+              </span>
             </h2>
-            <div class="flex items-center flex-wrap gap-2">
-              @for (l of widget.legend ?? []; track l.label) {
-                <span class="chip"><i class="chip-dot" [style.background]="l.color"></i>{{ l.label }}</span>
+            <div class="flex items-center flex-wrap gap-3">
+              @if (widget.dateRange; as dr) {
+                <span class="flex flex-col items-end leading-tight text-[11px] text-slate-400 font-medium">
+                  <span>{{ dr.from }}</span>
+                  <span>{{ dr.to }}</span>
+                </span>
+              }
+              @if (widget.tabs; as t) {
+                <base-tabs variant="pills" [tabs]="t.items" [activeId]="t.activeId" (activeIdChange)="t.onChange($event)" />
+              }
+              @if (widget.toggle; as tg) {
+                <base-toggle [checked]="tg.checked" [label]="tg.label" (checkedChange)="tg.onChange($event)" />
+              }
+              @if (widget.actionsLabel) {
+                <span class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{{ widget.actionsLabel }}</span>
               }
               @for (a of widget.actions ?? []; track $index) {
-                <button [class]="a.kind === 'primary' ? 'btn-primary' : 'btn-ghost'" (click)="a.run()">{{ a.label }}</button>
+                @if (a.active === undefined) {
+                  <button [class]="a.kind === 'primary' ? 'btn-primary' : 'btn-ghost'" (click)="a.run()">{{ a.label }}</button>
+                } @else {
+                  <button type="button" class="chip-toggle" [class]="a.active ? 'chip-toggle-active' : 'chip-toggle-inactive'"
+                          (click)="a.run()">
+                    <span class="text-[9px]">{{ a.active ? '●' : '○' }}</span>{{ a.label }}
+                  </button>
+                }
+              }
+              @if (widget.note) {
+                <span class="text-[11px] text-slate-400 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">{{ widget.note }}</span>
               }
             </div>
           </div>
         }
-        @if (widget.subtitle) {
-          <p class="px-4 pt-2.5 text-[11px] text-slate-400">{{ widget.subtitle }}</p>
+        @if (!widget.collapsed) {
+          @if (widget.subtitle) {
+            <p class="px-4 pt-2.5 text-[11px] text-slate-400">{{ widget.subtitle }}</p>
+          }
+          <div class="flex-1 min-h-0">
+            <ng-container [ngTemplateOutlet]="body" />
+          </div>
         }
-        <div class="flex-1 min-h-0">
-          <ng-container [ngTemplateOutlet]="body" />
-        </div>
       </section>
     }
 

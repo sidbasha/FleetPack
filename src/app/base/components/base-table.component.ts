@@ -131,7 +131,14 @@ interface StickyMeta {
 
         <tbody class="divide-y divide-slate-100">
           @for (g of groupedRows(); track g.key) {
-            @if (g.key !== null) {
+            @if (g.key !== null && groupHeaderStyle() === 'plain') {
+              <tr class="bg-slate-50">
+                <td [attr.colspan]="colspan()"
+                    class="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-400 border-t border-slate-100">
+                  {{ g.key }}
+                </td>
+              </tr>
+            } @else if (g.key !== null) {
               <tr class="bg-indigo-50/60">
                 <td [attr.colspan]="groupActionLabel() ? colspan() - 1 : colspan()"
                     class="px-3 py-1.5 text-[11px] font-bold text-indigo-800">
@@ -180,7 +187,8 @@ interface StickyMeta {
                       }
                       @case ('dot') {
                         <span class="inline-flex items-center gap-1.5">
-                          <i class="inline-block w-2.5 h-2.5 rounded-full" [class]="dotClass(c, row)"></i>{{ cellText(c, row) }}
+                          @if (hasDot(c, row)) { <i class="inline-block w-2.5 h-2.5 rounded-full" [class]="dotClass(c, row)"></i> }
+                          {{ cellText(c, row) }}
                         </span>
                       }
                       @case ('trend') {
@@ -195,9 +203,9 @@ interface StickyMeta {
                       @case ('progress') {
                         <span class="inline-flex items-center gap-2 w-full">
                           <span class="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden min-w-12">
-                            <span class="block h-full rounded-full bg-indigo-500" [style.width.%]="progressValue(c, row)"></span>
+                            <span class="block h-full rounded-full" [class]="progressBarClass(c, row)" [style.width.%]="progressBarPct(c, row)"></span>
                           </span>
-                          <span class="text-[10px] font-semibold text-slate-500 tabular-nums">{{ progressValue(c, row) }}%</span>
+                          <span class="text-[10px] font-semibold text-slate-500 tabular-nums">{{ progressLabel(c, row) }}</span>
                         </span>
                       }
                       @case ('sparkline') {
@@ -278,10 +286,12 @@ export class BaseTableComponent<T = BaseRow> {
 
   /** Zebra striping. */
   readonly striped = input(false);
-  /** Group rows under sub-header rows (e.g. events by day). */
-  readonly groupBy = input<((row: T) => string) | null>(null);
+  /** Group rows under sub-header rows (e.g. events by day). Return null to leave a row ungrouped. */
+  readonly groupBy = input<((row: T) => string | null) | null>(null);
   /** When set, group headers get an action button emitting (groupAction). */
   readonly groupActionLabel = input('');
+  /** 'accent' (default): indigo header with row count. 'plain': muted uppercase section divider. */
+  readonly groupHeaderStyle = input<'accent' | 'plain'>('accent');
   /** Highlight the row whose trackKey value matches (external selection). */
   readonly highlightKey = input<string | null>(null);
   readonly emptyTitle = input('No matching records');
@@ -404,7 +414,7 @@ export class BaseTableComponent<T = BaseRow> {
     const gb = this.groupBy();
     if (rows.length === 0) return [];
     if (!gb) return [{ key: null, rows }];
-    const map = new Map<string, T[]>();
+    const map = new Map<string | null, T[]>();
     for (const r of rows) {
       const k = gb(r);
       const arr = map.get(k) ?? [];
@@ -568,6 +578,10 @@ export class BaseTableComponent<T = BaseRow> {
     return c.badgeClassMap?.[String(this.cellValue(c, row))] ?? 'bg-slate-100 text-slate-500';
   }
 
+  hasDot(c: BaseColumnDef<T>, row: T): boolean {
+    return !!c.dotClassMap?.[String(this.cellValue(c, row))];
+  }
+
   dotClass(c: BaseColumnDef<T>, row: T): string {
     return c.dotClassMap?.[String(this.cellValue(c, row))] ?? 'bg-slate-300';
   }
@@ -580,6 +594,23 @@ export class BaseTableComponent<T = BaseRow> {
   progressValue(c: BaseColumnDef<T>, row: T): number {
     const v = Number(this.cellValue(c, row));
     return isNaN(v) ? 0 : Math.min(100, Math.max(0, Math.round(v)));
+  }
+
+  /** Bar width as a % of `progressMax` (defaults to 100, i.e. the raw value is already 0–100). */
+  progressBarPct(c: BaseColumnDef<T>, row: T): number {
+    const v = Number(this.cellValue(c, row));
+    if (isNaN(v)) return 0;
+    const max = c.progressMax ?? 100;
+    return Math.min(100, Math.max(0, Math.round((v / max) * 100)));
+  }
+
+  progressBarClass(c: BaseColumnDef<T>, row: T): string {
+    return c.barClass ? c.barClass(row) : 'bg-indigo-500';
+  }
+
+  /** Formatted value when `format` is given (e.g. "2.15"), else the rounded 0–100 value. */
+  progressLabel(c: BaseColumnDef<T>, row: T): string {
+    return c.format ? this.cellText(c, row) : `${this.progressValue(c, row)}%`;
   }
 
   sparkData(c: BaseColumnDef<T>, row: T): number[] {

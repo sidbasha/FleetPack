@@ -21,17 +21,18 @@ import { BaseBreadcrumbsComponent, BaseSelectComponent, BaseSelectOption } from 
       <div class="flex-1"></div>
 
       <div class="hidden lg:flex items-center gap-2">
-        <label class="text-[10px] font-bold uppercase tracking-wide text-slate-400">{{ text.fleetLabel }}</label>
+        <span class="flex flex-col items-end leading-tight mr-1">
+          <label class="text-[9px] font-bold uppercase tracking-wide text-slate-400">{{ text.dateRangeLabel }}</label>
+          <span class="text-[11px] font-medium text-slate-600">{{ store.dateRangeLabel() }}</span>
+        </span>
+
+        <label class="text-[10px] font-bold uppercase tracking-wide text-slate-400 ml-2">{{ text.fleetLabel }}</label>
         <base-select class="w-36" [options]="fleetOptions()" [value]="store.fleet()"
                      (valueChange)="onFleetPick($event)" />
 
         <label class="text-[10px] font-bold uppercase tracking-wide text-slate-400 ml-2">{{ text.durationLabel }}</label>
         <base-select class="w-32" [options]="durationOptions" [value]="store.filters().duration"
                      (valueChange)="onDurationPick($event)" />
-
-        <span class="ml-2 text-[11px] font-medium text-slate-500 bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5">
-          {{ store.dateRangeLabel() }}
-        </span>
       </div>
 
       <div class="relative flex items-center gap-3 pl-3 border-l border-slate-200">

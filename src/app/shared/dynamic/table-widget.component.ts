@@ -27,6 +27,7 @@ type Row = Record<string, unknown>;
       [paginate]="false"
       [showSearch]="false"
       [groupBy]="widget().groupBy ?? null"
+      [groupHeaderStyle]="widget().groupHeaderStyle ?? 'accent'"
       [groupActionLabel]="widget().groupAction?.label ?? ''"
       [highlightKey]="widget().selectedKey ?? null"
       emptyTitle="No records"
@@ -70,7 +71,9 @@ export class TableWidgetComponent {
         [mono ? 'font-mono' : '', c.classFn ? c.classFn(row) : ''].join(' ').trim(),
       badgeClassMap: c.badgeClassMap,
       dotClassMap: c.dotClassMap,
-      trendBadWhenUp: c.trendBadWhenUp
+      trendBadWhenUp: c.trendBadWhenUp,
+      progressMax: c.progressMax,
+      barClass: c.barClass
     };
   }
 

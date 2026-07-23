@@ -144,6 +144,7 @@ export const LOGIN_TEXT = {
 } as const;
 
 export const TOPBAR_TEXT = {
+  dateRangeLabel: 'Date Range',
   fleetLabel: 'Fleet',
   durationLabel: 'Duration',
   notificationsTitle: 'Notifications',

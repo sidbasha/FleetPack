@@ -53,6 +53,9 @@
   .tab-btn-active { @apply bg-indigo-600 text-white hover:bg-indigo-600 hover:text-white; }
   .chip { @apply inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-600; }
   .chip-dot { @apply inline-block w-2.5 h-2.5 rounded-xs; }
+  .chip-toggle { @apply inline-flex items-center gap-1.5 text-[11px] font-semibold rounded-full border px-2.5 py-1 transition-colors; }
+  .chip-toggle-active { @apply bg-indigo-50 text-indigo-700 border-indigo-200; }
+  .chip-toggle-inactive { @apply bg-white text-slate-500 border-slate-200 hover:border-indigo-200; }
 }
 
 ::-webkit-scrollbar { height: 8px; width: 8px; }

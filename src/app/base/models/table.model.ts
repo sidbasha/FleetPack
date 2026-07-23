@@ -77,6 +77,10 @@ export interface BaseColumnDef<T = BaseRow> {
   linkHref?: (row: T) => string;
   /** kind 'link': open in new tab. Default true. */
   linkExternal?: boolean;
+  /** kind 'progress': denominator the raw value is scaled against for bar width. Default 100. */
+  progressMax?: number;
+  /** kind 'progress': per-row bar fill color, e.g. row => 'bg-red-500'. Default indigo. */
+  barClass?: (row: T) => string;
 }
 
 export interface BaseSortEvent {

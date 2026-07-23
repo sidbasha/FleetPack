@@ -15,20 +15,52 @@ export interface LegendItem { label: string; color: string; }
 export interface WidgetAction {
   label: string;
   kind?: 'primary' | 'ghost';
+  /** When set, renders as a segmented chip toggle (filled/empty circle) instead of a plain button. */
+  active?: boolean;
   run: () => void;
+}
+
+export interface WidgetDateRange { from: string; to: string; }
+
+export interface WidgetTabs {
+  items: { id: string; label: string }[];
+  activeId: string;
+  onChange: (id: string) => void;
+}
+
+export interface WidgetToggle {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
 }
 
 export interface WidgetBase {
   /** Unique per page — used for @for tracking. */
   id: string;
   title?: string;
+  /** Muted text rendered before `title`, e.g. 'Selected Fleet:'. */
+  titlePrefix?: string;
   subtitle?: string;
   /** Small badge next to the title, e.g. 'FAM'. */
   badge?: string;
   /** Grid span on xl screens (page grid is 6 columns). Default 6 = full width. */
   colSpan?: 1 | 2 | 3 | 4 | 5 | 6;
   legend?: LegendItem[];
+  /** Muted label rendered before the actions row, e.g. 'Include:'. */
+  actionsLabel?: string;
   actions?: WidgetAction[];
+  /** Small muted chip rendered after the actions row, e.g. 'SW Version'. */
+  note?: string;
+  /** Two-line muted date range shown top-right of the header. */
+  dateRange?: WidgetDateRange;
+  /** Segmented pill switch shown in the header (e.g. Uptime Trend / Downtime Trend). */
+  tabs?: WidgetTabs;
+  /** Single boolean switch shown in the header (e.g. a "Period" toggle). */
+  toggle?: WidgetToggle;
+  /** Adds a collapse chevron before the title; body hides when `collapsed`. */
+  collapsible?: boolean;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
   /** Render without the panel chrome (header/border). */
   frameless?: boolean;
 }
@@ -57,7 +89,7 @@ export interface ChartWidget extends WidgetBase {
   onPointClick?: (datasetIndex: number, index: number) => void;
 }
 
-export type CellKind = 'text' | 'mono' | 'badge' | 'dot' | 'trend';
+export type CellKind = 'text' | 'mono' | 'badge' | 'dot' | 'trend' | 'progress';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ColumnDef<Row = any> {
@@ -78,6 +110,10 @@ export interface ColumnDef<Row = any> {
   dotClassMap?: Record<string, string>;
   /** kind 'trend': whether an increase is bad (alarms) vs good (uptime). */
   trendBadWhenUp?: boolean;
+  /** kind 'progress': denominator the raw value is scaled against for bar width. Default 100. */
+  progressMax?: number;
+  /** kind 'progress': per-row bar fill color, e.g. row => 'bg-red-500'. Default indigo. */
+  barClass?: (row: Row) => string;
 }
 
 export interface PaginationConfig {
@@ -98,8 +134,10 @@ export interface TableWidget<Row = any> extends WidgetBase {
   onRowClick?: (row: Row) => void;
   /** Highlight the row whose trackKey value matches. */
   selectedKey?: string | null;
-  /** Group rows under sub-header rows (e.g. events by day). */
-  groupBy?: (row: Row) => string;
+  /** Group rows under sub-header rows (e.g. events by day). Return null to leave a row ungrouped (no header). */
+  groupBy?: (row: Row) => string | null;
+  /** 'accent' (default): indigo header with row count. 'plain': muted uppercase section divider. */
+  groupHeaderStyle?: 'accent' | 'plain';
   groupAction?: { label: string; run: (group: string) => void };
   pagination?: PaginationConfig;
   footer?: string;

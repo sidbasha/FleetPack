@@ -7,6 +7,7 @@ import { KpiComponent, LoadingComponent } from '../../shared/components/ui.compo
 import { DynamicPageComponent } from '../../shared/dynamic/dynamic-page.component';
 import { KpiItem, WidgetConfig } from '../../shared/dynamic/widget.model';
 import { downloadCsv } from '../../shared/utils/csv.util';
+import { buildCategoryColorMap } from '../../shared/utils/category-colors.util';
 
 /**
  * Fleet Up+Time Availability — dynamic widgets above and below a
@@ -139,6 +140,9 @@ export class UptimeAvailabilityComponent implements OnInit {
   readonly bottomWidgets = computed<WidgetConfig[]>(() => {
     const data = this.store.availability();
     if (!data) return [];
+    const rows = data.downtimeCategories;
+    const colors = buildCategoryColorMap(rows.map(r => r.category));
+    const maxPct = Math.max(...rows.map(r => r.periodPct), 0.01);
     return [
       {
         id: 'downtime-categories', type: 'table', badge: 'FAM',
@@ -147,13 +151,17 @@ export class UptimeAvailabilityComponent implements OnInit {
         footer: '● All states active',
         actions: [{ label: '↓ Download CSV', run: () => this.exportCsv() }],
         columns: [
-          { key: 'category', header: 'Category', classFn: () => 'font-medium' },
-          { key: 'periodPct', header: 'Period (%)', align: 'right', kind: 'mono', format: r => r.periodPct.toFixed(2), classFn: () => 'font-semibold' },
+          { key: 'category', header: 'Category', kind: 'dot', dotClassMap: colors, classFn: () => 'font-medium' },
+          {
+            key: 'periodPct', header: 'Period (%)', align: 'right', kind: 'progress', width: '170px',
+            format: r => r.periodPct.toFixed(2), progressMax: maxPct * 2.5,
+            barClass: r => colors[r.category] ?? 'bg-indigo-500'
+          },
           { key: 'thirteenWeekPct', header: '13-Week (%)', align: 'right', kind: 'mono', format: r => r.thirteenWeekPct.toFixed(2), classFn: () => 'text-slate-400' },
           { key: 'fourWeekPct', header: '4-Week (%)', align: 'right', kind: 'mono', format: r => r.fourWeekPct.toFixed(2), classFn: () => 'text-slate-400' },
           { key: 'wowDelta', header: 'W/W Δ', align: 'right', format: () => '±0', classFn: () => 'text-slate-400 text-[11px] font-semibold' }
         ],
-        rows: data.downtimeCategories,
+        rows,
         trackKey: 'category'
       }
     ];
