@@ -3,3 +3,7 @@
 /.angular
 npm-debug.log*
 .DS_Store
+
+*storybook.log
+storybook-static
+/documentation.json

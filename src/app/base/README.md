@@ -6,6 +6,11 @@ change detection, and the new control-flow syntax.
 
 Live demo route: **`/dev/base`** (Component playground with every feature exercised).
 
+**Storybook** (`npm run storybook`) is the per-component catalog: every Base component has
+its own page with variants, states, and live controls, generated from the JSDoc comments
+below via Compodoc. Use `/dev/base` to see components wired together in a real workflow;
+use Storybook to review one component in isolation. See `src/stories/foundations/Introduction.mdx`.
+
 ## Components
 
 | Selector | Purpose |

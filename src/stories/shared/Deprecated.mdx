@@ -1,0 +1,26 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Shared/Deprecated fam-* wrappers" />
+
+# Deprecated `fam-*` wrappers
+
+`src/app/shared/components/ui.components.ts` still exports three thin
+wrapper components kept only so older feature templates keep compiling:
+
+| Selector | Delegates to |
+|---|---|
+| `fam-kpi` | `<base-kpi-card>` |
+| `fam-loading` | `<base-loading>` |
+| `fam-trend` | `<base-trend>` |
+
+They render nothing of their own — every prop is forwarded straight through
+to its Base equivalent. **New code should import the Base component
+directly** rather than these wrappers; see:
+
+- [Base / Cards & Containers / KPI Card](/?path=/docs/base-cards---containers-kpi-card--docs)
+- [Base / Feedback / Loading](/?path=/docs/base-feedback-loading--docs)
+- [Base / Feedback / Trend](/?path=/docs/base-feedback-trend--docs)
+
+`fam-state-legend` in this same file is **not** deprecated — it's a real
+domain component (machine-state color legend) with no Base equivalent, and
+has its own story: [Shared / State Legend](/?path=/docs/shared-state-legend--docs).

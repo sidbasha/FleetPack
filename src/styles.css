@@ -4,6 +4,7 @@
    inside .ts widget configs as well as templates. */
 @source "./app";
 @source "./index.html";
+@source "./stories";
 
 /* ── Design tokens (was tailwind.config.js in v3) ── */
 @theme {

@@ -1,0 +1,61 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Introduction" />
+
+# FleetPack Component Library
+
+This is the live, interactive catalog for the **Base Module** — the standalone
+Angular component set every FleetPack screen (FAM, FCM, TQual, Dashboard) is
+built from. It exists so design and engineering can review a component's
+anatomy, variants, and states **without a Figma file and without running the
+full app**.
+
+It replaces static "component list" documents (screenshots + descriptions)
+with something a browser can actually render, control, and diff against
+`main` on every PR.
+
+## How this maps to the design-system deliverable
+
+The FleetPack Design System engagement calls for, per component:
+
+| Deliverable | Where it lives here |
+|---|---|
+| **Definition** — what it is, what it solves | The JSDoc comment above each component class, rendered on its **Docs** tab (via Compodoc) |
+| **Anatomy** — visual parts | The rendered story canvas |
+| **Variants** — sizes, density, styles | Named stories per component (e.g. `Primary`, `Secondary`, `Ghost`, `Danger`) |
+| **States** — hover, disabled, loading, error, empty | Dedicated `Disabled` / `Loading` / `Error` / `Empty` stories, plus the **Controls** panel to toggle any input live |
+| **Behavior** — click, keyboard, apply/reset | Component outputs, documented on the Docs tab; exercised live in the story |
+| **Accessibility** — contrast, focus, keyboard | `@storybook/addon-a11y` runs automated checks on every story (see the **Accessibility** tab) |
+| **Engineering handoff** | This *is* the engineering artifact — the selector, inputs, and outputs shown here are the real Angular API, not a mockup of it |
+
+## Organization
+
+- **Base / Actions** — `<base-button>`
+- **Base / Forms** — text input, textarea, select, checkbox, radio group, toggle, date picker, search input
+- **Base / Feedback** — alert, badge, trend, progress bar, skeleton, loading, empty state
+- **Base / Navigation** — breadcrumbs, tabs, dropdown menu
+- **Base / Overlays** — drawer, modal, tooltip
+- **Base / Cards & Containers** — KPI card, sparkline
+- **Base / Tables & Data** — table, paginator
+- **Shared** — domain components built on top of Base (e.g. `fam-state-legend`)
+
+## Source of truth
+
+Every story imports the **real component classes** from `src/app/base`
+(barrel: `src/app/base/index.ts`) — nothing here is redrawn or approximated.
+If a component's Angular API changes, its story either updates to match or
+fails to compile, which is the point.
+
+A second, in-app reference still exists at **`/dev/base`** — a single page
+that exercises every Base component against live signal state and a real
+event log. Use that route to see components wired together in a workflow;
+use *this* catalog to review one component in isolation, drive every input,
+and check accessibility.
+
+## What's still open
+
+Per the design-system coverage matrix, tokens (`Foundations & Design Tokens`)
+and cross-cutting rules (motion, elevation, grid, engineering handoff
+narrative) aren't components and so don't get their own story — those belong
+in `src/styles.css` (the actual token source, Tailwind v4 `@theme` block) and
+should be documented as MDX pages here as that work lands.
