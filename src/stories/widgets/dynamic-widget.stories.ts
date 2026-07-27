@@ -37,7 +37,15 @@ const meta: Meta<DynamicWidgetComponent> = {
   title: 'Widgets/Dynamic Widget (panel chrome)',
   component: DynamicWidgetComponent,
   tags: ['autodocs'],
-  args: { widget: KPI_WIDGET }
+  args: { widget: KPI_WIDGET },
+  // DynamicWidgetComponent exposes several getters (asKpis/asChart/asTable/asList/
+  // asComponent/resolvedComponent) that aren't real @Inputs - see base/checkbox.stories.ts
+  // for why an explicit render avoids Storybook stomping non-input props on the instance
+  // (getters have no setter, so a stray assignment would throw outright).
+  render: (args) => ({
+    props: args,
+    template: `<fam-dynamic-widget [widget]="widget" />`
+  })
 };
 export default meta;
 type Story = StoryObj<DynamicWidgetComponent>;

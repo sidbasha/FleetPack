@@ -35,7 +35,7 @@ export abstract class BaseControl<T> implements ControlValueAccessor {
   protected onChange: (v: T) => void = () => {};
   protected onTouched: () => void = () => {};
   /** Disabled state pushed by Reactive Forms. Combined with the [disabled] prop. */
-  readonly formDisabled = signal(false);
+  protected readonly formDisabled = signal(false);
 
   abstract writeValue(v: T): void;
   registerOnChange(fn: (v: T) => void): void { this.onChange = fn; }
@@ -82,14 +82,14 @@ export class BaseButtonComponent {
   /** Fired on click (not fired while disabled/loading). */
   readonly clicked = output<MouseEvent>();
 
-  readonly variantClass = computed(() => ({
+  protected readonly variantClass = computed(() => ({
     primary: 'bg-indigo-600 text-white hover:bg-indigo-700',
     secondary: 'bg-white text-slate-700 border border-slate-200 hover:border-indigo-300 hover:text-indigo-700',
     ghost: 'text-slate-600 hover:text-indigo-700 hover:bg-indigo-50',
     danger: 'bg-red-600 text-white hover:bg-red-700'
   }[this.variant()]));
 
-  readonly sizeClass = computed(() => ({
+  protected readonly sizeClass = computed(() => ({
     sm: 'text-[11px] px-2.5 py-1',
     md: 'text-xs px-3.5 py-2',
     lg: 'text-sm px-5 py-2.5'
@@ -284,17 +284,17 @@ export class BaseSelectComponent<V = unknown> extends BaseControl<V | null> {
   readonly opened = output<void>();
   readonly closed = output<void>();
 
-  readonly open = signal(false);
-  readonly query = signal('');
+  protected readonly open = signal(false);
+  protected readonly query = signal('');
   private readonly host = inject(ElementRef<HTMLElement>);
 
-  readonly selectedLabel = computed(() => {
+  protected readonly selectedLabel = computed(() => {
     const v = this.value();
     const hit = this.options().find(o => o.value === v);
     return hit ? hit.label : null;
   });
 
-  readonly filteredOptions = computed(() => {
+  protected readonly filteredOptions = computed(() => {
     const q = this.query().toLowerCase();
     return q ? this.options().filter(o => o.label.toLowerCase().includes(q)) : this.options();
   });

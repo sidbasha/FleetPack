@@ -121,25 +121,25 @@ export class BaseDatepickerComponent extends BaseControl<Date | null> {
   readonly opened = output<void>();
   readonly closed = output<void>();
 
-  readonly open = signal(false);
+  protected readonly open = signal(false);
   private readonly viewDate = signal(strip(new Date()));
   private readonly host = inject(ElementRef<HTMLElement>);
 
-  get weekdays(): string[] {
+  protected get weekdays(): string[] {
     const base = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
     return this.weekStart() === 1 ? [...base.slice(1), base[0]] : base;
   }
 
-  readonly displayText = computed(() => {
+  protected readonly displayText = computed(() => {
     const v = this.value();
     return v ? new Intl.DateTimeFormat(undefined, this.displayFormat()).format(v) : this.placeholder();
   });
 
-  readonly monthLabel = computed(() =>
+  protected readonly monthLabel = computed(() =>
     new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(this.viewDate())
   );
 
-  readonly cells = computed<DayCell[]>(() => {
+  protected readonly cells = computed<DayCell[]>(() => {
     const view = this.viewDate();
     const first = new Date(view.getFullYear(), view.getMonth(), 1);
     const start = new Date(first);

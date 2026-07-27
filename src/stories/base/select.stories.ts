@@ -22,7 +22,16 @@ const meta: Meta<BaseSelectComponent> = {
     disabled: false,
     searchable: false,
     showChevron: true
-  }
+  },
+  // See checkbox.stories.ts - avoids Storybook force-assigning inherited/internal
+  // signal state (BaseControl's `formDisabled`, plus BaseSelectComponent's own
+  // `open`/`query`/`selectedLabel`/`filteredOptions`) as if it were a plain input.
+  render: (args) => ({
+    props: args,
+    template: `<base-select [label]="label" [placeholder]="placeholder" [value]="value" [options]="options"
+                             [hint]="hint" [error]="error" [disabled]="disabled" [searchable]="searchable"
+                             [showChevron]="showChevron" />`
+  })
 };
 export default meta;
 type Story = StoryObj<BaseSelectComponent>;

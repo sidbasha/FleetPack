@@ -21,7 +21,15 @@ const meta: Meta<BaseTextInputComponent> = {
     prefix: '',
     suffix: '',
     maxLength: 0
-  }
+  },
+  // See checkbox.stories.ts - avoids Storybook force-assigning inherited internal
+  // signal state (BaseControl's `formDisabled`) as if it were a plain input.
+  render: (args) => ({
+    props: args,
+    template: `<base-text-input [label]="label" [placeholder]="placeholder" [value]="value" [type]="type"
+                                 [hint]="hint" [error]="error" [disabled]="disabled" [required]="required"
+                                 [clearable]="clearable" [prefix]="prefix" [suffix]="suffix" [maxLength]="maxLength" />`
+  })
 };
 export default meta;
 type Story = StoryObj<BaseTextInputComponent>;

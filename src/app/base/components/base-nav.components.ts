@@ -183,7 +183,7 @@ export class BaseDropdownMenuComponent {
   /** Fired with the chosen menu item. */
   readonly itemSelect = output<BaseMenuItem>();
 
-  readonly open = signal(false);
+  protected readonly open = signal(false);
   private readonly host = inject(ElementRef<HTMLElement>);
 
   @HostListener('document:click', ['$event'])

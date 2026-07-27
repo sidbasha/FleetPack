@@ -62,15 +62,15 @@ export class BasePaginatorComponent {
   /** Fired on any page or page-size change. */
   readonly pageChange = output<BasePageEvent>();
 
-  readonly pageCount = computed(() =>
+  protected readonly pageCount = computed(() =>
     this.pageCountOverride() > 0
       ? this.pageCountOverride()
       : Math.max(1, Math.ceil(this.total() / this.pageSize()))
   );
-  readonly rangeStart = computed(() => this.total() === 0 ? 0 : (this.page() - 1) * this.pageSize() + 1);
-  readonly rangeEnd = computed(() => Math.min(this.page() * this.pageSize(), this.total()));
+  protected readonly rangeStart = computed(() => this.total() === 0 ? 0 : (this.page() - 1) * this.pageSize() + 1);
+  protected readonly rangeEnd = computed(() => Math.min(this.page() * this.pageSize(), this.total()));
 
-  readonly pageWindow = computed(() => {
+  protected readonly pageWindow = computed(() => {
     const count = this.pageCount(), max = this.maxButtons();
     let start = Math.max(1, this.page() - Math.floor(max / 2));
     const end = Math.min(count, start + max - 1);

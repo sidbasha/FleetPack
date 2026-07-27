@@ -13,7 +13,13 @@ const meta: Meta<BaseAlertComponent> = {
     title: 'Heads up',
     message: 'CDC sync runs every 5 minutes.',
     dismissible: false
-  }
+  },
+  // `kindClass`/`icon` are internal computeds (not real @Inputs) - see checkbox.stories.ts
+  // for why an explicit render avoids Storybook stomping them via the auto-generated wrapper.
+  render: (args) => ({
+    props: args,
+    template: `<base-alert [kind]="kind" [title]="title" [message]="message" [dismissible]="dismissible" />`
+  })
 };
 export default meta;
 type Story = StoryObj<BaseAlertComponent>;

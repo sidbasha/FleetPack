@@ -15,7 +15,14 @@ const meta: Meta<BaseSparklineComponent> = {
     color: '#6366f1',
     fill: true,
     showLast: true
-  }
+  },
+  // `linePoints`/`areaPoints`/`last` are internal computeds (not real @Inputs) - see
+  // checkbox.stories.ts for why an explicit render avoids Storybook stomping them.
+  render: (args) => ({
+    props: args,
+    template: `<base-sparkline [data]="data" [width]="width" [height]="height"
+                                [color]="color" [fill]="fill" [showLast]="showLast" />`
+  })
 };
 export default meta;
 type Story = StoryObj<BaseSparklineComponent>;

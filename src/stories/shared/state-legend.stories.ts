@@ -9,7 +9,13 @@ const meta: Meta<StateLegendComponent> = {
   args: {
     withGap: false,
     withDayShift: false
-  }
+  },
+  // `text` (SHARED_UI_TEXT) is a plain public field, not a real @Input - see
+  // base/checkbox.stories.ts for why an explicit render avoids Storybook stomping it.
+  render: (args) => ({
+    props: args,
+    template: `<fam-state-legend [withGap]="withGap" [withDayShift]="withDayShift" />`
+  })
 };
 export default meta;
 type Story = StoryObj<StateLegendComponent>;

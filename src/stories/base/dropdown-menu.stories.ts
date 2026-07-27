@@ -24,7 +24,13 @@ const meta: Meta<BaseDropdownMenuComponent> = {
   parameters: {
     // Menu opens on click and is not open by default - story canvas needs room for the popup.
     layout: 'padded'
-  }
+  },
+  // `open` is an internal signal (not a real @Input) - see checkbox.stories.ts for why
+  // an explicit render avoids Storybook stomping it via the auto-generated wrapper.
+  render: (args) => ({
+    props: args,
+    template: `<base-dropdown-menu [label]="label" [items]="items" [align]="align" [disabled]="disabled" />`
+  })
 };
 export default meta;
 type Story = StoryObj<BaseDropdownMenuComponent>;

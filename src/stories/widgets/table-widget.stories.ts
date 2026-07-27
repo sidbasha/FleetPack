@@ -45,7 +45,13 @@ const meta: Meta<TableWidgetComponent> = {
   title: 'Widgets/Table (legacy adapter)',
   component: TableWidgetComponent,
   tags: ['autodocs'],
-  args: { widget: WIDGET }
+  args: { widget: WIDGET },
+  // `baseColumns` is an internal computed (not a real @Input) - see base/checkbox.stories.ts
+  // for why an explicit render avoids Storybook stomping it via the auto-generated wrapper.
+  render: (args) => ({
+    props: args,
+    template: `<fam-table-widget [widget]="widget" />`
+  })
 };
 export default meta;
 type Story = StoryObj<TableWidgetComponent>;

@@ -9,7 +9,13 @@ const meta: Meta<BaseTrendComponent> = {
     value: 1.8,
     badWhenUp: false,
     digits: '1.1-1'
-  }
+  },
+  // `positive` is an internal computed (not a real @Input) - see checkbox.stories.ts for why
+  // an explicit render avoids Storybook stomping it via the auto-generated wrapper.
+  render: (args) => ({
+    props: args,
+    template: `<base-trend [value]="value" [badWhenUp]="badWhenUp" [digits]="digits" />`
+  })
 };
 export default meta;
 type Story = StoryObj<BaseTrendComponent>;

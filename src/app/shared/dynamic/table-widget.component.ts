@@ -54,7 +54,7 @@ type Row = Record<string, unknown>;
 export class TableWidgetComponent {
   readonly widget = input.required<TableWidget<Row>>();
 
-  readonly baseColumns = computed<BaseColumnDef<Row>[]>(() =>
+  protected readonly baseColumns = computed<BaseColumnDef<Row>[]>(() =>
     this.widget().columns.map(c => this.mapColumn(c))
   );
 

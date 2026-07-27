@@ -58,7 +58,7 @@ export class BaseModalComponent {
   /** Fired when the modal closes; reason = 'button' | 'backdrop' | 'escape'. */
   readonly closed = output<string>();
 
-  readonly sizeClass = computed(() => ({
+  protected readonly sizeClass = computed(() => ({
     sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-2xl', xl: 'max-w-4xl'
   }[this.size()]));
 
@@ -147,14 +147,14 @@ export class BaseAlertComponent {
   /** Fired when the ✕ is clicked — host removes the alert. */
   readonly dismissed = output<void>();
 
-  readonly kindClass = computed(() => ({
+  protected readonly kindClass = computed(() => ({
     info: 'bg-sky-50 border-sky-200 text-sky-800',
     success: 'bg-emerald-50 border-emerald-200 text-emerald-800',
     warning: 'bg-amber-50 border-amber-200 text-amber-800',
     error: 'bg-red-50 border-red-200 text-red-800'
   }[this.kind()]));
 
-  readonly icon = computed(() => ({
+  protected readonly icon = computed(() => ({
     info: 'ℹ️', success: '✅', warning: '⚠️', error: '⛔'
   }[this.kind()]));
 }
@@ -181,7 +181,7 @@ export class BaseProgressBarComponent {
   readonly height = input(6);
   readonly showLabel = input(true);
 
-  readonly clamped = computed(() => Math.min(100, Math.max(0, Math.round(this.value()))));
+  protected readonly clamped = computed(() => Math.min(100, Math.max(0, Math.round(this.value()))));
 }
 
 /** Loading placeholder block. Repeat with @for for lists. */

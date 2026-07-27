@@ -20,7 +20,16 @@ const meta: Meta<BaseDatepickerComponent> = {
     min: null,
     max: null,
     weekStart: 1
-  }
+  },
+  // See checkbox.stories.ts - avoids Storybook force-assigning inherited/internal
+  // signal state (BaseControl's `formDisabled`, plus this component's own `open`/
+  // `displayText`/`monthLabel`/`cells`) as if it were a plain input.
+  render: (args) => ({
+    props: args,
+    template: `<base-datepicker [label]="label" [placeholder]="placeholder" [value]="value"
+                                 [hint]="hint" [error]="error" [disabled]="disabled" [clearable]="clearable"
+                                 [min]="min" [max]="max" [weekStart]="weekStart" />`
+  })
 };
 export default meta;
 type Story = StoryObj<BaseDatepickerComponent>;

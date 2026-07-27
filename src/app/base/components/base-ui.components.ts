@@ -56,7 +56,7 @@ export class BaseTrendComponent {
   /** Angular number-pipe digits info. */
   readonly digits = input('1.1-1');
 
-  readonly positive = computed(() => {
+  protected readonly positive = computed(() => {
     const v = this.value() ?? 0;
     return this.badWhenUp() ? v <= 0 : v > 0;
   });
@@ -187,14 +187,14 @@ export class BaseSparklineComponent {
     }));
   });
 
-  readonly linePoints = computed(() => this.pts().map(p => `${p.x},${p.y}`).join(' '));
-  readonly areaPoints = computed(() => {
+  protected readonly linePoints = computed(() => this.pts().map(p => `${p.x},${p.y}`).join(' '));
+  protected readonly areaPoints = computed(() => {
     const p = this.pts();
     if (p.length === 0) return '';
     const h = this.height();
     return `${p[0].x},${h} ` + p.map(q => `${q.x},${q.y}`).join(' ') + ` ${p[p.length - 1].x},${h}`;
   });
-  readonly last = computed(() => {
+  protected readonly last = computed(() => {
     const p = this.pts();
     return p.length ? p[p.length - 1] : null;
   });

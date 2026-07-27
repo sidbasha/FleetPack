@@ -13,7 +13,15 @@ const meta: Meta<BasePaginatorComponent> = {
     pageSizeOptions: [10, 25, 50, 100],
     showPageSize: true,
     maxButtons: 5
-  }
+  },
+  // `pageCount`/`rangeStart`/`rangeEnd`/`pageWindow` are internal computeds (not real @Inputs) -
+  // see checkbox.stories.ts for why an explicit render avoids Storybook stomping them.
+  render: (args) => ({
+    props: args,
+    template: `<base-paginator [page]="page" [pageSize]="pageSize" [total]="total"
+                                [pageCountOverride]="pageCountOverride" [pageSizeOptions]="pageSizeOptions"
+                                [showPageSize]="showPageSize" [maxButtons]="maxButtons" />`
+  })
 };
 export default meta;
 type Story = StoryObj<BasePaginatorComponent>;

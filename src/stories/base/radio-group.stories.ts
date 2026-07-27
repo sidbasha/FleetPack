@@ -21,7 +21,14 @@ const meta: Meta<BaseRadioGroupComponent> = {
     value: 'day',
     direction: 'horizontal',
     disabled: false
-  }
+  },
+  // See checkbox.stories.ts - avoids Storybook force-assigning inherited internal
+  // signal state (BaseControl's `formDisabled`) as if it were a plain input.
+  render: (args) => ({
+    props: args,
+    template: `<base-radio-group [label]="label" [options]="options" [value]="value"
+                                  [direction]="direction" [disabled]="disabled" />`
+  })
 };
 export default meta;
 type Story = StoryObj<BaseRadioGroupComponent>;

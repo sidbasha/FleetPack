@@ -9,7 +9,13 @@ const meta: Meta<BaseToggleComponent> = {
     label: 'Auto-refresh',
     checked: false,
     disabled: false
-  }
+  },
+  // See checkbox.stories.ts - avoids Storybook force-assigning inherited internal
+  // signal state (BaseControl's `formDisabled`) as if it were a plain input.
+  render: (args) => ({
+    props: args,
+    template: `<base-toggle [label]="label" [checked]="checked" [disabled]="disabled" />`
+  })
 };
 export default meta;
 type Story = StoryObj<BaseToggleComponent>;

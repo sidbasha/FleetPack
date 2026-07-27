@@ -10,7 +10,13 @@ const meta: Meta<BaseProgressBarComponent> = {
     color: '#6366f1',
     height: 6,
     showLabel: true
-  }
+  },
+  // `clamped` is an internal computed (not a real @Input) - see checkbox.stories.ts for why
+  // an explicit render avoids Storybook stomping it via the auto-generated wrapper.
+  render: (args) => ({
+    props: args,
+    template: `<base-progress-bar [value]="value" [color]="color" [height]="height" [showLabel]="showLabel" />`
+  })
 };
 export default meta;
 type Story = StoryObj<BaseProgressBarComponent>;
