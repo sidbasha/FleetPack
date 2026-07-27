@@ -37,7 +37,21 @@ The FleetPack Design System engagement calls for, per component:
 - **Base / Overlays** — drawer, modal, tooltip
 - **Base / Cards & Containers** — KPI card, sparkline
 - **Base / Tables & Data** — table, paginator
+- **Widgets** — the `WidgetConfig`-driven layer every FAM screen composes pages from: KPI grid, chart (ng2-charts), ranked list, table (legacy `ColumnDef` adapter over `<base-table>`), the panel-chrome wrapper (`<fam-dynamic-widget>`), and the 6-column responsive grid (`<fam-dynamic-page>`)
+- **Layout** — app shell pieces with no service dependencies (currently: `<fam-sidebar>`)
 - **Shared** — domain components built on top of Base (e.g. `fam-state-legend`)
+
+### What's *not* here yet, and why
+
+`<fam-topbar>`, the FAM/FCM/TQual/alarm-explorer route components, and the
+domain chart components that read live state directly (`<fam-state-heatmap>`,
+`<fam-activity-gantt>`) all `inject()` real app services or signal stores
+(`AuthService`, `ApiService`, `FilterStore`, `UptimeStore`) rather than taking
+data as `@Input`/`input()`. Storying them means either standing up stub
+providers that mimic those services' shapes, or the real ones with mocked
+HTTP — a separate, larger effort from documenting the presentational
+component library, and one the design-system SOW explicitly scopes out
+("module pages are not the deliverable"). Deliberately deferred, not missed.
 
 ## Source of truth
 

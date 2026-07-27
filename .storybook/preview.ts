@@ -1,6 +1,8 @@
 import type { Preview } from '@storybook/angular';
-import { componentWrapperDecorator } from '@storybook/angular';
+import { applicationConfig, componentWrapperDecorator } from '@storybook/angular';
 import { setCompodocJson } from '@storybook/addon-docs/angular';
+import { provideRouter } from '@angular/router';
+import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import docJson from '../documentation.json';
 
 // Nexus theme (Tailwind v4) is loaded via angular.json's `build` target `styles`
@@ -21,6 +23,8 @@ const preview: Preview = {
           'Foundations',
           'Base',
           ['Actions', 'Forms', 'Feedback', 'Navigation', 'Overlays', 'Tables & Data', 'Cards & Containers'],
+          'Widgets',
+          'Layout',
           'Shared'
         ]
       }
@@ -39,7 +43,13 @@ const preview: Preview = {
     }
   },
   decorators: [
-    componentWrapperDecorator((story) => `<div class="font-sans text-slate-800">${story}</div>`)
+    componentWrapperDecorator((story) => `<div class="font-sans text-slate-800">${story}</div>`),
+    // Global app providers every story needs: ng2-charts registerables for
+    // `<canvas baseChart>` (ChartWidgetComponent), and a router for anything
+    // using routerLink/routerLinkActive (e.g. SidebarComponent).
+    applicationConfig({
+      providers: [provideCharts(withDefaultRegisterables()), provideRouter([])]
+    })
   ]
 };
 
