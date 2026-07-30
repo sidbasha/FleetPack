@@ -38,3 +38,30 @@ export class BaseCellDirective<T = BaseRow> {
     return true;
   }
 }
+
+/**
+ * Same as `BaseCellDirective`, but for columns of the nested child table shown
+ * by `[expandable]`. Declare it inside the outer <base-table> alongside any
+ * `baseCell` templates:
+ *
+ * <ng-template baseChildCell="actions" let-row>
+ *   <button (click)="edit(row)">Edit</button>
+ * </ng-template>
+ *
+ * The directive value is a `childColumns` key. `<base-table>` forwards these
+ * templates into the nested table it renders per expanded row.
+ */
+@Directive({ selector: 'ng-template[baseChildCell]', standalone: true })
+export class BaseChildCellDirective<T = BaseRow> {
+  /** childColumns key this template renders. */
+  readonly baseChildCell = input.required<string>();
+
+  constructor(public readonly template: TemplateRef<BaseCellContext<T>>) {}
+
+  static ngTemplateContextGuard<T>(
+    _dir: BaseChildCellDirective<T>,
+    ctx: unknown
+  ): ctx is BaseCellContext<T> {
+    return true;
+  }
+}

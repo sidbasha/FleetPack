@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
-import { BaseTableComponent, BaseColumnDef } from '../../app/base';
+import { moduleMetadata } from '@storybook/angular';
+import { BaseTableComponent, BaseColumnDef, BaseChildCellDirective } from '../../app/base';
 
 interface ToolRow {
   toolId: string;
@@ -80,6 +81,36 @@ const ALL_KIND_COLUMNS: BaseColumnDef<ToolRow>[] = [
   }
 ];
 
+/** Columns for the nested child table shown under a row when expanded. */
+const ALARM_EVENT_COLUMNS: BaseColumnDef<any>[] = [
+  { key: 'event', header: 'Alarm Event' },
+  { key: 'time', header: 'Time', kind: 'date', dateFormat: { dateStyle: 'short', timeStyle: 'short' } },
+  {
+    key: 'severity', header: 'Severity', kind: 'badge',
+    badgeClassMap: { High: 'bg-red-50 text-red-600', Medium: 'bg-amber-50 text-amber-600', Low: 'bg-slate-100 text-slate-500' }
+  },
+  {
+    key: 'actions', header: '', align: 'right', width: '90px', kind: 'row-actions',
+    rowActions: [
+      { icon: '✎', title: 'Edit', variant: 'icon', run: () => {} },
+      { icon: '🗑', title: 'Delete', variant: 'icon', run: () => {} }
+    ]
+  }
+];
+
+/** Deterministic mock child rows - only tools with `alarms > 0` get an expand toggle. */
+function alarmEventsOf(row: ToolRow): Record<string, unknown>[] {
+  if (row.alarms === 0) return [];
+  const severities = ['High', 'Medium', 'Low'];
+  const count = Math.min(row.alarms % 5 || 1, 5);
+  return Array.from({ length: count }, (_, i) => ({
+    id: `${row.toolId}-EV${i}`,
+    event: `Alarm #${i + 1}`,
+    time: new Date(Date.UTC(2026, 5, 1) - i * 3_600_000).toISOString(),
+    severity: severities[i % severities.length]
+  }));
+}
+
 const STICKY_COLUMNS: BaseColumnDef<ToolRow>[] = [
   { key: 'toolId', header: 'Tool', width: '120px', sticky: 'left' },
   { key: 'chamber', header: 'Chamber', width: '100px' },
@@ -101,7 +132,9 @@ const meta: Meta<BaseTableComponent<ToolRow>> = {
   argTypes: {
     selectable: { control: 'select', options: ['none', 'single', 'multiple'] },
     groupHeaderStyle: { control: 'select', options: ['accent', 'plain', 'light'] },
-    groupBy: { control: false }
+    groupBy: { control: false },
+    childColumns: { control: false },
+    childRowsOf: { control: false }
   },
   args: {
     columns: BASIC_COLUMNS,
@@ -122,7 +155,9 @@ const meta: Meta<BaseTableComponent<ToolRow>> = {
       [showSearch]="showSearch" [showFilterRow]="showFilterRow" [stickyHeader]="stickyHeader"
       [selectable]="selectable" [striped]="striped" [paginate]="paginate" [initialPageSize]="initialPageSize"
       [groupBy]="groupBy" [groupHeaderStyle]="groupHeaderStyle" [groupActionLabel]="groupActionLabel"
-      [maxHeight]="maxHeight" [minWidth]="minWidth" />`
+      [maxHeight]="maxHeight" [minWidth]="minWidth"
+      [expandable]="expandable" [childColumns]="childColumns" [childRowsOf]="childRowsOf"
+      [childPaginate]="childPaginate" [childShowSearch]="childShowSearch" />`
   })
 };
 export default meta;
@@ -172,6 +207,52 @@ export const GroupedLightHeader: Story = {
     showSearch: false,
     paginate: false
   }
+};
+
+/**
+ * `[expandable]` adds a toggle button as the first column that opens/closes a nested
+ * `<base-table>` under the row, driven by `[childColumns]` + `[childRowsOf]`. Rows whose
+ * `childRowsOf` returns an empty array (here, tools with no alarms) get no toggle at all.
+ */
+export const NestedRows: Story = {
+  name: 'Expand/collapse nested table',
+  args: {
+    expandable: true,
+    childColumns: ALARM_EVENT_COLUMNS,
+    childRowsOf: alarmEventsOf,
+    showSearch: false
+  }
+};
+
+/**
+ * `childColumns` accepts a `baseChildCell` template the same way the outer table accepts
+ * `baseCell` - declare it inside the outer `<base-table>` and it's forwarded into every
+ * nested table. Here it renders a composite cell (dot + text) for the `event` column,
+ * alongside the built-in `row-actions` edit/delete column.
+ */
+export const NestedRowsWithCustomCell: Story = {
+  name: 'Nested table · custom cell + edit/delete',
+  decorators: [moduleMetadata({ imports: [BaseChildCellDirective] })],
+  args: {
+    expandable: true,
+    childColumns: ALARM_EVENT_COLUMNS,
+    childRowsOf: alarmEventsOf,
+    showSearch: false
+  },
+  render: (args) => ({
+    props: args,
+    template: `<base-table class="panel block overflow-hidden"
+      [columns]="columns" [rows]="rows" [trackKey]="trackKey"
+      [showSearch]="showSearch" [expandable]="expandable"
+      [childColumns]="childColumns" [childRowsOf]="childRowsOf">
+      <ng-template baseChildCell="event" let-row let-value="value">
+        <span class="inline-flex items-center gap-1.5 font-medium text-slate-700">
+          @if (row.severity === 'High') { <i class="inline-block w-1.5 h-1.5 rounded-full bg-red-500"></i> }
+          {{ value }}
+        </span>
+      </ng-template>
+    </base-table>`
+  })
 };
 
 export const Empty: Story = { args: { rows: [], showSearch: false } };

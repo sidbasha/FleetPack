@@ -8,7 +8,7 @@ import {
   output,
   signal
 } from '@angular/core';
-import { BaseCellDirective } from '../directives/cell-template.directive';
+import { BaseCellDirective, BaseChildCellDirective } from '../directives/cell-template.directive';
 import {
   BaseCellClickEvent,
   BaseColumnDef,
@@ -56,7 +56,9 @@ interface StickyMeta {
     BaseSearchInputComponent,
     BaseTrendComponent,
     BaseSparklineComponent,
-    BaseEmptyStateComponent
+    BaseEmptyStateComponent,
+    BaseTableComponent,
+    BaseCellDirective
   ],
   styles: [`
     .bt-sticky-th { position: sticky; z-index: 12; background: #f8fafc; }
@@ -79,8 +81,11 @@ interface StickyMeta {
       <table class="w-full" [style.minWidth]="minWidth() || null">
         <thead [class.bt-head-sticky]="stickyHeader()" class="bg-slate-50">
           <tr>
+            @if (expandable()) {
+              <th class="table-th w-8" [class.bt-sticky-th]="hasLeftSticky()" [style.left]="leadingStickyLeft('expand')"></th>
+            }
             @if (selectable() === 'multiple') {
-              <th class="table-th w-8" [class.bt-sticky-th]="hasLeftSticky()" [style.left]="hasLeftSticky() ? '0px' : null">
+              <th class="table-th w-8" [class.bt-sticky-th]="hasLeftSticky()" [style.left]="leadingStickyLeft('checkbox')">
                 <input type="checkbox" [checked]="allSelected()" (change)="toggleAll($event)" aria-label="Select all rows" />
               </th>
             }
@@ -110,6 +115,7 @@ interface StickyMeta {
 
           @if (showFilterRow() && hasFilterableColumn()) {
             <tr class="bg-white">
+              @if (expandable()) { <th class="px-2 py-1.5"></th> }
               @if (selectable() === 'multiple') { <th class="px-2 py-1.5"></th> }
               @for (c of visibleColumns(); track c.key) {
                 <th class="px-2 py-1.5 font-normal"
@@ -169,8 +175,20 @@ interface StickyMeta {
             }
           @for (row of g.rows; track rowTrack(row); let i = $index) {
             <tr [class]="rowClassOf(row)" (click)="onRowClick(row, i)">
+              @if (expandable()) {
+                <td class="table-td w-8 text-center" [class.bt-sticky-td]="hasLeftSticky()" [style.left]="leadingStickyLeft('expand')">
+                  @if (hasChildren(row)) {
+                    <button type="button" class="inline-flex items-center justify-center w-5 h-5 rounded hover:bg-slate-100 text-slate-500"
+                            [attr.aria-label]="isExpanded(row) ? 'Collapse row' : 'Expand row'"
+                            [attr.aria-expanded]="isExpanded(row)"
+                            (click)="$event.stopPropagation(); toggleExpand(row)">
+                      <span class="inline-block transition-transform text-[10px]" [class.rotate-90]="isExpanded(row)">▶</span>
+                    </button>
+                  }
+                </td>
+              }
               @if (selectable() === 'multiple') {
-                <td class="table-td w-8" [class.bt-sticky-td]="hasLeftSticky()" [style.left]="hasLeftSticky() ? '0px' : null">
+                <td class="table-td w-8" [class.bt-sticky-td]="hasLeftSticky()" [style.left]="leadingStickyLeft('checkbox')">
                   <input type="checkbox" [checked]="isSelected(row)"
                          (click)="$event.stopPropagation()"
                          (change)="toggleRow(row)" aria-label="Select row" />
@@ -264,6 +282,29 @@ interface StickyMeta {
                 </td>
               }
             </tr>
+            @if (expandable() && isExpanded(row) && hasChildren(row)) {
+              <tr class="bg-slate-50/60">
+                <td [attr.colspan]="colspan()" class="p-0">
+                  <div class="pl-9 pr-3 py-2 ml-3 border-l-2 border-indigo-200">
+                    <base-table
+                      [columns]="childColumns() ?? []"
+                      [rows]="childRowsFor(row)"
+                      [trackKey]="trackKey()"
+                      [paginate]="childPaginate()"
+                      [showSearch]="childShowSearch()"
+                      (rowClick)="rowClick.emit($event)"
+                      (cellClick)="cellClick.emit($event)">
+                      <!-- forward any baseChildCell templates so the nested table supports fully custom cells too -->
+                      @for (t of childCellTemplates(); track t.baseChildCell()) {
+                        <ng-template [baseCell]="t.baseChildCell()" let-childRow let-value="value" let-column="column" let-index="index">
+                          <ng-container *ngTemplateOutlet="t.template; context: { $implicit: childRow, value: value, column: column, index: index }" />
+                        </ng-template>
+                      }
+                    </base-table>
+                  </div>
+                </td>
+              </tr>
+            }
           }
           } @empty {
             <tr>
@@ -337,6 +378,17 @@ export class BaseTableComponent<T = BaseRow> {
   readonly emptyTitle = input('No matching records');
   readonly emptyHint = input('Try adjusting filters or search.');
 
+  /** Show a first-column toggle button that expands a nested child <base-table> under the row. */
+  readonly expandable = input(false);
+  /** Column defs for the nested child table. Required when [expandable] is used. */
+  readonly childColumns = input<BaseColumnDef<any>[] | null>(null);
+  /** Return this row's child rows, or null/undefined/[] to hide the toggle for that row (no children). */
+  readonly childRowsOf = input<((row: T) => any[] | null | undefined) | null>(null);
+  /** Enable the paginator inside nested child tables. Default off — child tables are usually short. */
+  readonly childPaginate = input(false);
+  /** Show the search box inside nested child tables. Default off. */
+  readonly childShowSearch = input(false);
+
   readonly rowClick = output<BaseRowClickEvent<T>>();
   readonly cellClick = output<BaseCellClickEvent<T>>();
   readonly sortChange = output<BaseSortEvent>();
@@ -345,8 +397,12 @@ export class BaseTableComponent<T = BaseRow> {
   readonly selectionChange = output<T[]>();
   /** Fired with the group key when a group-header action button is clicked. */
   readonly groupAction = output<string>();
+  /** Fired when a row's expand toggle is clicked. */
+  readonly expandChange = output<{ row: T; expanded: boolean }>();
 
   private readonly cellTemplates = contentChildren(BaseCellDirective<T>);
+  /** Custom cell templates for the nested child table's columns (see `BaseChildCellDirective`). */
+  protected readonly childCellTemplates = contentChildren(BaseChildCellDirective<any>);
 
   readonly sortState = signal<BaseSortEvent>({ key: null, direction: null });
   readonly quickText = signal('');
@@ -354,6 +410,7 @@ export class BaseTableComponent<T = BaseRow> {
   private readonly pageState = signal(1);
   readonly pageSize = signal(10);
   private readonly selected = signal<Map<unknown, T>>(new Map());
+  private readonly expandedKeys = signal<Set<unknown>>(new Set());
 
   constructor() {
     // initialise page size from input once it resolves
@@ -374,12 +431,16 @@ export class BaseTableComponent<T = BaseRow> {
   readonly hasLeftSticky = computed(() => this.visibleColumns().some(c => c.sticky === 'left'));
   readonly hasFilterableColumn = computed(() => this.visibleColumns().some(c => c.filterable));
 
+  /** Combined px width of the leading expand-toggle/checkbox pseudo-columns. */
+  private readonly leadingOffset = computed(() =>
+    (this.expandable() ? 32 : 0) + (this.selectable() === 'multiple' ? 32 : 0)
+  );
+
   /** Cumulative px offsets for pinned columns. */
   readonly stickyMeta = computed<Record<string, StickyMeta>>(() => {
     const meta: Record<string, StickyMeta> = {};
     const cols = this.visibleColumns();
-    const checkboxOffset = this.selectable() === 'multiple' ? 32 : 0;
-    let left = checkboxOffset;
+    let left = this.leadingOffset();
     for (const c of cols) {
       if (c.sticky === 'left') {
         meta[c.key] = { left: `${left}px` };
@@ -465,7 +526,9 @@ export class BaseTableComponent<T = BaseRow> {
   });
 
   readonly colspan = computed(() =>
-    this.visibleColumns().length + (this.selectable() === 'multiple' ? 1 : 0)
+    this.visibleColumns().length
+    + (this.selectable() === 'multiple' ? 1 : 0)
+    + (this.expandable() ? 1 : 0)
   );
 
   readonly allSelected = computed(() => {
@@ -550,6 +613,36 @@ export class BaseTableComponent<T = BaseRow> {
 
   isSelected(row: T): boolean {
     return this.selected().has(this.rowTrack(row));
+  }
+
+  /** Left offset (sticky mode) for the leading expand-toggle / checkbox pseudo-columns. */
+  leadingStickyLeft(kind: 'expand' | 'checkbox'): string | null {
+    if (!this.hasLeftSticky()) return null;
+    if (kind === 'expand') return '0px';
+    return this.expandable() ? '32px' : '0px';
+  }
+
+  hasChildren(row: T): boolean {
+    const rows = this.childRowsOf()?.(row);
+    return !!rows && rows.length > 0;
+  }
+
+  isExpanded(row: T): boolean {
+    return this.expandedKeys().has(this.rowTrack(row));
+  }
+
+  toggleExpand(row: T): void {
+    const key = this.rowTrack(row);
+    this.expandedKeys.update(set => {
+      const next = new Set(set);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+    this.expandChange.emit({ row, expanded: this.isExpanded(row) });
+  }
+
+  childRowsFor(row: T): any[] {
+    return this.childRowsOf()?.(row) ?? [];
   }
 
   templateFor(key: string) {

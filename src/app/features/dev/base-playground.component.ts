@@ -6,6 +6,7 @@ import {
   BaseBreadcrumbsComponent,
   BaseButtonComponent,
   BaseCellDirective,
+  BaseChildCellDirective,
   BaseCheckboxComponent,
   BaseColumnDef,
   BaseDatepickerComponent,
@@ -77,6 +78,7 @@ function mockRows(n: number): ToolRow[] {
     JsonPipe,
     BaseTableComponent,
     BaseCellDirective,
+    BaseChildCellDirective,
     BaseKpiCardComponent,
     BaseBadgeComponent,
     BaseTrendComponent,
@@ -199,18 +201,30 @@ function mockRows(n: number): ToolRow[] {
         minWidth="1250px"
         selectable="multiple"
         [initialPageSize]="10"
+        [expandable]="true"
+        [childColumns]="childColumns()"
+        [childRowsOf]="alarmEventsOf"
         (rowClick)="log('rowClick', $event.row.toolId)"
         (cellClick)="log('cellClick', $event.column.key + ' → ' + $event.row.toolId)"
         (sortChange)="onSort($event)"
         (pageChange)="onPage($event)"
         (filterChange)="onFilter($event)"
-        (selectionChange)="selectedCount.set($event.length)">
+        (selectionChange)="selectedCount.set($event.length)"
+        (expandChange)="log('expandChange', $event.row.toolId + ' → ' + $event.expanded)">
 
         <!-- CUSTOM CELL TEMPLATE #1: composite cell (image + text + badge) -->
         <ng-template baseCell="toolId" let-row let-value="value">
           <span class="inline-flex items-center gap-2 font-semibold text-slate-700">
             {{ value }}
             @if (row.status === 'DOWN') { <base-badge label="!" colorClass="bg-red-100 text-red-600" /> }
+          </span>
+        </ng-template>
+
+        <!-- CUSTOM CHILD CELL TEMPLATE: nested table columns accept baseChildCell templates too -->
+        <ng-template baseChildCell="event" let-row let-value="value">
+          <span class="inline-flex items-center gap-1.5 font-medium text-slate-700">
+            @if (row.severity === 'High') { <i class="inline-block w-1.5 h-1.5 rounded-full bg-red-500"></i> }
+            {{ value }}
           </span>
         </ng-template>
 
@@ -274,6 +288,36 @@ export class BasePlaygroundComponent {
       dateFormat: { day: '2-digit', month: 'short', year: 'numeric' } },
     { key: 'actions', header: 'Actions', sticky: 'right', width: '140px', align: 'right' }
   ]);
+
+  /** Nested child table: per-tool alarm events (only tools with alarms > 0 get an expand toggle). */
+  readonly childColumns = signal<BaseColumnDef<any>[]>([
+    { key: 'event', header: 'Alarm Event' },
+    { key: 'time', header: 'Time', kind: 'date', dateFormat: { dateStyle: 'short', timeStyle: 'short' } },
+    { key: 'severity', header: 'Severity', kind: 'badge',
+      badgeClassMap: { High: 'bg-red-50 text-red-600', Medium: 'bg-amber-50 text-amber-600', Low: 'bg-slate-100 text-slate-500' } },
+    { key: 'actions', header: '', align: 'right', width: '90px', kind: 'row-actions',
+      rowActions: [
+        { icon: '✎', title: 'Edit', variant: 'icon', run: r => this.log('edit alarm event', r['id']) },
+        { icon: '🗑', title: 'Delete', variant: 'icon', run: r => this.removeAlarmEvent(r['id']) }
+      ] }
+  ]);
+
+  private readonly alarmEventsCache = new Map<string, Record<string, unknown>[]>();
+  /** [childRowsOf] hook — arrow function so `this` stays bound when passed by reference. */
+  readonly alarmEventsOf = (row: ToolRow): Record<string, unknown>[] => {
+    if (row.alarms === 0) return [];
+    if (!this.alarmEventsCache.has(row.toolId)) {
+      const severities = ['High', 'Medium', 'Low'];
+      const count = Math.min(row.alarms, 5);
+      this.alarmEventsCache.set(row.toolId, Array.from({ length: count }, (_, i) => ({
+        id: `${row.toolId}-EV${i}`,
+        event: `Alarm #${i + 1}`,
+        time: new Date(Date.now() - i * 3_600_000).toISOString(),
+        severity: severities[i % severities.length]
+      })));
+    }
+    return this.alarmEventsCache.get(row.toolId)!;
+  };
 
   private dynamicCount = 0;
 
@@ -345,5 +389,15 @@ export class BasePlaygroundComponent {
   removeRow(toolId: string): void {
     this.rows.update(r => r.filter(x => x.toolId !== toolId));
     this.log('delete', toolId);
+  }
+
+  removeAlarmEvent(id: unknown): void {
+    for (const [toolId, events] of this.alarmEventsCache) {
+      if (events.some(e => e['id'] === id)) {
+        this.alarmEventsCache.set(toolId, events.filter(e => e['id'] !== id));
+        this.log('delete alarm event', String(id));
+        return;
+      }
+    }
   }
 }
