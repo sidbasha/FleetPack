@@ -9,6 +9,7 @@ export * from './components/base-paginator.component';
 export * from './components/base-ui.components';
 export * from './components/base-form.components';
 export * from './components/base-datepicker.component';
+export * from './components/base-date-range-picker.component';
 export * from './components/base-nav.components';
 export * from './components/base-overlay.components';
 export * from './components/base-drawer.component';

@@ -3,6 +3,7 @@ import {
   Component,
   ElementRef,
   HostListener,
+  WritableSignal,
   computed,
   forwardRef,
   inject,
@@ -24,6 +25,7 @@ interface DayCell {
 const strip = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 const sameDay = (a: Date | null, b: Date | null) =>
   !!a && !!b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+const pad2 = (n: number) => String(n).padStart(2, '0');
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
@@ -31,6 +33,8 @@ const sameDay = (a: Date | null, b: Date | null) =>
  * Dependency-free popup calendar.
  *  - two-way [(value)] (Date | null) + ControlValueAccessor (ngModel / forms)
  *  - min / max bounds, custom disabled-date rule, clearable, today shortcut
+ *  - optional time-of-day (`showTime`): adds HH:MM boxes and keeps the panel
+ *    open after a date is picked so the time can be adjusted before closing
  * ─────────────────────────────────────────────────────────────────────────────
  */
 @Component({
@@ -87,6 +91,25 @@ const sameDay = (a: Date | null, b: Date | null) =>
             }
           </div>
 
+          @if (showTime()) {
+            <div class="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100">
+              <span class="text-[11px] font-semibold text-slate-500">Time :</span>
+              <input type="text" inputmode="numeric" maxlength="2"
+                     class="w-9 h-8 border border-slate-200 rounded-md text-center text-xs text-slate-700
+                            focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300"
+                     [value]="timeH()"
+                     (input)="onTimeInput('H', $event)"
+                     (blur)="onTimeBlur('H')" />
+              <span class="text-slate-400">:</span>
+              <input type="text" inputmode="numeric" maxlength="2"
+                     class="w-9 h-8 border border-slate-200 rounded-md text-center text-xs text-slate-700
+                            focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300"
+                     [value]="timeM()"
+                     (input)="onTimeInput('M', $event)"
+                     (blur)="onTimeBlur('M')" />
+            </div>
+          }
+
           <div class="flex justify-between items-center mt-2 pt-2 border-t border-slate-100">
             <button type="button" class="btn-ghost" (click)="goToday()">Today</button>
             <button type="button" class="btn-ghost" (click)="close()">Close</button>
@@ -117,6 +140,9 @@ export class BaseDatepickerComponent extends BaseControl<Date | null> {
   readonly displayFormat = input<Intl.DateTimeFormatOptions>({ dateStyle: 'medium' });
   /** 0 = Sunday, 1 = Monday. */
   readonly weekStart = input<0 | 1>(1);
+  /** Adds HH:MM boxes below the grid; picking a date then keeps the panel open
+   *  for time adjustment instead of closing immediately. */
+  readonly showTime = input(false);
 
   readonly opened = output<void>();
   readonly closed = output<void>();
@@ -125,6 +151,9 @@ export class BaseDatepickerComponent extends BaseControl<Date | null> {
   private readonly viewDate = signal(strip(new Date()));
   private readonly host = inject(ElementRef<HTMLElement>);
 
+  protected readonly timeH = signal('00');
+  protected readonly timeM = signal('00');
+
   protected get weekdays(): string[] {
     const base = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
     return this.weekStart() === 1 ? [...base.slice(1), base[0]] : base;
@@ -132,7 +161,9 @@ export class BaseDatepickerComponent extends BaseControl<Date | null> {
 
   protected readonly displayText = computed(() => {
     const v = this.value();
-    return v ? new Intl.DateTimeFormat(undefined, this.displayFormat()).format(v) : this.placeholder();
+    if (!v) return this.placeholder();
+    const datePart = new Intl.DateTimeFormat(undefined, this.displayFormat()).format(v);
+    return this.showTime() ? `${datePart}, ${pad2(v.getHours())}:${pad2(v.getMinutes())}` : datePart;
   });
 
   protected readonly monthLabel = computed(() =>
@@ -182,7 +213,13 @@ export class BaseDatepickerComponent extends BaseControl<Date | null> {
 
   toggle(): void {
     if (this.open()) { this.close(); return; }
-    this.viewDate.set(strip(this.value() ?? new Date()));
+    const v = this.value();
+    this.viewDate.set(strip(v ?? new Date()));
+    if (this.showTime()) {
+      const ref = v ?? new Date();
+      this.timeH.set(pad2(ref.getHours()));
+      this.timeM.set(pad2(ref.getMinutes()));
+    }
     this.open.set(true);
     this.opened.emit();
   }
@@ -205,9 +242,10 @@ export class BaseDatepickerComponent extends BaseControl<Date | null> {
 
   pick(c: DayCell): void {
     if (c.disabled) return;
-    this.value.set(c.date);
-    this.onChange(c.date);
-    this.close();
+    const d = this.showTime() ? this.withTime(c.date) : c.date;
+    this.value.set(d);
+    this.onChange(d);
+    if (!this.showTime()) this.close();
   }
 
   clear(ev: Event): void {
@@ -217,6 +255,37 @@ export class BaseDatepickerComponent extends BaseControl<Date | null> {
   }
 
   writeValue(v: Date | null): void {
-    this.value.set(v ? strip(v) : null);
+    this.value.set(v ? (this.showTime() ? v : strip(v)) : null);
+  }
+
+  private withTime(d: Date): Date {
+    const next = new Date(d);
+    next.setHours(+this.timeH(), +this.timeM(), 0, 0);
+    return next;
+  }
+
+  private timeSignal(part: 'H' | 'M'): WritableSignal<string> {
+    return part === 'H' ? this.timeH : this.timeM;
+  }
+
+  onTimeInput(part: 'H' | 'M', ev: Event): void {
+    const raw = (ev.target as HTMLInputElement).value.replace(/\D/g, '').slice(0, 2);
+    this.timeSignal(part).set(raw);
+  }
+
+  onTimeBlur(part: 'H' | 'M'): void {
+    const max = part === 'H' ? 23 : 59;
+    const sig = this.timeSignal(part);
+    let n = parseInt(sig(), 10);
+    if (isNaN(n)) n = 0;
+    n = Math.min(Math.max(n, 0), max);
+    sig.set(pad2(n));
+
+    const current = this.value();
+    if (current) {
+      const d = this.withTime(current);
+      this.value.set(d);
+      this.onChange(d);
+    }
   }
 }

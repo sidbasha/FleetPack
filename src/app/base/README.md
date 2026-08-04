@@ -29,7 +29,8 @@ use Storybook to review one component in isolation. See `src/stories/foundations
 | `<base-textarea>` | Multiline input with character counter |
 | `<base-select>` | Custom dropdown with optional search; `[showChevron]="false"` renders it as a plain input-styled box |
 | `<base-checkbox>` / `<base-radio-group>` / `<base-toggle>` | Choice controls |
-| `<base-datepicker>` | Popup calendar: min/max, disabled-date rule, clearable |
+| `<base-datepicker>` | Popup calendar: min/max, disabled-date rule, clearable, optional `showTime` HH:MM boxes |
+| `<base-date-range-picker>` | Dropdown: quick-range sidebar (All / Last 1-7-30 Days / Custom range) + dual month calendars with per-side HH:MM time boxes, Cancel/Apply |
 | `<base-breadcrumbs>` | Navigation trail (routerLink or click events) |
 | `<base-tabs>` | Headless tab bar (underline or pills) |
 | `<base-dropdown-menu>` | Actions menu with icons, dividers, danger items |
@@ -50,6 +51,7 @@ All form controls expose a two-way `[(value)]` / `[(checked)]` model **and** imp
 <base-select label="Fab" [options]="fabOptions" [(value)]="fab" [searchable]="true" />
 <base-datepicker label="Maintenance" [(value)]="date" [min]="minDate"
                  [disabledDates]="noWeekends" />
+<base-date-range-picker [(value)]="dateRange" (applied)="onRangeApplied($event)" />
 <base-breadcrumbs [items]="crumbs" (itemClick)="onCrumb($event)" />
 <base-tabs [tabs]="tabs" [(activeId)]="active" />
 <base-modal [(open)]="show" title="Edit"> ... <div footer>...</div> </base-modal>
