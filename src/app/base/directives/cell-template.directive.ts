@@ -65,3 +65,87 @@ export class BaseChildCellDirective<T = BaseRow> {
     return true;
   }
 }
+
+/**
+ * Attach to an <ng-template> inside <base-table> to fully control one column's
+ * HEADER content (the label area, before the sort/filter icons). Falls back to
+ * plain `{{ column.header }}` text when no template is given for a column.
+ *
+ * <ng-template baseHeaderCell="status" let-col="column">
+ *   <b>{{ col.header }}</b> <span class="text-slate-400">(live)</span>
+ * </ng-template>
+ */
+export interface BaseHeaderCellContext<T = BaseRow> {
+  /** The column definition (let-col="column"). */
+  column: BaseColumnDef<T>;
+}
+
+@Directive({ selector: 'ng-template[baseHeaderCell]', standalone: true })
+export class BaseHeaderCellDirective<T = BaseRow> {
+  /** Column key this template renders. */
+  readonly baseHeaderCell = input.required<string>();
+
+  constructor(public readonly template: TemplateRef<BaseHeaderCellContext<T>>) {}
+
+  static ngTemplateContextGuard<T>(
+    _dir: BaseHeaderCellDirective<T>,
+    ctx: unknown
+  ): ctx is BaseHeaderCellContext<T> {
+    return true;
+  }
+}
+
+/**
+ * Attach to an <ng-template> inside <base-table> to fully control how one
+ * row-action TYPE renders across every 'row-actions' column, overriding the
+ * default icon button for that type (e.g. a richer download-progress widget).
+ *
+ * <ng-template baseActionTemplate="download" let-row>
+ *   <span>{{ row.fileProgress }}%</span>
+ * </ng-template>
+ */
+export interface BaseActionTemplateContext<T = BaseRow> {
+  /** The row object (let-row). */
+  $implicit: T;
+}
+
+@Directive({ selector: 'ng-template[baseActionTemplate]', standalone: true })
+export class BaseActionTemplateDirective<T = BaseRow> {
+  /** RowActionType (or custom legacy action icon string) this template renders. */
+  readonly baseActionTemplate = input.required<string>();
+
+  constructor(public readonly template: TemplateRef<BaseActionTemplateContext<T>>) {}
+
+  static ngTemplateContextGuard<T>(
+    _dir: BaseActionTemplateDirective<T>,
+    ctx: unknown
+  ): ctx is BaseActionTemplateContext<T> {
+    return true;
+  }
+}
+
+/**
+ * Attach to an <ng-template> inside <base-table> to render content BELOW the
+ * nested child table shown by [expandable] (e.g. "Add Service Activity" /
+ * "Submit" buttons). Presence-only — one instance covers every expanded row.
+ *
+ * <ng-template baseChildFooter let-row>
+ *   <button (click)="addActivity(row)">Add Service Activity</button>
+ * </ng-template>
+ */
+export interface BaseChildFooterContext<T = BaseRow> {
+  /** The row object (let-row). */
+  $implicit: T;
+}
+
+@Directive({ selector: 'ng-template[baseChildFooter]', standalone: true })
+export class BaseChildFooterDirective<T = BaseRow> {
+  constructor(public readonly template: TemplateRef<BaseChildFooterContext<T>>) {}
+
+  static ngTemplateContextGuard<T>(
+    _dir: BaseChildFooterDirective<T>,
+    ctx: unknown
+  ): ctx is BaseChildFooterContext<T> {
+    return true;
+  }
+}

@@ -4,6 +4,7 @@ import {
   Directive,
   ElementRef,
   HostListener,
+  OnInit,
   Renderer2,
   computed,
   inject,
@@ -116,6 +117,28 @@ export class BaseTooltipDirective {
       this.renderer.removeChild(document.body, this.tip);
       this.tip = null;
     }
+  }
+}
+
+/**
+ * Moves the host element to `document.body` as soon as it's created, escaping any
+ * ancestor's stacking context / overflow clipping — e.g. a `position: fixed` dropdown
+ * panel nested inside a `position: sticky` table header still only out-ranks *siblings
+ * within that header cell* for z-index purposes, not the table's other header cells,
+ * because z-index comparisons never cross an ancestor's stacking context boundary. Apply
+ * directly to a popup panel that's conditionally rendered with `@if`:
+ *   `<div baseTeleport #panel class="fixed z-30 ...">`
+ * Angular's own view-node bookkeeping (not DOM parentage) is what `@if` uses to remove
+ * the element again when the block closes, so moving it here is safe — no manual cleanup
+ * needed. The element keeps its Angular template bindings; only its DOM *location* changes.
+ */
+@Directive({ selector: '[baseTeleport]', standalone: true })
+export class BaseTeleportDirective implements OnInit {
+  private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly renderer = inject(Renderer2);
+
+  ngOnInit(): void {
+    this.renderer.appendChild(document.body, this.host.nativeElement);
   }
 }
 

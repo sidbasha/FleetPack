@@ -15,7 +15,9 @@ use Storybook to review one component in isolation. See `src/stories/foundations
 
 | Selector | Purpose |
 |---|---|
-| `<base-table>` | Core data table: dynamic columns (text/number/date/badge/dot/trend/image/progress/text-bar/sparkline/link/row-actions cell kinds), pagination, custom cell templates, filters, sticky header + sticky columns, sorting, selection, grouped rows (accent/plain/light header styles) |
+| `<base-table>` | Core data table: dynamic columns (text/number/date/datetime/sno/array/badge/dot/status-text/trend/image/progress/text-bar/sparkline/link/row-actions/template cell kinds), pagination or infinite scroll, custom cell/header/action templates, text + checkbox + calendar + numeric-range column filters with a global Clear All, sticky header + sticky columns, tri-state sorting, single/multiple selection (with per-row/disable-all guards), grouped rows (accent/plain/light header styles), merged/additional header rows, expandable nested child tables (with a footer slot), Manage Columns (show/hide + drag reorder), a 16-type row-action registry, and highlighted-row auto-scroll |
+| `<base-checkbox-filter>` / `<base-calendar-filter>` / `<base-range-filter>` | Per-column filter dropdowns mounted by `<base-table>` (value checklist+search+sort, Start/End date, numeric From/To) |
+| `<base-manage-columns>` | Gear-icon column visibility + drag-reorder panel mounted by `<base-table>` |
 | `<base-paginator>` | Standalone pagination control (also used inside the table) |
 | `<base-search-input>` | Debounced search box |
 | `<base-kpi-card>` | KPI metric card with optional trend + click event |
@@ -115,6 +117,33 @@ via `[rows]`.
 
 Set `sticky: 'left' | 'right'` **and a fixed `width`** on the column def.
 Pinned columns are automatically ordered to the edges and offsets are computed.
+Sticky columns are also treated as "frozen" by Manage Columns — locked, undraggable.
+
+### Column filters
+
+`filterable: true` alone keeps the classic text filter-row input. Set
+`filterKind: 'checkbox' | 'calendar' | 'range'` to swap that column's header icon for a
+richer dropdown instead (unique-value checklist, Start/End date via `<base-datepicker>`
+with optional `filterShowTime`, or a numeric From/To range that's exclusive with all
+other filters/sorts). `<base-table>` computes unique values and applies the filter
+itself — no extra wiring needed beyond the column def.
+
+### Manage Columns & typed row actions
+
+```ts
+import { RowActionType, BaseRowAction } from '../../base';
+
+rowActions: BaseRowAction<Tool>[] = [
+  { type: 'edit', run: r => edit(r) },
+  { type: 'delete', isDisabled: r => r.locked, run: r => remove(r) },
+  { type: 'download', run: r => download(r) } // shows r.fileProgress% while > 0
+];
+```
+
+```html
+<base-table [columns]="columns" [rows]="rows" [manageColumns]="true"
+            (manageColumn)="visibleKeys = $event" (handleAction)="onAction($event)" />
+```
 
 ## Used throughout the app
 
@@ -133,5 +162,9 @@ The whole application renders through this module — treat the features as live
   inspector in a `<base-drawer>` instead of an inline side panel.
 - `fam-kpi` / `fam-loading` / `fam-trend` are **deprecated wrappers** delegating to base —
   new code should import from `src/app/base` directly.
+- The `fam-table-widget` adapter currently exposes only a subset of `<base-table>` (grouped
+  rows, group actions, highlight). Column filters, Manage Columns, typed row actions,
+  additional header rows, and infinite scroll aren't wired through it yet — use
+  `<base-table>` directly for those until the adapter is extended.
 
 Full prop/event reference: see `Base-Module-Component-Guide.docx` in the handover pack.

@@ -1,6 +1,7 @@
 import { JsonPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import {
+  AdditionalHeaderGroup,
   BaseAlertComponent,
   BaseBadgeComponent,
   BaseBreadcrumbsComponent,
@@ -12,11 +13,13 @@ import {
   BaseDatepickerComponent,
   BaseDropdownMenuComponent,
   BaseFilterEvent,
+  BaseHandleActionEvent,
   BaseKpiCardComponent,
   BaseModalComponent,
   BasePageEvent,
   BaseProgressBarComponent,
   BaseRadioGroupComponent,
+  BaseRowAction,
   BaseSelectComponent,
   BaseSkeletonComponent,
   BaseSortEvent,
@@ -41,6 +44,7 @@ interface ToolRow {
   history: number[];
   lastMaint: string;
   photo: string;
+  fileProgress: number;
 }
 
 const STATUSES: ToolRow['status'][] = ['PRODUCTION', 'ENGINEERING', 'STANDBY', 'DOWN'];
@@ -59,7 +63,8 @@ function mockRows(n: number): ToolRow[] {
       trendPct: i % 7 === 0 ? null : +((Math.random() * 8 - 4).toFixed(1)),
       history: Array.from({ length: 8 }, () => 70 + Math.round(Math.random() * 30)),
       lastMaint: new Date(Date.now() - i * 86_400_000 * 3).toISOString(),
-      photo: `https://picsum.photos/seed/tool${i}/64/64`
+      photo: `https://picsum.photos/seed/tool${i}/64/64`,
+      fileProgress: i % 6 === 0 ? Math.round(Math.random() * 90) + 5 : 0
     };
   });
 }
@@ -182,13 +187,14 @@ function mockRows(n: number): ToolRow[] {
                        (cardClick)="log('kpi cardClick', 'MTTR')" />
       </div>
 
-      <!-- toolbar demoing dynamic columns -->
+      <!-- toolbar demoing dynamic columns + new spec features -->
       <div class="panel px-4 py-3 flex flex-wrap items-center gap-3">
         <span class="panel-title">Base Table · all features</span>
         <span class="flex-1"></span>
         <button class="btn-ghost" (click)="toggleColumn('photo')">Toggle Photo col</button>
         <button class="btn-ghost" (click)="toggleColumn('history')">Toggle Chart col</button>
         <button class="btn-ghost" (click)="addDynamicColumn()">+ Add column</button>
+        <button class="btn-ghost" (click)="highlightRandomRow()">Highlight + scroll to a row</button>
       </div>
 
       <base-table class="panel block overflow-hidden"
@@ -198,19 +204,25 @@ function mockRows(n: number): ToolRow[] {
         [showFilterRow]="true"
         [stickyHeader]="true"
         maxHeight="440px"
-        minWidth="1250px"
+        minWidth="1350px"
         selectable="multiple"
+        [striped]="true"
         [initialPageSize]="10"
+        [manageColumns]="true"
+        [additionalHeader]="additionalHeader"
         [expandable]="true"
         [childColumns]="childColumns()"
         [childRowsOf]="alarmEventsOf"
+        [highlightKey]="highlightedToolId()"
         (rowClick)="log('rowClick', $event.row.toolId)"
         (cellClick)="log('cellClick', $event.column.key + ' → ' + $event.row.toolId)"
         (sortChange)="onSort($event)"
         (pageChange)="onPage($event)"
         (filterChange)="onFilter($event)"
         (selectionChange)="selectedCount.set($event.length)"
-        (expandChange)="log('expandChange', $event.row.toolId + ' → ' + $event.expanded)">
+        (expandChange)="log('expandChange', $event.row.toolId + ' → ' + $event.expanded)"
+        (manageColumn)="log('manageColumn', $event.join(', '))"
+        (handleAction)="onHandleAction($event)">
 
         <!-- CUSTOM CELL TEMPLATE #1: composite cell (image + text + badge) -->
         <ng-template baseCell="toolId" let-row let-value="value">
@@ -266,13 +278,18 @@ export class BasePlaygroundComponent {
   readonly events = signal<string[]>([]);
   readonly lastFilter = signal<BaseFilterEvent | null>(null);
 
+  readonly additionalHeader: AdditionalHeaderGroup[] = [
+    { displayName: 'Identity', columnIds: ['toolId', 'photo', 'fab', 'chamber'] },
+    { displayName: 'Health', columnIds: ['status', 'uptime', 'alarms', 'trendPct', 'history'] }
+  ];
+
   readonly columns = signal<BaseColumnDef<ToolRow>[]>([
     { key: 'toolId', header: 'Tool ID', sticky: 'left', width: '130px', sortable: true, filterable: true },
     { key: 'photo', header: 'Photo', kind: 'image', width: '70px', imageSize: 36 },
     { key: 'fab', header: 'Fab', kind: 'dot', filterable: true,
       dotClassMap: { 'Fab-A': 'bg-indigo-500', 'Fab-B': 'bg-sky-500', 'Fab-C': 'bg-amber-500' } },
     { key: 'chamber', header: 'Chamber', filterable: true },
-    { key: 'status', header: 'Status', kind: 'badge', sortable: true, filterable: true,
+    { key: 'status', header: 'Status', kind: 'badge', sortable: true, filterable: true, filterKind: 'checkbox',
       badgeClassMap: {
         PRODUCTION: 'bg-emerald-50 text-emerald-600',
         ENGINEERING: 'bg-sky-50 text-sky-600',
@@ -280,12 +297,19 @@ export class BasePlaygroundComponent {
         DOWN: 'bg-red-50 text-red-600'
       } },
     { key: 'uptime', header: 'Uptime', kind: 'progress', width: '150px', sortable: true, align: 'left' },
-    { key: 'alarms', header: 'Alarms', kind: 'number', align: 'right', sortable: true,
+    { key: 'alarms', header: 'Alarms', kind: 'number', align: 'right', sortable: true, filterable: true, filterKind: 'range',
       cellClass: r => r.alarms > 30 ? 'text-red-600 font-bold' : '' },
     { key: 'trendPct', header: 'WoW', kind: 'trend', align: 'center', trendBadWhenUp: false },
     { key: 'history', header: '8-run trend', kind: 'sparkline', width: '120px' },
-    { key: 'lastMaint', header: 'Last Maint.', kind: 'date', sortable: true,
+    { key: 'lastMaint', header: 'Last Maint.', kind: 'date', sortable: true, filterable: true, filterKind: 'calendar',
       dateFormat: { day: '2-digit', month: 'short', year: 'numeric' } },
+    { key: 'quickActions', header: 'Quick', width: '130px', align: 'right', kind: 'row-actions',
+      rowActions: [
+        { type: 'view', title: 'View', run: r => this.log('view', r.toolId) },
+        { type: 'edit', title: 'Edit', isDisabled: r => r.status === 'DOWN', run: r => this.log('edit', r.toolId) },
+        { type: 'download', title: 'Download', run: r => this.log('download', r.toolId) },
+        { type: 'delete', title: 'Delete', isHidden: r => r.status === 'PRODUCTION', run: r => this.removeRow(r.toolId) }
+      ] satisfies BaseRowAction<ToolRow>[] },
     { key: 'actions', header: 'Actions', sticky: 'right', width: '140px', align: 'right' }
   ]);
 
@@ -357,6 +381,8 @@ export class BasePlaygroundComponent {
   readonly noWeekends = (d: Date) => d.getDay() === 0 || d.getDay() === 6;
   readonly openModal = signal(false);
   readonly saving = signal(false);
+  /** Drives [highlightKey] — set to a row's toolId to highlight + auto-scroll to it. */
+  readonly highlightedToolId = signal<string | null>(null);
 
   fakeSave(): void {
     this.saving.set(true);
@@ -370,6 +396,15 @@ export class BasePlaygroundComponent {
   onSort(e: BaseSortEvent): void { this.log('sortChange', `${e.key ?? '—'} ${e.direction ?? ''}`); }
   onPage(e: BasePageEvent): void { this.log('pageChange', `page ${e.page} · size ${e.pageSize}`); }
   onFilter(e: BaseFilterEvent): void { this.lastFilter.set(e); this.log('filterChange', JSON.stringify(e)); }
+  onHandleAction(e: BaseHandleActionEvent<ToolRow>): void { this.log('handleAction', `${e.actionType} → ${e.row.toolId}`); }
+
+  /** Picks a row further down the list and highlights + auto-scrolls to it (spec #11). */
+  highlightRandomRow(): void {
+    const rows = this.rows();
+    if (rows.length === 0) return;
+    const row = rows[Math.min(rows.length - 1, 20 + Math.floor(Math.random() * 10))];
+    this.highlightedToolId.set(row.toolId);
+  }
 
   /** Dynamic columns: hide/show at runtime — just data changes. */
   toggleColumn(key: string): void {
