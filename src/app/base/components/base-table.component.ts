@@ -105,7 +105,7 @@ interface AdditionalHeaderCell {
     /* Below .bt-head-sticky/.bt-sticky-th (10/12) on purpose — a frozen body column must stay
        UNDER the sticky header while scrolling vertically, not outrank it. */
     .bt-sticky-td { position: sticky; z-index: 1; background: #ffffff; }
-    // tr:hover .bt-sticky-td { background: inherit; }
+    /* tr:hover .bt-sticky-td { background: inherit; }
     /* Edge "shadow" is a gradient pinned to the cell's own box (top:0/bottom:0), not a
        box-shadow — box-shadow's blur radius paints a few px past the element's border box,
        which (combined with the sticky column's z-index sitting above plain, non-positioned
