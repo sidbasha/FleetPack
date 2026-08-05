@@ -10,9 +10,9 @@ import {
   output,
   signal
 } from '@angular/core';
-import { BaseCalendarFilterValue, BaseCheckboxFilterValue, BaseRangeFilterValue } from '../models/table.model';
-import { BaseDatepickerComponent } from './base-datepicker.component';
-import { BaseTeleportDirective } from './base-overlay.components';
+import { BaseCalendarFilterValue, BaseCheckboxFilterValue, BaseRangeFilterValue } from '../../models/table.model';
+import { BaseDatepickerComponent } from '../base-datepicker.component';
+import { BaseTeleportDirective } from '../base-overlay.components';
 
 let uid = 0;
 

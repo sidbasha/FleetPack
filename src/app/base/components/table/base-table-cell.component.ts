@@ -1,7 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, TemplateRef, computed, input, output } from '@angular/core';
-import { BaseActionTemplateContext } from '../directives/cell-template.directive';
-import { BaseColumnDef, BaseHandleActionEvent, BaseRow } from '../models/table.model';
+import { BaseActionTemplateContext } from '../../directives/cell-template.directive';
+import { BaseColumnDef, BaseHandleActionEvent, BaseRow } from '../../models/table.model';
 import {
   arrayText,
   badgeClass,
@@ -23,8 +23,8 @@ import {
   statusTextClass,
   textBarPct,
   trendValue
-} from '../utils/table-cell.utils';
-import { BaseSparklineComponent, BaseTrendComponent } from './base-ui.components';
+} from '../../utils/table-cell.utils';
+import { BaseSparklineComponent, BaseTrendComponent } from '../base-ui.components';
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────

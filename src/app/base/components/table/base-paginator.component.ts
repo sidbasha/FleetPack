@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
-import { BasePageEvent } from '../models/table.model';
+import { BasePageEvent } from '../../models/table.model';
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────

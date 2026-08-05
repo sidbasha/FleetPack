@@ -16,9 +16,9 @@ import {
   output,
   signal
 } from '@angular/core';
-import { BaseManageColumnsEvent } from '../models/table.model';
+import { BaseManageColumnsEvent } from '../../models/table.model';
 import { computeFixedPopupPosition, FixedPopupPosition } from './base-column-filters.components';
-import { BaseTeleportDirective } from './base-overlay.components';
+import { BaseTeleportDirective } from '../base-overlay.components';
 
 export interface ManageColumnItem {
   key: string;

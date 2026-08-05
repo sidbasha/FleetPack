@@ -17,7 +17,7 @@ import {
   BaseChildCellDirective,
   BaseChildFooterDirective,
   BaseHeaderCellDirective
-} from '../directives/cell-template.directive';
+} from '../../directives/cell-template.directive';
 import {
   AdditionalHeaderGroup,
   BaseCalendarFilterValue,
@@ -33,14 +33,14 @@ import {
   BaseRowClickEvent,
   BaseScrollEvent,
   BaseSortEvent
-} from '../models/table.model';
-import { cellText as getCellText, cellValue as getCellValue, rowTooltipText as getRowTooltipText } from '../utils/table-cell.utils';
+} from '../../models/table.model';
+import { cellText as getCellText, cellValue as getCellValue, rowTooltipText as getRowTooltipText } from '../../utils/table-cell.utils';
 import { BaseCalendarFilterComponent, BaseCheckboxFilterComponent, BaseRangeFilterComponent } from './base-column-filters.components';
 import { BaseManageColumnsComponent, ManageColumnItem } from './base-manage-columns.component';
-import { BaseTooltipDirective } from './base-overlay.components';
+import { BaseTooltipDirective } from '../base-overlay.components';
 import { BasePaginatorComponent, BaseSearchInputComponent } from './base-paginator.component';
 import { BaseTableCellComponent } from './base-table-cell.component';
-import { BaseEmptyStateComponent, BaseLoadingComponent } from './base-ui.components';
+import { BaseEmptyStateComponent, BaseLoadingComponent } from '../base-ui.components';
 
 interface StickyMeta {
   left?: string;

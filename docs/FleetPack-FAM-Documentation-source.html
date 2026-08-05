@@ -1,0 +1,844 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>FleetPack FAM Documentation</title>
+<style>
+@page { size: A4; margin: 20mm 16mm; }
+* { box-sizing: border-box; }
+body {
+  font-family: Calibri, 'Segoe UI', Arial, sans-serif;
+  font-size: 10.3pt;
+  color: #1e293b;
+  line-height: 1.45;
+}
+h1, h2, h3 { color: #4338CA; font-weight: 700; margin: 0 0 8px; }
+h1 { font-size: 20pt; margin-top: 6px; border-bottom: 2px solid #4338CA; padding-bottom: 6px; }
+h2 { font-size: 14.5pt; margin-top: 16px; }
+h3 { font-size: 12pt; margin-top: 12px; }
+h3.plain { color: #334155; font-size: 11pt; }
+p { margin: 0 0 8px; text-align: justify; }
+p.label { font-weight: 700; color: #4338CA; margin-bottom: 4px; }
+p.note { font-size: 9pt; color: #64748b; margin-bottom: 8px; }
+p.italic { font-style: italic; }
+p.footer { text-align: center; font-size: 8.5pt; color: #94a3b8; font-style: italic; margin-top: 24px; }
+ul { margin: 0 0 10px; padding-left: 20px; }
+li { margin-bottom: 4px; }
+mark {
+  background: none;
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+  font-weight: inherit;
+}
+.badge-new { display: none; }
+.badge-new.sm { display: none; }
+.new-block { background: none; border-left: none; padding: 0; border-radius: 0; }
+pre.code {
+  background: #f1f5f9;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 8pt;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0 0 10px;
+  line-height: 1.35;
+}
+pre.code.new-block { background: #f1f5f9; border-left: none; }
+pre.tree { font-size: 7.6pt; }
+pre.tree mark { background: none; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 12px;
+  font-size: 8.6pt;
+}
+thead th {
+  background: #334155;
+  color: #fff;
+  text-align: left;
+  padding: 5px 7px;
+  font-weight: 700;
+}
+tbody td {
+  border: 1px solid #e2e8f0;
+  padding: 5px 7px;
+  vertical-align: top;
+}
+tbody tr:nth-child(even) td { background: #eef2ff; }
+td.mono { font-family: Consolas, 'Courier New', monospace; font-size: 8.2pt; white-space: normal; }
+.pagebreak { page-break-before: always; }
+.titlepage { text-align: center; padding-top: 60px; }
+.titlepage .eyebrow { font-size: 11pt; font-weight: 700; color: #64748b; letter-spacing: .04em; }
+.titlepage .maintitle { font-size: 36pt; font-weight: 800; color: #4338CA; margin: 50px 0 6px; }
+.titlepage .subtitle { font-size: 16pt; color: #475569; margin-bottom: 14px; }
+.titlepage .tagline { font-size: 11pt; font-style: italic; color: #64748b; margin-bottom: 6px; }
+.titlepage .stack { font-size: 10pt; color: #64748b; margin-bottom: 30px; }
+.titlepage .genline { font-size: 9pt; font-style: italic; color: #94a3b8; }
+.titlepage .revline { font-size: 10pt; color: #94a3b8; margin-top: 40px; }
+.toc { margin-bottom: 14px; }
+.toc a { display: block; text-decoration: none; color: #334155; padding: 3px 0; }
+.toc a.toc-l1 { font-weight: 700; color: #4338CA; font-size: 11.5pt; margin-top: 6px; }
+.toc a.toc-l2 { font-size: 10pt; padding-left: 18px; }
+</style>
+</head>
+<body>
+
+<div class="titlepage">
+  <div class="eyebrow">KLA FLEETPACK &middot; NEXUS THEME V2</div>
+  <div class="maintitle">FleetPack FAM</div>
+  <div class="subtitle">Fleet Availability Module &mdash; Complete Technical Documentation</div>
+  <div class="tagline">Folder Structure &middot; Architecture &middot; Base Module &middot; Storybook &middot; Shared Module &middot; Core &middot; Features</div>
+  <div class="stack">Angular 20 &middot; Signals &middot; Tailwind CSS 4 &middot; Chart.js 4 &middot; Storybook 10 &middot; Mock REST API</div>
+  <div class="genline">Generated documentation &mdash; consolidates README, component reference and architecture guide.</div>
+  <div class="revline">Revision 2 &mdash; 5 August 2026 &nbsp; (previous revision: 23 July 2026)</div>
+</div>
+
+<div class="pagebreak"></div>
+<h1>Table of Contents</h1>
+<div class="toc">
+<a class="toc-l1" href="#sec1">1. Overview &amp; Quick Start</a>
+<a class="toc-l1" href="#sec2">2. Full Folder Structure</a>
+<a class="toc-l1" href="#sec3">3. End-to-End Data Flow</a>
+<a class="toc-l1" href="#sec4">4. The Base Module — Reusable Component Library (base/)</a>
+<a class="toc-l2" href="#sec5">4.1 Components</a>
+<a class="toc-l2" href="#sec6">4.2 Storybook — the interactive component catalog</a>
+<a class="toc-l2" href="#sec7">4.3 Table Model (models/table.model.ts) — substantially expanded</a>
+<a class="toc-l2" href="#sec8">4.4 Column filters &amp; Manage Columns</a>
+<a class="toc-l2" href="#sec9">4.5 Expandable nested child tables</a>
+<a class="toc-l2" href="#sec10">4.6 Template directives — expanded from one to five</a>
+<a class="toc-l2" href="#sec11">4.7 Date pickers</a>
+<a class="toc-l2" href="#sec12">4.8 Used Throughout the App</a>
+<a class="toc-l2" href="#sec13">4.9 Full component reference</a>
+<a class="toc-l1" href="#sec14">5. The Shared Module — App-Level Composition Layer (shared/)</a>
+<a class="toc-l1" href="#sec18">6. The Core Module — Data &amp; Infrastructure Layer (core/)</a>
+<a class="toc-l1" href="#sec19">7. Layout — The App Shell (layout/)</a>
+<a class="toc-l1" href="#sec20">8. Features &amp; Routing (features/)</a>
+<a class="toc-l1" href="#sec21">9. Reference — Domain Models</a>
+<a class="toc-l1" href="#sec22">10. Adding a New Module — Checklist</a>
+</div>
+<h3 class="plain">What changed in this revision</h3>
+<ul>
+<li><span class="badge-new sm">NEW</span> <mark><b>Storybook — </b>a full interactive component catalog (npm run storybook) now documents every Base component with live controls, variants, states, and automated accessibility checks (§4.2).</mark></li>
+<li><span class="badge-new sm">NEW</span> <mark><b>Nested / expandable rows — </b>&lt;base-table&gt; can now expand any row into a full nested child &lt;base-table&gt; (§4.5).</mark></li>
+<li><span class="badge-new sm">NEW</span> <mark><b>Column filter dropdowns — </b>checkbox / calendar / numeric-range filter panels per column, beyond the old text-only filter row (§4.4).</mark></li>
+<li><span class="badge-new sm">NEW</span> <mark><b>Manage Columns — </b>a gear-icon show/hide + drag-reorder panel for table columns (§4.4).</mark></li>
+<li><span class="badge-new sm">NEW</span> <mark><b>Typed row-action registry — </b>16 built-in row-action types with auto-resolved icons, disable/hide rules per row (§4.3).</mark></li>
+<li><span class="badge-new sm">NEW</span> <mark><b>&lt;base-date-range-picker&gt; — </b>a brand-new component: quick-range presets + dual month calendars (§4.7). &lt;base-datepicker&gt; also gained an optional time-of-day mode.</mark></li>
+<li><span class="badge-new sm">NEW</span> <mark><b>Table source reorganized — </b>the table-family components now live in their own components/table/ subfolder (§2, §4.1).</mark></li>
+<li><span class="badge-new sm">NEW</span> <mark><b>New reference doc — </b>docs/Base-Module-Component-Guide.docx — a standalone, exhaustive prop/event reference for every Base component (§4.9).</mark></li>
+</ul>
+<div class="pagebreak"></div>
+<h1 id="sec1">1. Overview &amp; Quick Start</h1>
+<p>Angular implementation of the FAM (Fleet Availability Module) screens from the Nexus Theme v2 design (KLA FleetPack). Standalone components, signal-based state management, Chart.js visualizations, custom heatmap/Gantt renderers, and a fully mocked REST API — no backend required.</p>
+<pre class="code">npm install
+npm start          # ng serve --open → http://localhost:4200</pre>
+<p>Requires Node 18.19+, 20.11+, or 22.0+ (Angular 20). Stack: Angular 20 + @angular/cdk · Tailwind CSS 4 (CSS-first @theme tokens) · Chart.js 4 + ng2-charts 6 · RxJS 7 · signals for all state (no NgRx/Akita) · <mark>Storybook 10 (@storybook/angular, addon-a11y, addon-docs) for isolated component review</mark>.</p>
+<h3 class="plain">Screens &amp; Routes</h3>
+<p class="note italic">Unchanged since the last revision — no routes were added, removed, or renamed.</p>
+<table><colgroup><col style="width:28.2%"><col style="width:71.8%"></colgroup><thead><tr><th>Route</th><th>Screen</th></tr></thead><tbody>
+<tr>
+<td class="mono">/fleet-availability/up-time/analysis</td>
+<td>Fleet Up+Time Analysis — Uptime/Downtime Trend toggle on the rolling line chart (1W/13W + period average), collapsible uptime breakdown table (rolling, tool-wise, grouped by SW version) with chip-style Tool-wise/Grouped toggles + CSV export, Top-10 unavailable tools stacked bar, downtime category details with colored progress bars.</td>
+</tr>
+<tr>
+<td class="mono">/fleet-availability/up-time/availability</td>
+<td>Fleet Up+Time Availability — single divided KPI strip (13W/4W rolling, current week, MTBr, total downtime in red), Uptime/Downtime Trend line chart, Top-10 unavailable stacked bar with a Non-Scheduled toggle, downtime categories (colored label + underline bar), a collapsible Tool-Level Analysis Filter bar (tool picker + live state-count pills).</td>
+</tr>
+<tr>
+<td class="mono">…/availability/heatmap</td>
+<td>Tab 1 — 24-Hour State Heatmap (custom CSS-grid, 14 days × hour blocks; state totals live in the page-level Tool-Level Analysis Filter bar).</td>
+</tr>
+<tr>
+<td class="mono">…/availability/gantt</td>
+<td>Tab 2 — Activity Gantt (Sys E10 / Tool E10 rows per day, segment labels, colored availability badges, "Day Shift" as a legend swatch, pagination in the footer).</td>
+</tr>
+<tr>
+<td class="mono">…/availability/events</td>
+<td>Tab 3 — Event Details (grouped-by-day table with sortable timestamps, progress-bar duration, outlined state badges, delete/edit row actions, paging, Add Event, CSV).</td>
+</tr>
+<tr>
+<td class="mono">/alarm-explorer</td>
+<td>Alarm Explorer home — Model/Fleet/Category/Duration filter bar, stacked alarm-volume chart by category (Trend/Pareto tabs), fleet breakdown drill-down list.</td>
+</tr>
+<tr>
+<td class="mono">/alarm-explorer/fleet/:fleetId</td>
+<td>Fleet detail — Alarm ID/Tools/Category/SW Version filter bar, 5-metric KPI strip, tool-level stacked distribution (Trend/Pareto tabs, click a bar to drill down), top alarms with category-colored bars, tool summary table.</td>
+</tr>
+<tr>
+<td class="mono">/alarm-explorer/fleet/:fleetId/tool/:toolId</td>
+<td>Tool alarm summary — Alarm ID/Category/Severity/Recipe filter bar + searchable alarm table; selecting a row opens the Alarm Info inspector in a slide-over &lt;base-drawer&gt;.</td>
+</tr>
+<tr>
+<td class="mono">…/tool/:toolId/alarm/:alarmId</td>
+<td>Alarm events — Date Range/Recipe/Show/Duration filter bar, 4-metric KPI strip, chronological event log with a recipe tab filter, outlined resolution badges, pagination, CSV.</td>
+</tr>
+<tr>
+<td class="mono">/fleet-configuration, /fleet-productivity, /tqual, /my-reports, /innovation-lab, /engineering-utilities</td>
+<td>Placeholder modules wired into nav &amp; routing.</td>
+</tr>
+</tbody></table>
+<p class="label">Layering rule</p>
+<p>features/ depends on shared/ and core/; shared/ depends on base/ and core/; base/ depends on nothing app-specific (no chart.js, no models, no services) — it is a self-contained, exportable design-system library, now cataloged twice over: the in-app /dev/base playground and the standalone Storybook build.</p>
+<div class="pagebreak"></div>
+<h1 id="sec2">2. Full Folder Structure</h1>
+<p class="note italic">Green = added or moved since the 23 July revision.</p>
+<pre class="code tree">fleetpack-base-module/
+├── angular.json             Angular CLI workspace config
+<mark>├── package.json             deps: @angular/*, chart.js, ng2-charts, rxjs, tailwindcss, storybook</mark>
+├── tsconfig.json / tsconfig.app.json
+├── postcss.config.js / .postcssrc.json   Tailwind 4 via PostCSS
+<mark>├── .storybook/              Storybook config: main.ts, preview.ts, tsconfig.*.json</mark>
+├── README.md                top-level quick start + architecture summary
+├── docs/
+│   ├── FleetPack-FAM-Documentation.pdf   this document
+<mark>│   └── Base-Module-Component-Guide.docx  full prop/event reference for every base-* component</mark>
+└── src/
+    ├── main.ts              bootstrapApplication(AppComponent, appConfig)
+    ├── index.html
+    ├── styles.css           Tailwind 4 @theme tokens + component classes (panel, btn-*, table-th, chip-toggle, …)
+<mark>    ├── stories/             Storybook stories — one file per component/widget, mirrors src/app/base + shared/dynamic</mark>
+<mark>    │   ├── foundations/Introduction.mdx   catalog landing page / design-system coverage map</mark>
+<mark>    │   ├── base/*.stories.ts              one story file per base-* component (30 files)</mark>
+<mark>    │   ├── widgets/*.stories.ts           chart/kpi-grid/ranked-list/table/dynamic-page widget stories</mark>
+<mark>    │   ├── layout/sidebar.stories.ts</mark>
+<mark>    │   └── shared/{Deprecated.mdx, state-legend.stories.ts}</mark>
+    └── app/
+        ├── app.component.ts       root shell — just &lt;router-outlet&gt;
+        ├── app.config.ts          providers: router, http (+interceptors), charts, widget bootstrap
+        ├── app.routes.ts          route tree (see §8)
+        │
+        ├── base/                     REUSABLE COMPONENT LIBRARY (design-system layer)
+        │   ├── index.ts                          barrel export — public API of the module
+        │   ├── README.md                         module overview + quick-start snippets
+<mark>        │   ├── models/table.model.ts             BaseColumnDef (30+ fields), 16 cell kinds, typed row-action registry, filter/page/sort/scroll events</mark>
+<mark>        │   ├── directives/cell-template.directive.ts   baseCell, baseChildCell, baseHeaderCell, baseActionTemplate, baseChildFooter</mark>
+<mark>        │   ├── utils/table-cell.utils.ts         cell formatting helpers shared by base-table + base-table-cell</mark>
+        │   └── components/
+<mark>        │       ├── table/                        — table-family components, moved into their own subfolder</mark>
+        │       │   ├── base-table.component.ts           &lt;base-table&gt; — the core data grid
+<mark>        │       │   ├── base-table-cell.component.ts      &lt;base-table-cell&gt; — per-kind cell renderer, extracted out of base-table</mark>
+        │       │   ├── base-paginator.component.ts       &lt;base-paginator&gt;, &lt;base-search-input&gt;
+<mark>        │       │   ├── base-manage-columns.component.ts  &lt;base-manage-columns&gt; — show/hide + drag reorder panel</mark>
+<mark>        │       │   └── base-column-filters.components.ts &lt;base-checkbox-filter&gt;, &lt;base-calendar-filter&gt;, &lt;base-range-filter&gt;</mark>
+        │       ├── base-ui.components.ts             &lt;base-badge&gt;, &lt;base-trend&gt;, &lt;base-kpi-card&gt;,
+        │       │                                        &lt;base-loading&gt;, &lt;base-empty-state&gt;, &lt;base-sparkline&gt;
+        │       ├── base-form.components.ts           &lt;base-button&gt;, &lt;base-text-input&gt;, &lt;base-textarea&gt;,
+        │       │                                        &lt;base-select&gt;, &lt;base-checkbox&gt;, &lt;base-radio-group&gt;, &lt;base-toggle&gt;
+<mark>        │       ├── base-datepicker.component.ts      &lt;base-datepicker&gt; — gained an optional time-of-day (showTime) mode</mark>
+<mark>        │       ├── base-date-range-picker.component.ts &lt;base-date-range-picker&gt; — new component</mark>
+        │       ├── base-nav.components.ts            &lt;base-breadcrumbs&gt;, &lt;base-tabs&gt;, &lt;base-dropdown-menu&gt;
+        │       ├── base-overlay.components.ts        &lt;base-modal&gt;, [baseTooltip], [baseTeleport], &lt;base-alert&gt;,
+<mark>        │       │                                        &lt;base-progress-bar&gt;, &lt;base-skeleton&gt;</mark>
+        │       └── base-drawer.component.ts          &lt;base-drawer&gt; — slide-over side panel
+        │
+        ├── shared/                   APP-LEVEL COMPOSITION LAYER (built ON TOP of base/) — unchanged
+        │   ├── components/ui.components.ts   fam-kpi / fam-loading / fam-trend (deprecated) + fam-state-legend
+        │   ├── dynamic/                       the dynamic/config-driven widget system
+        │   └── utils/                         csv.util.ts, category-colors.util.ts
+        │
+        ├── core/                     DATA / INFRASTRUCTURE LAYER — unchanged
+        ├── layout/                   App shell — unchanged
+        └── features/                 Screens = header + WidgetConfig[] — unchanged</pre>
+<div class="pagebreak"></div>
+<h1 id="sec3">3. End-to-End Data Flow</h1>
+<p class="note italic">Unchanged since the last revision.</p>
+<pre class="code">Component (features/**)
+   │  reads signals from, calls actions on
+   ▼
+Store (core/state/*.store.ts — createQuery/createPagination/createListFilter)
+   │  calls
+   ▼
+ApiService (core/services/api.service.ts — typed HttpClient wrapper)
+   │  HTTP GET /api/**
+   ▼
+authInterceptor → mockApiInterceptor (core/mock-api/mock-api.interceptor.ts)
+   │  matches path → generator, adds latency
+   ▼
+mock-data.ts (build...() — deterministic seeded fake data)</pre>
+<p>A component never talks to HttpClient or mock data directly — only to a store. That indirection is what makes the mock-to-real-backend swap a one-file change (remove mockApiInterceptor from app.config.ts). For rendering, a component composes WidgetConfig[] from store data and hands it to &lt;fam-dynamic-page&gt;, which dispatches each widget to a renderer built from base/ primitives.</p>
+<table><colgroup><col style="width:18.3%"><col style="width:36.6%"><col style="width:45.1%"></colgroup><thead><tr><th>Layer</th><th>File(s)</th><th>Responsibility</th></tr></thead><tbody>
+<tr>
+<td class="mono">Models</td>
+<td>core/models/models.ts</td>
+<td>Typed response/row shapes — the contract between mock and real API</td>
+</tr>
+<tr>
+<td class="mono">Mock data</td>
+<td>core/mock-api/mock-data.ts</td>
+<td>build...() generators producing deterministic fake payloads</td>
+</tr>
+<tr>
+<td class="mono">Mock routing</td>
+<td>core/mock-api/mock-api.interceptor.ts</td>
+<td>Matches /api/** paths to a generator, adds artificial latency</td>
+</tr>
+<tr>
+<td class="mono">Service</td>
+<td>core/services/api.service.ts</td>
+<td>One typed method per endpoint, returns Observable&lt;T&gt;</td>
+</tr>
+<tr>
+<td class="mono">Store</td>
+<td>core/state/*.store.ts</td>
+<td>Signal-based state: loading/error/data, caching, pagination</td>
+</tr>
+<tr>
+<td class="mono">Component</td>
+<td>features/**</td>
+<td>Template + computed() widget configs, no data-fetching logic</td>
+</tr>
+</tbody></table>
+<div class="pagebreak"></div>
+<h1 id="sec4">4. The Base Module — Reusable Component Library (base/)</h1>
+<p>Self-contained, dependency-free (no chart.js required) set of standalone Angular components. Everything uses signal inputs (props) and typed outputs (event listeners), OnPush change detection, and the new control-flow syntax.</p>
+<p>Live demo route: /dev/base. <mark>New in this revision: also cataloged one component at a time in Storybook (npm run storybook) — see §4.2.</mark></p>
+<p>Everything is re-exported from one barrel, src/app/base/index.ts — always import via import { ... } from '../../base', never reach into a component file directly.</p>
+<h2 id="sec5">4.1 Components</h2>
+<p class="note italic">The table-family components (rows marked table/) now live under components/table/ instead of flat in components/ — the barrel import path is unchanged.</p>
+<table><colgroup><col style="width:26.8%"><col style="width:9.9%"><col style="width:63.4%"></colgroup><thead><tr><th>Selector</th><th>File</th><th>Purpose</th></tr></thead><tbody>
+<tr class="row-new">
+<td class="mono">&lt;base-table&gt;</td>
+<td>table/</td>
+<td>Core data table: dynamic columns, pagination or infinite scroll, custom cell/header/action templates, text + checkbox + calendar + numeric-range column filters, sticky header + sticky columns, tri-state sorting, single/multiple selection, grouped rows, merged/additional header rows, expandable nested child tables, Manage Columns, a 16-type row-action registry, highlighted-row auto-scroll.</td>
+</tr>
+<tr class="row-new">
+<td class="mono">&lt;base-table-cell&gt;</td>
+<td>table/</td>
+<td>Renders one cell for its column’s built-in kind — the per-kind rendering logic extracted out of &lt;base-table&gt; into its own reusable component.</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-paginator&gt;</td>
+<td>table/</td>
+<td>Standalone pagination control (also used inside the table).</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-search-input&gt;</td>
+<td>table/</td>
+<td>Debounced search box.</td>
+</tr>
+<tr class="row-new">
+<td class="mono">&lt;base-manage-columns&gt;</td>
+<td>table/</td>
+<td>Gear-icon column visibility + drag-reorder panel mounted by &lt;base-table&gt;.</td>
+</tr>
+<tr class="row-new">
+<td class="mono">&lt;base-checkbox-filter&gt; / &lt;base-calendar-filter&gt; / &lt;base-range-filter&gt;</td>
+<td>table/</td>
+<td>Per-column filter dropdowns mounted by &lt;base-table&gt; (value checklist+search+sort, Start/End date, numeric From/To).</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-kpi-card&gt;</td>
+<td></td>
+<td>KPI metric card with optional trend + click event.</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-badge&gt;</td>
+<td></td>
+<td>Status pill.</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-trend&gt;</td>
+<td></td>
+<td>▲/▼ percentage pill.</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-sparkline&gt;</td>
+<td></td>
+<td>Inline SVG mini chart (also the table’s sparkline cell kind).</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-loading&gt;</td>
+<td></td>
+<td>Spinner row.</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-empty-state&gt;</td>
+<td></td>
+<td>Empty placeholder with optional action button.</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-button&gt;</td>
+<td></td>
+<td>Button with variants, sizes, loading state.</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-text-input&gt;</td>
+<td></td>
+<td>Text/number/password input: label, hint, error, prefix/suffix, clearable.</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-textarea&gt;</td>
+<td></td>
+<td>Multiline input with character counter.</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-select&gt;</td>
+<td></td>
+<td>Custom dropdown with optional search; [showChevron]="false" renders it as a plain input-styled box.</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-checkbox&gt; / &lt;base-radio-group&gt; / &lt;base-toggle&gt;</td>
+<td></td>
+<td>Choice controls.</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-datepicker&gt;</td>
+<td></td>
+<td>Popup calendar: min/max, disabled-date rule, clearable, optional showTime HH:MM boxes.</td>
+</tr>
+<tr class="row-new">
+<td class="mono">&lt;base-date-range-picker&gt;</td>
+<td></td>
+<td>Dropdown: quick-range sidebar (All / Last 1-7-30 Days / Custom range) + dual month calendars with per-side HH:MM time boxes, Cancel/Apply.</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-breadcrumbs&gt;</td>
+<td></td>
+<td>Navigation trail (routerLink or click events).</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-tabs&gt;</td>
+<td></td>
+<td>Headless tab bar (underline or pills).</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-dropdown-menu&gt;</td>
+<td></td>
+<td>Actions menu with icons, dividers, danger items.</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-modal&gt;</td>
+<td></td>
+<td>Content-projected dialog with footer slot.</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-drawer&gt;</td>
+<td></td>
+<td>Content-projected slide-over panel: left/right side, configurable width, backdrop dim, ESC/backdrop-to-close, footer slot.</td>
+</tr>
+<tr>
+<td class="mono">[baseTooltip]</td>
+<td></td>
+<td>Tooltip directive for any element.</td>
+</tr>
+<tr class="row-new">
+<td class="mono">[baseTeleport]</td>
+<td></td>
+<td>Moves a popup panel to document.body so it escapes sticky/overflow-clipped ancestors (used internally by Manage Columns + the filter dropdowns).</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-alert&gt;</td>
+<td></td>
+<td>Info/success/warning/error banner.</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-progress-bar&gt;</td>
+<td></td>
+<td>Progress with label.</td>
+</tr>
+<tr>
+<td class="mono">&lt;base-skeleton&gt;</td>
+<td></td>
+<td>Loading placeholder.</td>
+</tr>
+</tbody></table>
+<p>All form controls expose a two-way [(value)] / [(checked)] model and implement ControlValueAccessor, so they also work with ngModel and Reactive Forms (formControlName) out of the box.</p>
+<pre class="code">&lt;base-text-input label="Tool ID" [(value)]="toolId" [clearable]="true"
+                 (enterPressed)="search($event)" /&gt;
+&lt;base-select label="Fab" [options]="fabOptions" [(value)]="fab" [searchable]="true" /&gt;
+&lt;base-datepicker label="Maintenance" [(value)]="date" [min]="minDate"
+                 [disabledDates]="noWeekends" /&gt;
+&lt;base-date-range-picker [(value)]="dateRange" (applied)="onRangeApplied($event)" /&gt;
+&lt;base-breadcrumbs [items]="crumbs" (itemClick)="onCrumb($event)" /&gt;
+&lt;base-tabs [tabs]="tabs" [(activeId)]="active" /&gt;
+&lt;base-modal [(open)]="show" title="Edit"&gt; ... &lt;div footer&gt;...&lt;/div&gt; &lt;/base-modal&gt;
+&lt;base-drawer [(open)]="showInspector" side="right" width="460px" [showClose]="false"&gt;
+  &lt;fam-alarm-info-panel /&gt;
+  &lt;div footer class="w-full flex gap-2"&gt;
+    &lt;button class="btn-primary flex-1"&gt;View Event Log&lt;/button&gt;
+    &lt;button class="btn-ghost flex-1 border border-slate-200"&gt;Export&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/base-drawer&gt;</pre>
+<p class="note italic">base-date-range-picker (line 4) is new — see §4.7.</p>
+<p>Content projection gotcha: anything passed to &lt;base-drawer&gt;’s [footer] slot must be a direct child of &lt;base-drawer&gt; in the host template — Angular content projection does not reach through a nested component’s own template, so footer buttons cannot live inside &lt;fam-alarm-info-panel&gt; itself if that component is what gets projected as the drawer’s body.</p>
+<h2 id="sec6"><span class="badge-new">NEW</span> 4.2 Storybook — the interactive component catalog</h2>
+<p class="new-block">npm run storybook (build-storybook for a static export) now runs a full Storybook 10 instance (@storybook/angular + addon-a11y + addon-docs) documenting every Base component individually — the design-system deliverable that /dev/base (a single page wiring components together in a workflow) was never meant to be.</p>
+<p class="label">How it maps to the design-system deliverable</p>
+<table><colgroup><col style="width:22.5%"><col style="width:77.5%"></colgroup><thead><tr><th>Deliverable</th><th>Where it lives</th></tr></thead><tbody>
+<tr class="row-new">
+<td class="mono">Definition</td>
+<td>The JSDoc comment above each component class, rendered on its Docs tab (via Compodoc).</td>
+</tr>
+<tr class="row-new">
+<td class="mono">Anatomy</td>
+<td>The rendered story canvas.</td>
+</tr>
+<tr class="row-new">
+<td class="mono">Variants</td>
+<td>Named stories per component (e.g. Primary, Secondary, Ghost, Danger).</td>
+</tr>
+<tr class="row-new">
+<td class="mono">States</td>
+<td>Dedicated Disabled / Loading / Error / Empty stories, plus the Controls panel to toggle any input live.</td>
+</tr>
+<tr class="row-new">
+<td class="mono">Behavior</td>
+<td>Component outputs, documented on the Docs tab; exercised live in the story.</td>
+</tr>
+<tr class="row-new">
+<td class="mono">Accessibility</td>
+<td>@storybook/addon-a11y runs automated checks on every story (Accessibility tab).</td>
+</tr>
+<tr class="row-new">
+<td class="mono">Engineering handoff</td>
+<td>This is the engineering artifact — the selector, inputs, and outputs shown are the real Angular API, not a mockup.</td>
+</tr>
+</tbody></table>
+<p class="label">Organization (Storybook sidebar groups)</p>
+<ul>
+<li><span class="badge-new sm">NEW</span> <mark><b>Base / Actions — </b>&lt;base-button&gt;</mark></li>
+<li><span class="badge-new sm">NEW</span> <mark><b>Base / Forms — </b>text input, textarea, select, checkbox, radio group, toggle, date picker, search input</mark></li>
+<li><span class="badge-new sm">NEW</span> <mark><b>Base / Feedback — </b>alert, badge, trend, progress bar, skeleton, loading, empty state</mark></li>
+<li><span class="badge-new sm">NEW</span> <mark><b>Base / Navigation — </b>breadcrumbs, tabs, dropdown menu</mark></li>
+<li><span class="badge-new sm">NEW</span> <mark><b>Base / Overlays — </b>drawer, modal, tooltip</mark></li>
+<li><span class="badge-new sm">NEW</span> <mark><b>Base / Cards &amp; Containers — </b>KPI card, sparkline</mark></li>
+<li><span class="badge-new sm">NEW</span> <mark><b>Base / Tables &amp; Data — </b>table, paginator, manage columns, checkbox/calendar/range filters</mark></li>
+<li><span class="badge-new sm">NEW</span> <mark><b>Widgets — </b>the WidgetConfig-driven layer every FAM screen composes pages from: KPI grid, chart, ranked list, table adapter, panel-chrome wrapper, and the 6-column responsive grid.</mark></li>
+<li><span class="badge-new sm">NEW</span> <mark><b>Layout — </b>app shell pieces with no service dependencies (currently: &lt;fam-sidebar&gt;).</mark></li>
+<li><span class="badge-new sm">NEW</span> <mark><b>Shared — </b>domain components built on top of Base (e.g. fam-state-legend).</mark></li>
+</ul>
+<p class="new-block">Deliberately not storied yet: &lt;fam-topbar&gt;, the FAM/FCM/TQual/alarm-explorer route components, and domain chart components that inject() real app services (AuthService, ApiService, FilterStore, UptimeStore) rather than taking data as inputs — storying them needs stub providers or mocked HTTP, a separate effort from documenting the presentational component library. Every story imports the real component classes from src/app/base, so if a component’s Angular API changes, its story updates to match or fails to compile — the catalog cannot drift from the code.</p>
+<h2 id="sec7"><span class="badge-new">NEW</span> 4.3 Table Model (models/table.model.ts) — substantially expanded</h2>
+<p class="new-block">All types consumed by &lt;base-table&gt;. A table is fully described by BaseColumnDef[] (dynamic columns, add/remove/reorder at runtime) and rows: T[] (any row shape). This model grew from ~9 built-in cell kinds and freeform row actions to the 16 kinds and 16 typed row-action registry below.</p>
+<p class="label">Cell kinds</p>
+<table><colgroup><col style="width:16.7%"><col style="width:83.3%"></colgroup><thead><tr><th>Cell kind</th><th>Renders</th></tr></thead><tbody>
+<tr>
+<td class="mono">text</td>
+<td>Default — String(value).</td>
+</tr>
+<tr>
+<td class="mono">number</td>
+<td>Right-aligned, formatted via Intl.NumberFormat.</td>
+</tr>
+<tr>
+<td class="mono">date</td>
+<td>Formatted via Intl.DateTimeFormat.</td>
+</tr>
+<tr class="row-new">
+<td class="mono">datetime</td>
+<td>Date + time, via Intl.DateTimeFormat (dateStyle + timeStyle).</td>
+</tr>
+<tr class="row-new">
+<td class="mono">sno</td>
+<td>Auto row number (1, 2, 3…), page-aware when paginated.</td>
+</tr>
+<tr class="row-new">
+<td class="mono">array</td>
+<td>value = unknown[] — deduped, comma-joined.</td>
+</tr>
+<tr>
+<td class="mono">badge</td>
+<td>Pill, colored via badgeClassMap.</td>
+</tr>
+<tr>
+<td class="mono">dot</td>
+<td>Status dot + text, colored via dotClassMap.</td>
+</tr>
+<tr class="row-new">
+<td class="mono">status-text</td>
+<td>Colored bold text (no pill/dot), colored via textColorClassMap.</td>
+</tr>
+<tr>
+<td class="mono">trend</td>
+<td>▲/▼ % pill (BaseTrendComponent).</td>
+</tr>
+<tr>
+<td class="mono">image</td>
+<td>Thumbnail &lt;img&gt;, value = URL.</td>
+</tr>
+<tr>
+<td class="mono">progress</td>
+<td>0–100 progress bar.</td>
+</tr>
+<tr>
+<td class="mono">text-bar</td>
+<td>Colored label with a thin proportional bar underneath.</td>
+</tr>
+<tr>
+<td class="mono">sparkline</td>
+<td>Mini line chart, value = number[].</td>
+</tr>
+<tr>
+<td class="mono">link</td>
+<td>Anchor; href from linkHref(row).</td>
+</tr>
+<tr class="row-new">
+<td class="mono">row-actions</td>
+<td>Small icon buttons driven by a typed BaseRowAction[] registry (16 built-in types) and/or freeform icon buttons; variant: 'button' renders a bordered ghost button instead of a plain icon.</td>
+</tr>
+<tr>
+<td class="mono">template</td>
+<td>Custom ng-template (BaseCellDirective).</td>
+</tr>
+</tbody></table>
+<p class="new-block">The 16 built-in RowActionType values (each with an auto-resolved default icon, overridable per action): add, click, copy, delete, download (shows a live progress % while the row has a truthy fileProgress instead of the icon), edit, more, reset, run, upload, view, cancel, history, revert, apply, disable, enable. Each BaseRowAction also supports isDisabled(row) / isHidden(row) predicates per row.</p>
+<p>Row grouping (groupBy) supports three header styles via groupHeaderStyle: 'accent' (default — indigo header with a row count), 'plain' (muted uppercase section divider, no count), and 'light' (white header, bold label, a rounded count pill labelled via groupCountLabel, and a solid action button). Return null from groupBy to leave a row ungrouped.</p>
+<pre class="code">import { BaseTableComponent, BaseCellDirective, BaseColumnDef } from '../../base';
+
+columns: BaseColumnDef&lt;Tool&gt;[] = [
+  { key: 'toolId', header: 'Tool', sticky: 'left', width: '120px', sortable: true, filterable: true },
+  { key: 'photo',  header: 'Photo', kind: 'image' },
+  { key: 'uptime', header: 'Uptime %', kind: 'number', align: 'right', sortable: true },
+  { key: 'status', header: 'Status', kind: 'badge',
+    badgeClassMap: { UP: 'bg-emerald-50 text-emerald-600', DOWN: 'bg-red-50 text-red-600' } },
+  { key: 'history', header: '7-day', kind: 'sparkline' },
+  { key: 'actions', header: '', sticky: 'right', width: '90px' } // custom template below
+];</pre>
+<pre class="code">&lt;base-table class="panel block"
+  [columns]="columns" [rows]="rows" trackKey="toolId"
+  [showFilterRow]="true" [stickyHeader]="true" maxHeight="420px" minWidth="1100px"
+  selectable="multiple"
+  (rowClick)="open($event.row)"
+  (sortChange)="onSort($event)"
+  (pageChange)="onPage($event)"
+  (filterChange)="onFilter($event)"
+  (selectionChange)="selected = $event"&gt;
+
+  &lt;!-- CUSTOM CELL TEMPLATE: any content -- text, images, charts, buttons --&gt;
+  &lt;ng-template baseCell="actions" let-row&gt;
+    &lt;button class="btn-ghost" (click)="edit(row)"&gt;Edit&lt;/button&gt;
+  &lt;/ng-template&gt;
+&lt;/base-table&gt;</pre>
+<p class="label">Server-side mode</p>
+<p>Set [serverSide]="true" and [totalItems]="totalFromApi". The table stops filtering/sorting/paginating internally and only emits (filterChange), (sortChange), (pageChange) — fetch data in the host and pass the new page via [rows].</p>
+<p class="label">Sticky columns</p>
+<p>Set sticky: 'left' | 'right' and a fixed width on the column def. Pinned columns are automatically ordered to the edges and offsets are computed. Sticky columns are also treated as "frozen" by Manage Columns — locked, undraggable.</p>
+<h2 id="sec8"><span class="badge-new">NEW</span> 4.4 Column filters &amp; Manage Columns</h2>
+<p class="new-block">filterable: true alone still keeps the classic text filter-row input. Set filterKind: 'checkbox' | 'calendar' | 'range' on a column to swap its header icon for a richer dropdown instead — &lt;base-table&gt; computes unique values and applies the filter itself, no extra wiring needed beyond the column def.</p>
+<table><colgroup><col style="width:14.5%"><col style="width:26.1%"><col style="width:59.4%"></colgroup><thead><tr><th>filterKind</th><th>Component</th><th>Behavior</th></tr></thead><tbody>
+<tr class="row-new">
+<td class="mono">checkbox</td>
+<td>&lt;base-checkbox-filter&gt;</td>
+<td>Search box, checkbox list of unique column values, optional Sort Asc/Desc radios, Clear link, Apply button.</td>
+</tr>
+<tr class="row-new">
+<td class="mono">calendar</td>
+<td>&lt;base-calendar-filter&gt;</td>
+<td>Start Date / End Date via two &lt;base-datepicker&gt;s (filterShowTime adds HH:MM boxes), Clear, Apply.</td>
+</tr>
+<tr class="row-new">
+<td class="mono">range</td>
+<td>&lt;base-range-filter&gt;</td>
+<td>Numeric From/To inputs with inline "Enter Valid Range" validation; exclusive with all other filters/sorts once applied.</td>
+</tr>
+</tbody></table>
+<p class="new-block">Manage Columns — set [manageColumns]="true" to show a gear icon on the first column header, opening a panel with search, Select All, a per-column visibility checkbox, and drag-to-reorder (Angular CDK drag-drop). Sticky (frozen) columns render locked at the top with no drag handle and cannot be hidden; a "last-standing" guard blocks unchecking the final visible column. Cancel discards the draft; Apply emits (manageColumn) with the new visible-key list.</p>
+<pre class="code new-block">import { RowActionType, BaseRowAction } from '../../base';
+
+rowActions: BaseRowAction&lt;Tool&gt;[] = [
+  { type: 'edit', run: r =&gt; edit(r) },
+  { type: 'delete', isDisabled: r =&gt; r.locked, run: r =&gt; remove(r) },
+  { type: 'download', run: r =&gt; download(r) } // shows r.fileProgress% while &gt; 0
+];</pre>
+<pre class="code new-block">&lt;base-table [columns]="columns" [rows]="rows" [manageColumns]="true"
+            (manageColumn)="visibleKeys = $event" (handleAction)="onAction($event)" /&gt;</pre>
+<h2 id="sec9"><span class="badge-new">NEW</span> 4.5 Expandable nested child tables</h2>
+<p class="new-block">Set [expandable]="true" to add a first-column toggle button that expands any row with children into a full nested &lt;base-table&gt; underneath it — its own columns ([childColumns]), its own row source ([childRowsOf], return null/undefined/[] to hide the toggle for a row with no children), and optionally its own paginator ([childPaginate]) and search box ([childShowSearch]). Toggling emits (expandChange) with { row, expanded }.</p>
+<p class="new-block">Two new directives support custom rendering inside the nested table: &lt;ng-template baseChildCell="key"&gt; (same context as baseCell, but targets a childColumns key) and &lt;ng-template baseChildFooter&gt; (presence-only content rendered below the nested table for every expanded row, e.g. an "Add Service Activity" button). Both are declared inside the outer &lt;base-table&gt; and forwarded automatically.</p>
+<h2 id="sec10"><span class="badge-new">NEW</span> 4.6 Template directives — expanded from one to five</h2>
+<p class="new-block">The 23-July revision documented only [baseCell]. The table now recognizes five content-projection directives:</p>
+<table><colgroup><col style="width:27.5%"><col style="width:30.4%"><col style="width:42.0%"></colgroup><thead><tr><th>Directive</th><th>Required input</th><th>Purpose</th></tr></thead><tbody>
+<tr>
+<td class="mono">ng-template[baseCell]</td>
+<td>baseCell: string (column key)</td>
+<td>Fully custom cell content for one column. Always wins over kind.</td>
+</tr>
+<tr class="row-new">
+<td class="mono">ng-template[baseChildCell]</td>
+<td>baseChildCell: string (childColumns key)</td>
+<td>Same as baseCell, for a column of the nested expandable child table.</td>
+</tr>
+<tr class="row-new">
+<td class="mono">ng-template[baseHeaderCell]</td>
+<td>baseHeaderCell: string (column key)</td>
+<td>Custom header content for one column.</td>
+</tr>
+<tr class="row-new">
+<td class="mono">ng-template[baseActionTemplate]</td>
+<td>baseActionTemplate: string (row-action type)</td>
+<td>Overrides one row-action type’s rendering everywhere it appears.</td>
+</tr>
+<tr class="row-new">
+<td class="mono">ng-template[baseChildFooter]</td>
+<td>none (presence-only)</td>
+<td>Content rendered below the nested child table for every expanded row.</td>
+</tr>
+</tbody></table>
+<p>baseCell exposes a typed template context: $implicit (row), value, column, index. A template always wins over the column’s built-in kind.</p>
+<h2 id="sec11"><span class="badge-new">NEW</span> 4.7 Date pickers</h2>
+<p class="new-block">&lt;base-datepicker&gt; gained an optional showTime mode — adds HH:MM boxes below the calendar grid and keeps the panel open after a date is picked so the time can be adjusted before closing (previously date-only). &lt;base-date-range-picker&gt; is an entirely new component: a dropdown combining a quick-range sidebar (All / Last 1 / 7 / 30 Days / Custom range) with dual side-by-side month calendars, each with its own HH:MM time boxes. Its [(value)] (a DateRangeValue) only commits when Apply is clicked — Cancel reverts the draft; future dates are disabled (strikethrough) unless [disableFuture]="false".</p>
+<pre class="code new-block">&lt;base-date-range-picker [(value)]="dateRange" [disableFuture]="true"
+  (applied)="onRangeApplied($event)" /&gt;</pre>
+<h2 id="sec12">4.8 Used Throughout the App</h2>
+<p>The whole application renders through this module — treat the features as live examples:</p>
+<ul>
+<li><b>All dynamic tables (Uptime Analysis, Availability events/activities, Alarm Explorer) — </b>&lt;base-table&gt; + &lt;base-paginator&gt; via the fam-table-widget adapter, incl. grouped rows, group actions, highlight.</li>
+<li><b>KPI grids / ranked lists — </b>&lt;base-kpi-card&gt;, &lt;base-trend&gt;, &lt;base-progress-bar&gt;.</li>
+<li><b>Top bar &amp; page filter bars — </b>the global topbar plus local filter bars (Alarm Explorer’s Model/Fleet/Category/Duration, Fleet detail’s Alarm ID/Tools/Category/SW Version, Alarm Events’ Date Range/Recipe/Show/Duration, Uptime Availability’s Tool-Level Analysis Filter) → &lt;base-breadcrumbs&gt; route trail + &lt;base-select&gt; filters.</li>
+<li><b>Login — </b>&lt;base-text-input formControlName&gt; (ControlValueAccessor), &lt;base-button&gt;, &lt;base-alert&gt;.</li>
+<li><b>Alarm Explorer pages — </b>&lt;base-breadcrumbs&gt; trails; the Tool page uses &lt;base-search-input&gt;, &lt;base-select&gt;, &lt;base-button&gt;, and opens its alarm inspector in a &lt;base-drawer&gt; instead of an inline side panel.</li>
+</ul>
+<p>fam-kpi / fam-loading / fam-trend are deprecated wrappers delegating to base — new code should import from src/app/base directly. The fam-table-widget adapter currently exposes only a subset of &lt;base-table&gt; (grouped rows, group actions, highlight); column filters, Manage Columns, typed row actions, additional header rows, and infinite scroll are not wired through it yet — use &lt;base-table&gt; directly for those until the adapter is extended.</p>
+<h2 id="sec13"><span class="badge-new">NEW</span> 4.9 Full component reference</h2>
+<p class="new-block">Every prop, event, content-projection slot, and behavior for every Base component — including all the items above — is now written up in full in a standalone reference: docs/Base-Module-Component-Guide.docx. This technical documentation covers the module at an architectural level; use that guide when you need the exact prop table for a specific component.</p>
+<div class="pagebreak"></div>
+<h1 id="sec14">5. The Shared Module — App-Level Composition Layer (shared/)</h1>
+<p class="note italic">Unchanged since the last revision.</p>
+<p>Purpose: everything the app needs that isn’t a generic reusable primitive — glue code, the dynamic/config-driven page system, and FAM-domain widgets. Built on top of base/, never the other way around.</p>
+<h3 id="sec15">5.1 components/ui.components.ts</h3>
+<p>KpiComponent (fam-kpi), LoadingComponent (fam-loading), TrendPillComponent (fam-trend) — deprecated thin wrappers that delegate 100% of rendering to &lt;base-kpi-card&gt; / &lt;base-loading&gt; / &lt;base-trend&gt;. StateLegendComponent (fam-state-legend) — a domain-specific legend for the machine states, colored from the FAM Tailwind theme tokens, with withGap and withDayShift flags for the heatmap and Activity Gantt.</p>
+<h3 id="sec16">5.2 dynamic/ — the config-driven widget system</h3>
+<p>Every screen is data (WidgetConfig[]), not a hand-written template. A feature component builds computed&lt;WidgetConfig[]&gt; and renders one line: &lt;fam-dynamic-page [widgets]="widgets()" /&gt;.</p>
+<table><colgroup><col style="width:14.5%"><col style="width:21.7%"><col style="width:63.8%"></colgroup><thead><tr><th>type</th><th>Interface</th><th>Renders</th></tr></thead><tbody>
+<tr>
+<td class="mono">kpi-grid</td>
+<td>KpiGridWidget</td>
+<td>Auto-fit grid of &lt;fam-kpi&gt; tiles.</td>
+</tr>
+<tr>
+<td class="mono">chart</td>
+<td>ChartWidget</td>
+<td>Chart.js canvas (chartType, data, options), optional onPointClick drill-down.</td>
+</tr>
+<tr>
+<td class="mono">table</td>
+<td>TableWidget&lt;Row&gt;</td>
+<td>Sortable columns (text/mono/badge/dot/trend/progress/text-bar/row-actions cell kinds), row grouping, pagination, row actions.</td>
+</tr>
+<tr>
+<td class="mono">ranked-list</td>
+<td>RankedListWidget</td>
+<td>Ranked rows with title/subtitle/value/trend pill/progress bar, clickable.</td>
+</tr>
+<tr>
+<td class="mono">component</td>
+<td>ComponentWidget</td>
+<td>Arbitrary Angular component, via direct component: Type&lt;...&gt; or name + registry.</td>
+</tr>
+</tbody></table>
+<p>All widget types share WidgetBase: id, title, titlePrefix, subtitle, badge, colSpan (1–6 on a 6-column grid), legend, actions, actionsLabel/note, and frameless, plus header extras: dateRange, tabs, toggle, search, and collapsible/collapsed/onToggleCollapse.</p>
+<h3 id="sec17">5.3 utils/</h3>
+<p>csv.util.ts — downloadCsv(filename, rows) for CSV export buttons. category-colors.util.ts — buildCategoryColorMap / buildCategoryTextColorMap: stable Tailwind color assignment per category in first-seen order, used by the downtime-category and alarm-category color coding.</p>
+<div class="pagebreak"></div>
+<h1 id="sec18">6. The Core Module — Data &amp; Infrastructure Layer (core/)</h1>
+<p class="note italic">Unchanged since the last revision.</p>
+<ul>
+<li><b>models/models.ts — </b>every TypeScript interface that is the contract between mock data and a real backend, grouped by feature area (Global, Up-Time Analysis, Up-Time Availability, Alarm Explorer).</li>
+<li><b>mock-api/ — </b>mock-data.ts (seeded, deterministic build...() generators) + mock-api.interceptor.ts (routes /api/** to a generator with artificial latency).</li>
+<li><b>services/api.service.ts — </b>ApiService, the single HTTP gateway — one typed method per endpoint.</li>
+<li><b>state/ — </b>base.store.ts primitives (createQuery, createPagination, createListFilter) plus filter.store.ts, uptime.store.ts, alarm.store.ts, and segment-derivation.util.ts (derives Gantt/heatmap/event rows from one raw feed).</li>
+<li><b>auth/ — </b>AuthService (signal-based session, dummy JWT), authGuard/authChildGuard, authInterceptor.</li>
+<li><b>constants/ — </b>app.constants.ts (routes, nav groups, brand text, auth config, UI copy) and component-catalog.ts (COMPONENT_CATALOG, the runtime index rendered at /dev/components).</li>
+</ul>
+<pre class="code">@Injectable({ providedIn: 'root' })
+export class MyModuleStore {
+  private api = inject(ApiService);
+  readonly detailQuery = createQuery(
+    (id: string) =&gt; this.api.getDetail(id),
+    { cacheTtlMs: 300_000 }
+  );
+  readonly rows = computed(() =&gt; this.detailQuery.data()?.rows ?? []);
+  readonly pager = createPagination(this.rows, 20);
+}</pre>
+<div class="pagebreak"></div>
+<h1 id="sec19">7. Layout — The App Shell (layout/)</h1>
+<p class="note italic">Unchanged since the last revision.</p>
+<p>Not a "feature" — the persistent frame every routed screen renders inside. shell.component.ts (fam-shell) is a flex layout of &lt;fam-sidebar&gt; + a right column of &lt;fam-topbar&gt;, &lt;router-outlet&gt;, and a footer, guarded by authGuard/authChildGuard. sidebar.component.ts (fam-sidebar) renders NAV_GROUPS as routerLinks. topbar.component.ts (fam-topbar) builds &lt;base-breadcrumbs&gt; from the current URL, a Date Range chip, &lt;base-select&gt; fleet/duration pickers bound to FilterStore, and a user-avatar popup.</p>
+<div class="pagebreak"></div>
+<h1 id="sec20">8. Features &amp; Routing (features/)</h1>
+<p class="note italic">Route tree unchanged since the last revision.</p>
+<pre class="code">/login                                                        LoginComponent (public)
+/ (ShellComponent, authGuard)
+├─ ''                                                         → redirect to /fleet-availability/up-time/analysis
+├─ fleet-availability/up-time/analysis                        UptimeAnalysisComponent
+├─ fleet-availability/up-time/availability                    UptimeAvailabilityComponent
+│   ├─ ''                                                 → redirect to .../heatmap
+│   ├─ heatmap / gantt / events / activities              Tab components
+├─ alarm-explorer                                             AlarmHomeComponent
+├─ alarm-explorer/fleet/:fleetId                               FleetDetailComponent
+├─ alarm-explorer/fleet/:fleetId/tool/:toolId                  ToolAlarmsComponent
+├─ alarm-explorer/fleet/:fleetId/tool/:toolId/alarm/:alarmId    AlarmEventsComponent
+├─ fleet-configuration, fleet-productivity, tqual,
+│   my-reports, innovation-lab, engineering-utilities            PlaceholderComponent (all six)
+├─ dev/components                                              ComponentCatalogComponent
+└─ dev/base                                                    BasePlaygroundComponent
+**                                                              → redirect to /</pre>
+<p>Route path/title strings all come from APP_ROUTE_PATHS/ROUTE_TITLES in core/constants/app.constants.ts. The dev/base playground was extended alongside each Base Module feature addition (expandable rows, filters, Manage Columns, date-range picker) so every new capability is exercised live there too.</p>
+<table><colgroup><col style="width:16.9%"><col style="width:32.4%"><col style="width:15.5%"><col style="width:35.2%"></colgroup><thead><tr><th>Area</th><th>Files</th><th>Store</th><th>Notes</th></tr></thead><tbody>
+<tr>
+<td class="mono">Auth</td>
+<td>features/auth/login.component.ts</td>
+<td>AuthService directly</td>
+<td>Reactive form, base-text-input/base-button/base-alert.</td>
+</tr>
+<tr>
+<td class="mono">Up-Time Analysis</td>
+<td>features/uptime-analysis/*.component.ts</td>
+<td>UptimeStore</td>
+<td>Uptime/Downtime toggle trend chart, collapsible breakdown table, top-10 unavailable chart, downtime table, CSV export.</td>
+</tr>
+<tr>
+<td class="mono">Up-Time Availability</td>
+<td>features/uptime-availability/*.component.ts (5 files)</td>
+<td>UptimeStore</td>
+<td>Page shell + 4 routed tabs + Tool-Level Analysis Filter bar; heatmap/gantt/events share one derived feed.</td>
+</tr>
+<tr>
+<td class="mono">Alarm Explorer</td>
+<td>features/alarm-explorer/*.component.ts (5 files)</td>
+<td>AlarmStore</td>
+<td>4-level drill-down (home → fleet → tool → alarm events) + info drawer.</td>
+</tr>
+<tr>
+<td class="mono">Placeholder</td>
+<td>features/placeholder/placeholder.component.ts</td>
+<td>none</td>
+<td>"Coming soon" screen, reused across 6 unbuilt routes.</td>
+</tr>
+<tr>
+<td class="mono">Dev tools</td>
+<td>features/dev/*.component.ts</td>
+<td>COMPONENT_CATALOG / none</td>
+<td>/dev/components catalog browser, /dev/base live base-module playground.</td>
+</tr>
+</tbody></table>
+<div class="pagebreak"></div>
+<h1 id="sec21">9. Reference — Domain Models</h1>
+<p class="note italic">Unchanged since the last revision.</p>
+<p>See core/models/models.ts for the full list. Grouped by feature area:</p>
+<ul>
+<li><b>Global — </b>GlobalFilters, ToolState, AlarmCategory, Severity</li>
+<li><b>Up+Time Analysis — </b>WeeklyUptimePoint, UptimeBreakdownRow, UnavailableTool, DowntimeCategory, UptimeAnalysisResponse, UptimeTrendResponse</li>
+<li><b>Up+Time Availability — </b>AvailabilityKpis, FleetTrendPoint, HeatmapDay, StateTotals, GanttSegment, GanttDay, ToolEvent, AvailabilityResponse, StateSegment, SegmentActivity</li>
+<li><b>Alarm Explorer — </b>FleetAlarmSummary, AlarmVolumeWeek, ToolAlarmSummary, AlarmDefinition, AlarmEvent, AlarmHomeResponse, FleetAlarmDetailResponse, ToolAlarmDetailResponse, AlarmEventsResponse</li>
+</ul>
+<div class="pagebreak"></div>
+<h1 id="sec22">10. Adding a New Module — Checklist</h1>
+<p>Repeatable process for turning a placeholder module — or any new screen — into a real, demoable component backed by mock data:</p>
+<ul>
+<li><b>1. Model — </b>add response/row interfaces to core/models/models.ts.</li>
+<li><b>2. Mock data — </b>add a build...() generator to core/mock-api/mock-data.ts.</li>
+<li><b>3. Mock route — </b>add the matching path branch in mock-api.interceptor.ts.</li>
+<li><b>4. Service — </b>add a typed method to ApiService (core/services/api.service.ts).</li>
+<li><b>5. Store — </b>add or extend a signal Store under core/state/, composing createQuery (+ createPagination/createListFilter if the screen needs paging or client-side filtering).</li>
+<li><b>6. Component — </b>build the screen, preferring WidgetConfig/&lt;fam-dynamic-page&gt; composition over bespoke templates. Need a bespoke visual? registerWidget('my-widget', MyComponent) in register-widgets.ts, or render it directly inside a &lt;base-drawer&gt; if it needs to overlay the whole page.</li>
+<li><b>7. Route — </b>replace the placeholder route entry in app.routes.ts with the real loadComponent, and update NAV_GROUPS/ROUTE_TITLES if needed.</li>
+<li><b>8. Catalog (optional but expected) — </b>add an entry to COMPONENT_CATALOG in core/constants/component-catalog.ts so it shows up at /dev/components.</li>
+<li><span class="badge-new sm">NEW</span> <mark><b>9. Storybook (optional, recommended for new base-* components) — </b>add a *.stories.ts file under src/stories/ so the component gets a Docs tab, live Controls, and automated accessibility checks alongside the rest of the catalog.</mark></li>
+</ul>
+<p>This keeps every delivered component demoable standalone (no backend needed) and makes the eventual mock-to-real-API swap a mechanical, low-risk change.</p>
+<p class="footer">FleetPack FAM &middot; KLA Corporation &middot; Nexus Theme V2 &mdash; generated technical documentation</p>
+</body>
+</html>

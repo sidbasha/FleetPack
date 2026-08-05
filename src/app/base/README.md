@@ -167,4 +167,4 @@ The whole application renders through this module — treat the features as live
   additional header rows, and infinite scroll aren't wired through it yet — use
   `<base-table>` directly for those until the adapter is extended.
 
-Full prop/event reference: see `Base-Module-Component-Guide.docx` in the handover pack.
+Full prop/event reference: see `docs/Base-Module-Component-Guide.docx`.
