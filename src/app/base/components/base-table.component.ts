@@ -105,25 +105,12 @@ interface AdditionalHeaderCell {
     /* Below .bt-head-sticky/.bt-sticky-th (10/12) on purpose — a frozen body column must stay
        UNDER the sticky header while scrolling vertically, not outrank it. */
     .bt-sticky-td { position: sticky; z-index: 1; background: #ffffff; }
-    /* tr:hover .bt-sticky-td { background: inherit; }
-    /* Edge "shadow" is a gradient pinned to the cell's own box (top:0/bottom:0), not a
-       box-shadow — box-shadow's blur radius paints a few px past the element's border box,
-       which (combined with the sticky column's z-index sitting above plain, non-positioned
-       cells) visibly bled onto the row above/below, most noticeably once hover recolors the
-       cell and draws the eye to that boundary. A background gradient never paints outside
-       the box it's drawn in, so it cannot bleed into a neighboring row regardless of z-index. */
-    /* No position: relative needed here — .bt-sticky-th/.bt-sticky-td (always co-applied
-       alongside these edge classes) are already position: sticky, which is itself a valid
-       containing block for the absolutely positioned ::after below. */
+    /* tr:hover .bt-sticky-td { background: inherit; } */    
     .bt-sticky-left-edge::after, .bt-sticky-right-edge::after {
       content: ''; position: absolute; top: 0; bottom: 0; width: 6px; pointer-events: none;
     }
     .bt-sticky-left-edge::after { left: 100%; background: linear-gradient(to right, rgba(15, 23, 42, .12), transparent); }
     .bt-sticky-right-edge::after { right: 100%; background: linear-gradient(to left, rgba(15, 23, 42, .12), transparent); }
-    /* The WHOLE <thead> sticks together as one unit (not each <th> individually with its own
-       top:0) — with an additional merged-header row on top of the normal column-header row,
-       two stacked rows each independently pinning to top:0 would collide/overlap once scrolled
-       vertically, since sticky offset is computed per-element, not stacked automatically. */
     .bt-head-sticky { position: sticky; top: 0; z-index: 10; }
   `],
   template: `
