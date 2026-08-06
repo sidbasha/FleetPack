@@ -57,44 +57,44 @@ export function computeFixedPopupPosition(el: HTMLElement, align: 'left' | 'righ
   template: `
     <div class="relative inline-block normal-case font-normal">
       <button type="button"
-              class="inline-flex items-center justify-center w-5 h-5 rounded hover:bg-slate-100 transition-colors"
-              [class.text-indigo-600]="active()" [class.text-slate-300]="!active()"
+              class="inline-flex items-center justify-center w-5 h-5 rounded-r-xs hover:bg-neutral-100 transition-colors"
+              [class.text-action]="active()" [class.text-neutral-300]="!active()"
               [attr.aria-label]="'Filter ' + header()"
               (click)="toggle()">▽</button>
 
       @if (open()) {
-        <div baseTeleport #panel class="fixed z-30 w-52 bg-white border border-slate-200 rounded-lg shadow-lg p-3 text-left"
+        <div baseTeleport #panel class="fixed z-30 w-52 bg-neutral-0 border border-neutral-200 rounded-r-lg shadow-lg p-3 text-left"
              [style.top.px]="panelPos().top" [style.left.px]="panelPos().left" [style.right.px]="panelPos().right">
           @if (sortable()) {
-            <div class="text-[11px] font-semibold text-slate-500 mb-1.5">Sort by</div>
-            <div class="flex items-center gap-3 mb-2 pb-2 border-b border-slate-100">
-              <label class="inline-flex items-center gap-1.5 text-[11px] text-slate-600 cursor-pointer">
+            <div class="text-[11px] font-semibold text-ink-500 mb-1.5">Sort by</div>
+            <div class="flex items-center gap-3 mb-2 pb-2 border-b border-neutral-100">
+              <label class="inline-flex items-center gap-1.5 text-[11px] text-ink-600 cursor-pointer">
                 <input type="radio" [name]="radioName" class="cb"
                        [checked]="draftSort() === 'asc'" (change)="draftSort.set('asc')" /> Asc
               </label>
-              <label class="inline-flex items-center gap-1.5 text-[11px] text-slate-600 cursor-pointer">
+              <label class="inline-flex items-center gap-1.5 text-[11px] text-ink-600 cursor-pointer">
                 <input type="radio" [name]="radioName" class="cb"
                        [checked]="draftSort() === 'desc'" (change)="draftSort.set('desc')" /> Desc
               </label>
             </div>
           }
           <div class="flex items-center justify-between mb-1.5">
-            <span class="text-[11px] font-semibold text-slate-500">Filter</span>
-            <button type="button" class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800"
+            <span class="text-[11px] font-semibold text-ink-500">Filter</span>
+            <button type="button" class="text-[11px] font-semibold text-action hover:text-action-hover"
                     (click)="clearDraft()">Clear</button>
           </div>
           <input type="text" [value]="search()" (input)="onSearch($event)" placeholder="Search"
-                 class="w-full border border-slate-200 rounded-md px-2 py-1 text-[11px] mb-2
-                        focus:outline-none focus:ring-1 focus:ring-indigo-200" />
+                 class="w-full border border-neutral-200 rounded-r-sm px-2 py-1 text-[11px] mb-2
+                        focus:outline-none focus:ring-1 focus:ring-action-surface" />
           <div class="max-h-36 overflow-y-auto mb-2 flex flex-col gap-1">
             @for (o of filteredOptions(); track o.value) {
-              <label class="inline-flex items-center gap-1.5 text-[11px] text-slate-600 cursor-pointer">
+              <label class="inline-flex items-center gap-1.5 text-[11px] text-ink-600 cursor-pointer">
                 <input type="checkbox" class="cb" [checked]="draftSelected().has(o.value)"
                        (change)="toggleOption(o.value)" />
                 {{ o.label }}
               </label>
             } @empty {
-              <span class="text-[11px] text-slate-300">No matches</span>
+              <span class="text-[11px] text-neutral-300">No matches</span>
             }
           </div>
           <button type="button" class="btn-primary w-full justify-center" (click)="applyFilter()">Apply</button>
@@ -207,17 +207,17 @@ export class BaseCheckboxFilterComponent {
   template: `
     <div class="relative inline-block normal-case font-normal">
       <button type="button"
-              class="inline-flex items-center justify-center w-5 h-5 rounded hover:bg-slate-100 transition-colors"
-              [class.text-indigo-600]="active()" [class.text-slate-300]="!active()"
+              class="inline-flex items-center justify-center w-5 h-5 rounded-r-xs hover:bg-neutral-100 transition-colors"
+              [class.text-action]="active()" [class.text-neutral-300]="!active()"
               [attr.aria-label]="'Date filter ' + header()"
               (click)="toggle()">📅</button>
 
       @if (open()) {
-        <div baseTeleport #panel class="fixed z-30 w-56 bg-white border border-slate-200 rounded-lg shadow-lg p-3 text-left"
+        <div baseTeleport #panel class="fixed z-30 w-56 bg-neutral-0 border border-neutral-200 rounded-r-lg shadow-lg p-3 text-left"
              [style.top.px]="panelPos().top" [style.left.px]="panelPos().left" [style.right.px]="panelPos().right">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-[11px] font-semibold text-slate-500">Date Filter</span>
-            <button type="button" class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800"
+            <span class="text-[11px] font-semibold text-ink-500">Date Filter</span>
+            <button type="button" class="text-[11px] font-semibold text-action hover:text-action-hover"
                     (click)="clearDraft()">Clear</button>
           </div>
           <base-datepicker label="Start Date" [value]="draftStart()" [showTime]="showTime()" [clearable]="true"
@@ -305,30 +305,30 @@ export class BaseCalendarFilterComponent {
   template: `
     <div class="relative inline-block normal-case font-normal">
       <button type="button"
-              class="inline-flex items-center justify-center w-5 h-5 rounded hover:bg-slate-100 transition-colors"
-              [class.text-indigo-600]="active()" [class.text-slate-300]="!active()"
+              class="inline-flex items-center justify-center w-5 h-5 rounded-r-xs hover:bg-neutral-100 transition-colors"
+              [class.text-action]="active()" [class.text-neutral-300]="!active()"
               [attr.aria-label]="'Range filter ' + header()"
               (click)="toggle()">▽</button>
 
       @if (open()) {
-        <div baseTeleport #panel class="fixed z-30 w-56 bg-white border border-slate-200 rounded-lg shadow-lg p-3 text-left"
+        <div baseTeleport #panel class="fixed z-30 w-56 bg-neutral-0 border border-neutral-200 rounded-r-lg shadow-lg p-3 text-left"
              [style.top.px]="panelPos().top" [style.left.px]="panelPos().left" [style.right.px]="panelPos().right">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-[11px] font-semibold text-slate-500">Range Filter</span>
-            <button type="button" class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800"
+            <span class="text-[11px] font-semibold text-ink-500">Range Filter</span>
+            <button type="button" class="text-[11px] font-semibold text-action hover:text-action-hover"
                     (click)="clearDraft()">Clear</button>
           </div>
           <div class="flex items-center gap-1.5">
             <input type="number" [value]="draftFrom() ?? ''" (input)="onFrom($event)"
-                   class="w-16 border border-slate-200 rounded-md px-1.5 py-1 text-[11px] text-center
-                          focus:outline-none focus:ring-1 focus:ring-indigo-200" />
-            <span class="text-[10px] text-slate-400 whitespace-nowrap">≤ Value ≤</span>
+                   class="w-16 border border-neutral-200 rounded-r-sm px-1.5 py-1 text-[11px] text-center
+                          focus:outline-none focus:ring-1 focus:ring-action-surface" />
+            <span class="text-[10px] text-neutral-400 whitespace-nowrap">≤ Value ≤</span>
             <input type="number" [value]="draftTo() ?? ''" (input)="onTo($event)"
-                   class="w-16 border border-slate-200 rounded-md px-1.5 py-1 text-[11px] text-center
-                          focus:outline-none focus:ring-1 focus:ring-indigo-200" />
+                   class="w-16 border border-neutral-200 rounded-r-sm px-1.5 py-1 text-[11px] text-center
+                          focus:outline-none focus:ring-1 focus:ring-action-surface" />
           </div>
           @if (invalid()) {
-            <div class="text-[10px] font-medium text-red-500 mt-1">Enter Valid Range</div>
+            <div class="text-[10px] font-medium text-error mt-1">Enter Valid Range</div>
           }
           <button type="button" class="btn-primary w-full justify-center mt-2" [disabled]="invalid()"
                   (click)="applyFilter()">Apply</button>

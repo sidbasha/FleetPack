@@ -45,45 +45,45 @@ const pad2 = (n: number) => String(n).padStart(2, '0');
   template: `
     <div class="block relative">
       @if (label()) {
-        <span class="block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">{{ label() }}</span>
+        <span class="block text-[11px] font-semibold uppercase tracking-wide text-neutral-400 mb-1">{{ label() }}</span>
       }
       <button type="button"
-              class="w-full border rounded-lg px-3 py-2 text-xs bg-white text-left flex items-center justify-between
-                     focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 transition-colors
-                     disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
-              [class.border-red-300]="!!error()"
-              [class.border-slate-200]="!error()"
+              class="w-full border rounded-r-sm px-3 py-2 text-xs bg-neutral-0 text-left flex items-center justify-between
+                     focus:outline-none focus:ring-2 focus:ring-action-surface focus:border-action transition-colors
+                     disabled:bg-neutral-50 disabled:text-neutral-400 disabled:cursor-not-allowed"
+              [class.border-error]="!!error()"
+              [class.border-neutral-200]="!error()"
               [disabled]="disabled() || formDisabled()"
               (click)="toggle()">
-        <span [class.text-slate-400]="!value()" [class.text-slate-700]="!!value()">
+        <span [class.text-neutral-400]="!value()" [class.text-ink-700]="!!value()">
           {{ displayText() }}
         </span>
         <span class="inline-flex items-center gap-1.5">
           @if (clearable() && value()) {
-            <span class="text-slate-300 hover:text-slate-500 text-xs" (click)="clear($event)" role="button" aria-label="Clear date">✕</span>
+            <span class="text-neutral-300 hover:text-ink-500 text-xs" (click)="clear($event)" role="button" aria-label="Clear date">✕</span>
           }
-          <span class="text-slate-300 text-xs">📅</span>
+          <span class="text-neutral-300 text-xs">📅</span>
         </span>
       </button>
 
       @if (open()) {
-        <div class="absolute z-30 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-lg p-3">
+        <div class="absolute z-30 mt-1 w-64 bg-neutral-0 border border-neutral-200 rounded-r-lg shadow-lg p-3">
           <div class="flex items-center justify-between mb-2">
             <button type="button" class="btn-ghost" (click)="shiftMonth(-1)" aria-label="Previous month">‹</button>
-            <span class="text-xs font-bold text-slate-700">{{ monthLabel() }}</span>
+            <span class="text-xs font-bold text-ink-700">{{ monthLabel() }}</span>
             <button type="button" class="btn-ghost" (click)="shiftMonth(1)" aria-label="Next month">›</button>
           </div>
 
           <div class="grid grid-cols-7 mb-1">
             @for (d of weekdays; track $index) {
-              <span class="text-center text-[10px] font-semibold text-slate-400">{{ d }}</span>
+              <span class="text-center text-[10px] font-semibold text-neutral-400">{{ d }}</span>
             }
           </div>
 
           <div class="grid grid-cols-7 gap-y-0.5">
             @for (c of cells(); track $index) {
               <button type="button"
-                      class="w-8 h-8 mx-auto rounded-full text-[11px] font-medium transition-colors
+                      class="w-8 h-8 mx-auto rounded-r-full text-[11px] font-medium transition-colors
                              disabled:opacity-30 disabled:cursor-not-allowed"
                       [class]="dayClass(c)"
                       [disabled]="c.disabled"
@@ -92,33 +92,33 @@ const pad2 = (n: number) => String(n).padStart(2, '0');
           </div>
 
           @if (showTime()) {
-            <div class="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100">
-              <span class="text-[11px] font-semibold text-slate-500">Time :</span>
+            <div class="flex items-center gap-2 mt-2 pt-2 border-t border-neutral-100">
+              <span class="text-[11px] font-semibold text-ink-500">Time :</span>
               <input type="text" inputmode="numeric" maxlength="2"
-                     class="w-9 h-8 border border-slate-200 rounded-md text-center text-xs text-slate-700
-                            focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300"
+                     class="w-9 h-8 border border-neutral-200 rounded-r-sm text-center text-xs text-ink-700
+                            focus:outline-none focus:ring-2 focus:ring-action-surface focus:border-action"
                      [value]="timeH()"
                      (input)="onTimeInput('H', $event)"
                      (blur)="onTimeBlur('H')" />
-              <span class="text-slate-400">:</span>
+              <span class="text-neutral-400">:</span>
               <input type="text" inputmode="numeric" maxlength="2"
-                     class="w-9 h-8 border border-slate-200 rounded-md text-center text-xs text-slate-700
-                            focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300"
+                     class="w-9 h-8 border border-neutral-200 rounded-r-sm text-center text-xs text-ink-700
+                            focus:outline-none focus:ring-2 focus:ring-action-surface focus:border-action"
                      [value]="timeM()"
                      (input)="onTimeInput('M', $event)"
                      (blur)="onTimeBlur('M')" />
             </div>
           }
 
-          <div class="flex justify-between items-center mt-2 pt-2 border-t border-slate-100">
+          <div class="flex justify-between items-center mt-2 pt-2 border-t border-neutral-100">
             <button type="button" class="btn-ghost" (click)="goToday()">Today</button>
             <button type="button" class="btn-ghost" (click)="close()">Close</button>
           </div>
         </div>
       }
 
-      @if (error()) { <span class="mt-1 text-[11px] font-medium text-red-500 block">{{ error() }}</span> }
-      @else if (hint()) { <span class="mt-1 text-[11px] text-slate-400 block">{{ hint() }}</span> }
+      @if (error()) { <span class="mt-1 text-[11px] font-medium text-error block">{{ error() }}</span> }
+      @else if (hint()) { <span class="mt-1 text-[11px] text-neutral-400 block">{{ hint() }}</span> }
     </div>
   `
 })
@@ -201,9 +201,9 @@ export class BaseDatepickerComponent extends BaseControl<Date | null> {
   }
 
   dayClass(c: DayCell): string {
-    if (sameDay(c.date, this.value())) return 'bg-indigo-600 text-white';
-    if (c.isToday) return 'border border-indigo-300 text-indigo-600';
-    return c.inMonth ? 'text-slate-600 hover:bg-indigo-50' : 'text-slate-300 hover:bg-slate-50';
+    if (sameDay(c.date, this.value())) return 'bg-action text-white';
+    if (c.isToday) return 'border border-action text-action';
+    return c.inMonth ? 'text-ink-600 hover:bg-action-surface' : 'text-neutral-300 hover:bg-neutral-50';
   }
 
   @HostListener('document:click', ['$event'])

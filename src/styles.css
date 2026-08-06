@@ -9,9 +9,9 @@
 /* ══════════════════════════════════════════════════════════════════════
    NEXUS DESIGN SYSTEM — TOKEN ARCHITECTURE
    Three tiers. Components (and the legacy utility classes just below)
-   reference ONLY tier 2 (semantic) — that indirection is what makes a
-   future theme switch (dark / high-contrast) possible without touching
-   a single component rule. See Foundations → Token Architecture.
+   reference ONLY tier 2 (semantic) — that indirection keeps every
+   component consistent from a single set of definitions instead of
+   scattered raw values. See Foundations → Token Architecture.
 
    01 · PRIMITIVE  --p-{name}         raw values, never themed, never
                                        consumed by a component directly
@@ -206,9 +206,8 @@
   --radius-r-lg: 12px;   /* modals, panels */
   --radius-r-full: 999px; /* pills, avatars */
 
-  /* Elevation — e0 (flush) … e4 (overlay). Light-theme ambient shadows;
-     dark-theme swaps to higher-opacity black with no tint (deferred —
-     light-only this pass, see Foundations → Density & Themes). */
+  /* Elevation — e0 (flush) … e4 (overlay). Ambient shadows for the
+     Light theme, see Foundations → Density & Themes. */
   --shadow-e0: none;
   --shadow-e1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.08);
   --shadow-e2: 0 2px 4px rgba(15, 23, 42, 0.07), 0 4px 8px rgba(15, 23, 42, 0.08);
@@ -285,8 +284,12 @@
   .btn-primary:hover { background-color: var(--color-action-hover); }
   .btn-ghost { @apply text-body-sm font-semibold text-ink-600 px-sp-3 py-sp-2 transition-colors; border-radius: var(--radius-r-sm); }
   .btn-ghost:hover { color: var(--color-action); background-color: var(--color-action-surface); }
-  .table-th { @apply text-left text-caption uppercase text-neutral-400 px-sp-3 py-sp-2 whitespace-nowrap; }
-  .table-td { @apply text-left text-body-md text-ink-700 px-sp-3 py-sp-2 whitespace-nowrap; }
+  /* padding-block overrides the py-sp-2 @apply above it via source order;
+     --bt-row-pad is set only by <base-table>'s [density] input (see its
+     host binding), so every other consumer of these two classes keeps the
+     standard 8px (sp-2) padding untouched. */
+  .table-th { @apply text-left text-caption uppercase text-neutral-400 px-sp-3 py-sp-2 whitespace-nowrap; padding-block: var(--bt-row-pad, 8px); }
+  .table-td { @apply text-left text-body-md text-ink-700 px-sp-3 py-sp-2 whitespace-nowrap; padding-block: var(--bt-row-pad, 8px); }
   .tab-btn { @apply text-body-sm font-semibold px-sp-4 py-sp-2 text-neutral-400 transition-colors; border-radius: var(--radius-r-sm); }
   .tab-btn:hover { color: var(--color-action); background-color: var(--color-action-surface); }
   .tab-btn-active { color: var(--color-neutral-0); background-color: var(--color-action); }

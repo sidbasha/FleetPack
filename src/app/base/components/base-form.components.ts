@@ -13,6 +13,7 @@ import {
   signal
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { BaseMenuItem } from './base-nav.components';
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
@@ -23,6 +24,14 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
  *  - implements ControlValueAccessor, so it ALSO works with ngModel and
  *    Reactive Forms (formControlName) with zero extra code,
  *  - supports label / hint / error / disabled uniformly.
+ *
+ * Tokens: see Foundations → Token Architecture. Interactive-control labels
+ * (button/tab/menu text) intentionally use Tailwind's plain text-xs/sm scale
+ * + font-semibold rather than the custom text-display-* / body-* tokens,
+ * since those bake a fixed font-weight into the utility that a separate
+ * font-semibold class isn't guaranteed to win over — the type-scale tokens
+ * are reserved for content typography (headings, body copy, captions) where
+ * that's a non-issue.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -44,56 +53,112 @@ export abstract class BaseControl<T> implements ControlValueAccessor {
 }
 
 const FIELD_WRAP = `block`;
-const LABEL_CLS = `block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1`;
-const INPUT_CLS = `w-full border rounded-lg px-3 py-2 text-xs text-slate-700 bg-white transition-colors
-  focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300
-  disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed`;
-const HINT_CLS = `mt-1 text-[11px] text-slate-400`;
-const ERROR_CLS = `mt-1 text-[11px] font-medium text-red-500`;
+const LABEL_CLS = `block text-caption text-neutral-400 mb-1`;
+const INPUT_CLS = `w-full h-9 border rounded-r-sm px-sp-3 text-xs text-ink-700 bg-neutral-0 transition-colors
+  focus:outline-none focus:ring-2 focus:ring-action-surface focus:border-action
+  disabled:bg-neutral-50 disabled:text-neutral-400 disabled:cursor-not-allowed`;
+const HINT_CLS = `mt-1 text-caption normal-case font-normal text-neutral-400`;
+const ERROR_CLS = `mt-1 text-caption normal-case font-normal text-error`;
 
+/**
+ * FleetPack's command surface. One primary action per view; the rest are
+ * secondary, tertiary, or ghost. See Components → Buttons.
+ */
 @Component({
   selector: 'base-button',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <button [type]="type()" [disabled]="disabled() || loading()"
-            class="inline-flex items-center justify-center gap-1.5 font-semibold rounded-lg transition-colors
+            [attr.aria-label]="iconOnly() ? ariaLabel() : null"
+            class="inline-flex items-center justify-center font-semibold rounded-r-sm transition-colors
+                   outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2
                    disabled:opacity-50 disabled:cursor-not-allowed"
             [class]="variantClass() + ' ' + sizeClass() + (fullWidth() ? ' w-full' : '')"
             (click)="clicked.emit($event)">
       @if (loading()) {
-        <span class="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin"></span>
+        <span class="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" aria-hidden="true"></span>
       }
       <ng-content />
     </button>
   `
 })
 export class BaseButtonComponent {
-  /** Visual style. */
-  readonly variant = input<'primary' | 'secondary' | 'ghost' | 'danger'>('primary');
+  /** Visual style. 'danger' is a back-compat alias for 'destructive'. */
+  readonly variant = input<'primary' | 'secondary' | 'tertiary' | 'ghost' | 'destructive' | 'danger'>('primary');
   readonly size = input<'sm' | 'md' | 'lg'>('md');
   readonly type = input<'button' | 'submit' | 'reset'>('button');
   readonly disabled = input(false);
-  /** Shows a spinner and disables the button. */
+  /** Shows a spinner and disables the button instantly on click. */
   readonly loading = input(false);
   /** Stretch to the container width. */
   readonly fullWidth = input(false);
+  /** Square, label-hidden sizing for a single icon; pair with [ariaLabel]. */
+  readonly iconOnly = input(false);
+  readonly ariaLabel = input('');
 
   /** Fired on click (not fired while disabled/loading). */
   readonly clicked = output<MouseEvent>();
 
   protected readonly variantClass = computed(() => ({
-    primary: 'bg-indigo-600 text-white hover:bg-indigo-700',
-    secondary: 'bg-white text-slate-700 border border-slate-200 hover:border-indigo-300 hover:text-indigo-700',
-    ghost: 'text-slate-600 hover:text-indigo-700 hover:bg-indigo-50',
-    danger: 'bg-red-600 text-white hover:bg-red-700'
+    primary: 'bg-action text-neutral-0 hover:bg-action-hover active:bg-action-active',
+    secondary: 'bg-neutral-0 text-ink-700 border border-neutral-200 hover:border-action hover:text-action',
+    tertiary: 'bg-transparent text-ink-600 hover:text-action hover:bg-action-surface',
+    ghost: 'bg-transparent text-current hover:bg-white/10',
+    destructive: 'bg-error text-neutral-0 hover:bg-error-hover',
+    danger: 'bg-error text-neutral-0 hover:bg-error-hover'
   }[this.variant()]));
 
-  protected readonly sizeClass = computed(() => ({
-    sm: 'text-[11px] px-2.5 py-1',
-    md: 'text-xs px-3.5 py-2',
-    lg: 'text-sm px-5 py-2.5'
-  }[this.size()]));
+  protected readonly sizeClass = computed(() => {
+    const icon = this.iconOnly();
+    return {
+      sm: icon ? 'w-7 h-7 text-[11px] gap-1' : 'h-7 px-sp-2 text-[11px] gap-1',
+      md: icon ? 'w-9 h-9 text-xs gap-1.5' : 'h-9 px-sp-3 text-xs gap-1.5',
+      lg: icon ? 'w-11 h-11 text-sm gap-2' : 'h-11 px-sp-5 text-sm gap-2'
+    }[this.size()];
+  });
+}
+
+/**
+ * A closed set of 2–4 mutually exclusive view options, worth naming
+ * separately from a button group (independent actions) and tabs (navigates,
+ * changes the URL) — a segmented control changes what's shown without
+ * navigating anywhere. See Components → Buttons → Segmented Control.
+ */
+@Component({
+  selector: 'base-segmented-control',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div role="radiogroup" [attr.aria-label]="ariaLabel() || null"
+         class="inline-flex items-center gap-0.5 bg-neutral-100 border border-neutral-200 rounded-r-sm p-0.5">
+      @for (o of options(); track o.value) {
+        <button type="button" role="radio" [attr.aria-checked]="o.value === value()"
+                class="px-sp-3 h-7 text-[11px] font-semibold rounded-r-xs transition-colors
+                       outline-none focus-visible:ring-2 focus-visible:ring-action
+                       disabled:opacity-40 disabled:cursor-not-allowed"
+                [class]="o.value === value() ? 'bg-neutral-0 text-ink-900 shadow-e1' : 'text-neutral-400 hover:text-ink-700'"
+                [disabled]="o.disabled"
+                (click)="pick(o)">
+          {{ o.label }}
+        </button>
+      }
+    </div>
+  `
+})
+export class BaseSegmentedControlComponent<V = unknown> {
+  readonly options = input.required<{ label: string; value: V; disabled?: boolean }[]>();
+  /** Two-way bound selected value: [(value)]. */
+  readonly value = model<V | null>(null);
+  readonly ariaLabel = input('');
+
+  readonly change = output<V>();
+
+  pick(o: { value: V; disabled?: boolean }): void {
+    if (o.disabled) return;
+    this.value.set(o.value);
+    this.change.emit(o.value);
+  }
 }
 
 @Component({
@@ -103,15 +168,15 @@ export class BaseButtonComponent {
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => BaseTextInputComponent), multi: true }],
   template: `
     <label class="${FIELD_WRAP}" [attr.for]="id">
-      @if (label()) { <span class="${LABEL_CLS}">{{ label() }}@if (required()) {<span class="text-red-400"> *</span>}</span> }
+      @if (label()) { <span class="${LABEL_CLS}">{{ label() }}@if (required()) {<span class="text-error"> *</span>}</span> }
       <span class="relative block">
-        @if (prefix()) { <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 pointer-events-none">{{ prefix() }}</span> }
+        @if (prefix()) { <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] text-neutral-400 pointer-events-none">{{ prefix() }}</span> }
         <input [id]="id" [type]="type()" [value]="value()" [placeholder]="placeholder()"
                [disabled]="disabled() || formDisabled()"
                [attr.maxlength]="maxLength() || null"
                class="${INPUT_CLS}"
-               [class.border-red-300]="!!error()"
-               [class.border-slate-200]="!error()"
+               [class.border-error]="!!error()"
+               [class.border-neutral-200]="!error()"
                [style.paddingLeft]="prefix() ? '2rem' : null"
                [style.paddingRight]="(suffix() || clearable()) ? '2rem' : null"
                (input)="onInput($event)"
@@ -119,10 +184,10 @@ export class BaseButtonComponent {
                (focus)="focused.emit()"
                (keydown.enter)="enterPressed.emit(value())" />
         @if (clearable() && value()) {
-          <button type="button" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 text-xs"
+          <button type="button" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-300 hover:text-neutral-400 text-xs"
                   (click)="clear()" aria-label="Clear">✕</button>
         } @else if (suffix()) {
-          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 pointer-events-none">{{ suffix() }}</span>
+          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-neutral-400 pointer-events-none">{{ suffix() }}</span>
         }
       </span>
       @if (error()) { <span class="${ERROR_CLS}">{{ error() }}</span> }
@@ -179,9 +244,9 @@ export class BaseTextInputComponent extends BaseControl<string> {
       <textarea [id]="id" [value]="value()" [placeholder]="placeholder()" [rows]="rows()"
                 [disabled]="disabled() || formDisabled()"
                 [attr.maxlength]="maxLength() || null"
-                class="${INPUT_CLS} resize-y"
-                [class.border-red-300]="!!error()"
-                [class.border-slate-200]="!error()"
+                class="${INPUT_CLS} h-auto py-sp-2 resize-y"
+                [class.border-error]="!!error()"
+                [class.border-neutral-200]="!error()"
                 (input)="onInput($event)"
                 (blur)="onTouched(); blurred.emit()"></textarea>
       <span class="flex justify-between">
@@ -231,30 +296,30 @@ export interface BaseSelectOption<V = unknown> {
       @if (label()) { <span class="${LABEL_CLS}">{{ label() }}</span> }
       <button type="button"
               class="${INPUT_CLS} flex items-center justify-between text-left"
-              [class.border-red-300]="!!error()"
-              [class.border-slate-200]="!error()"
+              [class.border-error]="!!error()"
+              [class.border-neutral-200]="!error()"
               [disabled]="disabled() || formDisabled()"
               (click)="toggle()">
-        <span [class.text-slate-400]="selectedLabel() === null">{{ selectedLabel() ?? placeholder() }}</span>
-        @if (showChevron()) { <span class="text-slate-300 text-[10px] ml-2">{{ open() ? '▲' : '▼' }}</span> }
+        <span class="truncate" [class.text-neutral-400]="selectedLabel() === null">{{ selectedLabel() ?? placeholder() }}</span>
+        @if (showChevron()) { <span class="text-neutral-300 text-[10px] ml-2 shrink-0">{{ open() ? '▲' : '▼' }}</span> }
       </button>
 
       @if (open()) {
-        <div class="absolute z-30 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+        <div class="absolute z-30 mt-1 w-full bg-neutral-0 border border-neutral-200 rounded-r-md overflow-hidden" style="box-shadow: var(--shadow-e2);">
           @if (searchable()) {
-            <input type="text" class="w-full border-b border-slate-100 px-3 py-2 text-xs focus:outline-none"
+            <input type="text" class="w-full border-b border-neutral-100 px-sp-3 py-sp-2 text-xs focus:outline-none"
                    placeholder="Type to filter…" [value]="query()" (input)="onQuery($event)" />
           }
           <div class="max-h-52 overflow-y-auto py-1">
             @for (o of filteredOptions(); track $index) {
               <button type="button"
-                      class="w-full text-left px-3 py-1.5 text-xs transition-colors
+                      class="w-full text-left px-sp-3 py-1.5 text-xs transition-colors
                              disabled:opacity-40 disabled:cursor-not-allowed"
-                      [class]="isSelected(o) ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'"
+                      [class]="isSelected(o) ? 'bg-action-surface text-action font-semibold' : 'text-ink-600 hover:bg-neutral-50'"
                       [disabled]="o.disabled"
                       (click)="pick(o)">{{ o.label }}</button>
             } @empty {
-              <div class="px-3 py-2 text-[11px] text-slate-400">No options</div>
+              <div class="px-sp-3 py-sp-2 text-[11px] text-neutral-400">No options</div>
             }
           </div>
         </div>
@@ -334,13 +399,13 @@ export class BaseSelectComponent<V = unknown> extends BaseControl<V | null> {
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => BaseCheckboxComponent), multi: true }],
   template: `
-    <label class="inline-flex items-center gap-2 cursor-pointer select-none"
+    <label class="inline-flex items-center gap-sp-2 cursor-pointer select-none py-0.5"
            [class.opacity-50]="disabled() || formDisabled()"
            [class.cursor-not-allowed]="disabled() || formDisabled()">
-      <input type="checkbox" [checked]="checked()" [disabled]="disabled() || formDisabled()"
-             class="w-3.5 h-3.5 accent-indigo-600"
+      <input type="checkbox" [checked]="checked()" [indeterminate]="indeterminate()" [disabled]="disabled() || formDisabled()"
+             class="w-4 h-4 accent-action rounded-r-xs"
              (change)="onToggle($event)" (blur)="onTouched()" />
-      <span class="text-xs text-slate-700">{{ label() }}</span>
+      <span class="text-xs text-ink-700">{{ label() }}</span>
     </label>
   `
 })
@@ -349,6 +414,8 @@ export class BaseCheckboxComponent extends BaseControl<boolean> {
   readonly checked = model(false);
   readonly label = input('');
   readonly disabled = input(false);
+  /** Visual indeterminate (mixed) state — doesn't affect the checked value. */
+  readonly indeterminate = input(false);
 
   onToggle(ev: Event): void {
     const v = (ev.target as HTMLInputElement).checked;
@@ -369,13 +436,13 @@ export class BaseCheckboxComponent extends BaseControl<boolean> {
       @if (label()) { <span class="${LABEL_CLS}">{{ label() }}</span> }
       <div class="flex gap-x-4 gap-y-1.5" [class.flex-col]="direction() === 'vertical'">
         @for (o of options(); track $index) {
-          <label class="inline-flex items-center gap-1.5 cursor-pointer select-none"
+          <label class="inline-flex items-center gap-sp-2 cursor-pointer select-none"
                  [class.opacity-50]="o.disabled || disabled() || formDisabled()">
             <input type="radio" [name]="name" [checked]="o.value === value()"
                    [disabled]="o.disabled || disabled() || formDisabled()"
-                   class="w-3.5 h-3.5 accent-indigo-600"
+                   class="w-4 h-4 accent-action"
                    (change)="pick(o)" (blur)="onTouched()" />
-            <span class="text-xs text-slate-700">{{ o.label }}</span>
+            <span class="text-xs text-ink-700">{{ o.label }}</span>
           </label>
         }
       </div>
@@ -406,17 +473,18 @@ export class BaseRadioGroupComponent<V = unknown> extends BaseControl<V | null> 
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => BaseToggleComponent), multi: true }],
   template: `
-    <label class="inline-flex items-center gap-2 cursor-pointer select-none"
+    <label class="inline-flex items-center gap-sp-2 cursor-pointer select-none"
            [class.opacity-50]="disabled() || formDisabled()">
       <button type="button" role="switch" [attr.aria-checked]="checked()"
-              class="relative w-9 h-5 rounded-full transition-colors"
-              [class]="checked() ? 'bg-indigo-600' : 'bg-slate-200'"
+              class="relative w-9 h-5 rounded-r-full transition-colors outline-none
+                     focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-1"
+              [class]="checked() ? 'bg-action' : 'bg-neutral-200'"
               [disabled]="disabled() || formDisabled()"
               (click)="flip()" (blur)="onTouched()">
-        <span class="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+        <span class="absolute top-0.5 w-4 h-4 rounded-r-full bg-neutral-0 transition-all" style="box-shadow: var(--shadow-e1);"
               [style.left]="checked() ? '18px' : '2px'"></span>
       </button>
-      @if (label()) { <span class="text-xs text-slate-700">{{ label() }}</span> }
+      @if (label()) { <span class="text-xs text-ink-700">{{ label() }}</span> }
     </label>
   `
 })
@@ -433,4 +501,76 @@ export class BaseToggleComponent extends BaseControl<boolean> {
   }
 
   writeValue(v: boolean): void { this.checked.set(!!v); }
+}
+
+/**
+ * A default action plus a short menu of closely related variants — worth
+ * naming separately from a plain button (one action) and a dropdown menu
+ * (no default action of its own). The left segment fires (clicked)
+ * immediately; the right chevron opens [items].
+ */
+@Component({
+  selector: 'base-split-button',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div class="relative inline-flex">
+      <button type="button" [disabled]="disabled()"
+              class="inline-flex items-center h-9 px-sp-3 text-xs font-semibold rounded-l-sm border-r border-action-active
+                     bg-action text-neutral-0 hover:bg-action-hover transition-colors outline-none
+                     focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+              (click)="clicked.emit($event)">
+        <ng-content />
+      </button>
+      <button type="button" [disabled]="disabled()" aria-label="More options" aria-haspopup="menu"
+              class="inline-flex items-center justify-center w-8 h-9 rounded-r-sm bg-action text-neutral-0
+                     hover:bg-action-hover transition-colors outline-none
+                     focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+              (click)="toggle()">
+        <span class="text-[9px]">▼</span>
+      </button>
+
+      @if (open()) {
+        <div class="absolute right-0 top-full z-30 mt-1 min-w-40 bg-neutral-0 border border-neutral-200 rounded-r-md py-1" style="box-shadow: var(--shadow-e2);">
+          @for (m of items(); track m.id) {
+            @if (m.dividerBefore) { <div class="my-1 border-t border-neutral-100"></div> }
+            <button type="button"
+                    class="w-full text-left px-sp-3 py-1.5 text-xs flex items-center gap-2 transition-colors
+                           disabled:opacity-40 disabled:cursor-not-allowed"
+                    [class]="m.danger ? 'text-error hover:bg-error-surface' : 'text-ink-600 hover:bg-neutral-50'"
+                    [disabled]="m.disabled"
+                    (click)="pick(m)">
+              @if (m.icon) { <span>{{ m.icon }}</span> } {{ m.label }}
+            </button>
+          }
+        </div>
+      }
+    </div>
+  `
+})
+export class BaseSplitButtonComponent {
+  readonly items = input.required<BaseMenuItem[]>();
+  readonly disabled = input(false);
+
+  /** Fired when the primary (left) segment is clicked. */
+  readonly clicked = output<MouseEvent>();
+  /** Fired with the chosen menu item from the chevron (right) segment. */
+  readonly itemSelect = output<BaseMenuItem>();
+
+  protected readonly open = signal(false);
+  private readonly host = inject(ElementRef<HTMLElement>);
+
+  @HostListener('document:click', ['$event'])
+  onDocClick(ev: MouseEvent): void {
+    if (this.open() && !this.host.nativeElement.contains(ev.target as Node)) this.open.set(false);
+  }
+
+  toggle(): void { this.open.update(o => !o); }
+
+  pick(m: BaseMenuItem): void {
+    this.itemSelect.emit(m);
+    this.open.set(false);
+  }
 }

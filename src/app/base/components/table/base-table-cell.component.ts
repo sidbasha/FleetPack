@@ -55,17 +55,17 @@ import { BaseSparklineComponent, BaseTrendComponent } from '../base-ui.component
         <span [class]="extra()">{{ display() }}</span>
       }
       @case ('sno') {
-        <span class="text-slate-500 tabular-nums">{{ rowIndex() }}</span>
+        <span class="text-ink-500 tabular-nums">{{ rowIndex() }}</span>
       }
       @case ('array') {
         <span [class]="extra()">{{ display() }}</span>
       }
       @case ('badge') {
-        <span class="text-[10px] font-bold rounded-full px-2 py-0.5" [class]="badge()">{{ display() }}</span>
+        <span class="text-[10px] font-bold rounded-r-full px-2 py-0.5" [class]="badge()">{{ display() }}</span>
       }
       @case ('dot') {
         <span class="inline-flex items-center gap-1.5">
-          @if (dotVisible()) { <i class="inline-block w-2.5 h-2.5 rounded-full" [class]="dot()"></i> }
+          @if (dotVisible()) { <i class="inline-block w-2.5 h-2.5 rounded-r-full" [class]="dot()"></i> }
           {{ display() }}
         </span>
       }
@@ -77,23 +77,23 @@ import { BaseSparklineComponent, BaseTrendComponent } from '../base-ui.component
       }
       @case ('image') {
         @if (value(); as src) {
-          <img [src]="src" [alt]="column().header" class="rounded-md object-cover border border-slate-200"
+          <img [src]="src" [alt]="column().header" class="rounded-r-sm object-cover border border-neutral-200"
                [style.width.px]="column().imageSize ?? 32" [style.height.px]="column().imageSize ?? 32" loading="lazy" />
-        } @else { <span class="text-slate-300">—</span> }
+        } @else { <span class="text-neutral-300">—</span> }
       }
       @case ('progress') {
         <span class="inline-flex items-center gap-2 w-full">
-          <span class="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden min-w-12">
-            <span class="block h-full rounded-full" [class]="barClass()" [style.width.%]="progressPct()"></span>
+          <span class="flex-1 h-1.5 rounded-r-full bg-neutral-100 overflow-hidden min-w-12">
+            <span class="block h-full rounded-r-full" [class]="barClass()" [style.width.%]="progressPct()"></span>
           </span>
-          <span class="text-[10px] font-semibold text-slate-500 tabular-nums">{{ progLabel() }}</span>
+          <span class="text-[10px] font-semibold text-ink-500 tabular-nums">{{ progLabel() }}</span>
         </span>
       }
       @case ('text-bar') {
         <span class="inline-flex flex-col items-start gap-1">
           <span class="font-semibold" [class]="extra()">{{ display() }}</span>
-          <span class="h-1 w-16 rounded-full bg-slate-100 overflow-hidden">
-            <span class="block h-full rounded-full" [class]="barClass()" [style.width.%]="textBarPctVal()"></span>
+          <span class="h-1 w-16 rounded-r-full bg-neutral-100 overflow-hidden">
+            <span class="block h-full rounded-r-full" [class]="barClass()" [style.width.%]="textBarPctVal()"></span>
           </span>
         </span>
       }
@@ -101,7 +101,7 @@ import { BaseSparklineComponent, BaseTrendComponent } from '../base-ui.component
         <base-sparkline [data]="spark()" />
       }
       @case ('link') {
-        <a class="text-indigo-600 hover:text-indigo-800 hover:underline font-medium"
+        <a class="text-action hover:text-action-hover hover:underline font-medium"
            [href]="linkHref()" [target]="linkTarget()" rel="noopener"
            (click)="$event.stopPropagation()">{{ display() }}</a>
       }
@@ -111,15 +111,15 @@ import { BaseSparklineComponent, BaseTrendComponent } from '../base-ui.component
             @if (a.template; as atpl) {
               <ng-container *ngTemplateOutlet="atpl; context: { $implicit: row() }" />
             } @else if (a.type === 'download' && dlProgress() !== null) {
-              <span class="text-[10px] font-semibold text-indigo-600 tabular-nums">{{ dlProgress() }}%</span>
+              <span class="text-[10px] font-semibold text-action tabular-nums">{{ dlProgress() }}%</span>
             } @else if (a.variant === 'button') {
-              <button type="button" class="btn-ghost border border-slate-200 py-1! px-2.5! text-[11px]
+              <button type="button" class="btn-ghost border border-neutral-200 py-1! px-2.5! text-[11px]
                                             disabled:opacity-30 disabled:cursor-not-allowed"
                       [disabled]="a.disabled"
                       [attr.aria-label]="a.title ?? null" [title]="a.title ?? ''"
                       (click)="$event.stopPropagation(); runAction(a)">{{ a.icon }}</button>
             } @else {
-              <button type="button" class="text-slate-400 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed"
+              <button type="button" class="text-neutral-400 hover:text-action disabled:opacity-30 disabled:cursor-not-allowed"
                       [disabled]="a.disabled"
                       [attr.aria-label]="a.title ?? null" [title]="a.title ?? ''"
                       (click)="$event.stopPropagation(); runAction(a)">{{ a.icon }}</button>

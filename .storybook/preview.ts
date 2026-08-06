@@ -34,7 +34,7 @@ const preview: Preview = {
             ]
           ],
           'Base',
-          ['Actions', 'Forms', 'Feedback', 'Navigation', 'Overlays', 'Tables & Data', 'Cards & Containers'],
+          ['Actions', 'Forms', 'Feedback', 'Navigation', 'Overlays', 'Data Display', 'Tables & Data', 'Cards & Containers', 'Charts & Visualization'],
           'Widgets',
           'Layout',
           'Shared'

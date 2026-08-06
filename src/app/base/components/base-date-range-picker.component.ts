@@ -65,26 +65,26 @@ const PRESETS: { id: DateRangePreset; label: string }[] = [
   template: `
     <div class="relative inline-block">
       <button type="button"
-              class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 border border-slate-200
-                     rounded-lg px-3 py-1.5 bg-white hover:border-indigo-300 hover:text-indigo-700 transition-colors
+              class="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-600 border border-neutral-200
+                     rounded-r-sm px-3 py-1.5 bg-neutral-0 hover:border-action hover:text-action-hover transition-colors
                      disabled:opacity-50 disabled:cursor-not-allowed"
               [disabled]="disabled()"
               (click)="toggle()">
-        <span class="text-slate-400">📅</span>
+        <span class="text-neutral-400">📅</span>
         {{ triggerLabel() }}
-        <span class="text-[9px] text-slate-400">▼</span>
+        <span class="text-[9px] text-neutral-400">▼</span>
       </button>
 
       @if (open()) {
-        <div class="absolute z-30 mt-1 flex bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden w-[600px] max-w-[calc(100vw-1.5rem)]"
+        <div class="absolute z-30 mt-1 flex bg-neutral-0 border border-neutral-200 rounded-r-lg shadow-lg overflow-hidden w-[600px] max-w-[calc(100vw-1.5rem)]"
              [class.right-0]="align() === 'right'"
              [class.left-0]="align() === 'left'">
           <!-- quick-range sidebar -->
-          <div class="w-32 shrink-0 border-r border-slate-100 py-3 px-2 flex flex-col gap-1">
+          <div class="w-32 shrink-0 border-r border-neutral-100 py-3 px-2 flex flex-col gap-1">
             @for (p of presets; track p.id) {
               <button type="button"
-                      class="text-left text-xs font-semibold rounded-lg px-3 py-2.5 transition-colors"
-                      [class]="draftPreset() === p.id ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'"
+                      class="text-left text-xs font-semibold rounded-r-sm px-3 py-2.5 transition-colors"
+                      [class]="draftPreset() === p.id ? 'bg-action text-white' : 'text-ink-600 hover:bg-neutral-50'"
                       (click)="choosePreset(p.id)">
                 {{ p.label }}
               </button>
@@ -98,19 +98,19 @@ const PRESETS: { id: DateRangePreset; label: string }[] = [
               <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between mb-2">
                   <button type="button" class="btn-ghost px-1.5" (click)="shiftMonths(-1)" aria-label="Previous month">‹</button>
-                  <span class="text-xs font-bold text-slate-700">{{ leftMonthLabel() }}</span>
+                  <span class="text-xs font-bold text-ink-700">{{ leftMonthLabel() }}</span>
                   <span class="w-4"></span>
                 </div>
 
                 <div class="grid grid-cols-7 mb-1">
                   @for (d of weekdays; track $index) {
-                    <span class="text-center text-[10px] font-semibold text-slate-400">{{ d }}</span>
+                    <span class="text-center text-[10px] font-semibold text-neutral-400">{{ d }}</span>
                   }
                 </div>
                 <div class="grid grid-cols-7 gap-y-0.5">
                   @for (c of leftCells(); track $index) {
                     <button type="button"
-                            class="w-8 h-8 mx-auto rounded-full text-[11px] font-medium transition-colors
+                            class="w-8 h-8 mx-auto rounded-r-full text-[11px] font-medium transition-colors
                                    disabled:cursor-not-allowed"
                             [class]="dayClass(c)"
                             [disabled]="c.disabled"
@@ -118,18 +118,18 @@ const PRESETS: { id: DateRangePreset; label: string }[] = [
                   }
                 </div>
 
-                <div class="flex items-center gap-2 mt-3 pt-2 border-t border-slate-100">
-                  <span class="text-[11px] font-semibold text-slate-500">Time :</span>
+                <div class="flex items-center gap-2 mt-3 pt-2 border-t border-neutral-100">
+                  <span class="text-[11px] font-semibold text-ink-500">Time :</span>
                   <input type="text" inputmode="numeric" maxlength="2"
-                         class="w-9 h-8 border border-slate-200 rounded-md text-center text-xs text-slate-700
-                                focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300"
+                         class="w-9 h-8 border border-neutral-200 rounded-r-sm text-center text-xs text-ink-700
+                                focus:outline-none focus:ring-2 focus:ring-action-surface focus:border-action"
                          [value]="fromH()"
                          (input)="onTimeInput('fromH', $event)"
                          (blur)="onTimeBlur('fromH')" />
-                  <span class="text-slate-400">:</span>
+                  <span class="text-neutral-400">:</span>
                   <input type="text" inputmode="numeric" maxlength="2"
-                         class="w-9 h-8 border border-slate-200 rounded-md text-center text-xs text-slate-700
-                                focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300"
+                         class="w-9 h-8 border border-neutral-200 rounded-r-sm text-center text-xs text-ink-700
+                                focus:outline-none focus:ring-2 focus:ring-action-surface focus:border-action"
                          [value]="fromM()"
                          (input)="onTimeInput('fromM', $event)"
                          (blur)="onTimeBlur('fromM')" />
@@ -140,19 +140,19 @@ const PRESETS: { id: DateRangePreset; label: string }[] = [
               <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between mb-2">
                   <span class="w-4"></span>
-                  <span class="text-xs font-bold text-slate-700">{{ rightMonthLabel() }}</span>
+                  <span class="text-xs font-bold text-ink-700">{{ rightMonthLabel() }}</span>
                   <button type="button" class="btn-ghost px-1.5" (click)="shiftMonths(1)" aria-label="Next month">›</button>
                 </div>
 
                 <div class="grid grid-cols-7 mb-1">
                   @for (d of weekdays; track $index) {
-                    <span class="text-center text-[10px] font-semibold text-slate-400">{{ d }}</span>
+                    <span class="text-center text-[10px] font-semibold text-neutral-400">{{ d }}</span>
                   }
                 </div>
                 <div class="grid grid-cols-7 gap-y-0.5">
                   @for (c of rightCells(); track $index) {
                     <button type="button"
-                            class="w-8 h-8 mx-auto rounded-full text-[11px] font-medium transition-colors
+                            class="w-8 h-8 mx-auto rounded-r-full text-[11px] font-medium transition-colors
                                    disabled:cursor-not-allowed"
                             [class]="dayClass(c)"
                             [disabled]="c.disabled"
@@ -160,18 +160,18 @@ const PRESETS: { id: DateRangePreset; label: string }[] = [
                   }
                 </div>
 
-                <div class="flex items-center gap-2 mt-3 pt-2 border-t border-slate-100">
-                  <span class="text-[11px] font-semibold text-slate-500">Time :</span>
+                <div class="flex items-center gap-2 mt-3 pt-2 border-t border-neutral-100">
+                  <span class="text-[11px] font-semibold text-ink-500">Time :</span>
                   <input type="text" inputmode="numeric" maxlength="2"
-                         class="w-9 h-8 border border-slate-200 rounded-md text-center text-xs text-slate-700
-                                focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300"
+                         class="w-9 h-8 border border-neutral-200 rounded-r-sm text-center text-xs text-ink-700
+                                focus:outline-none focus:ring-2 focus:ring-action-surface focus:border-action"
                          [value]="toH()"
                          (input)="onTimeInput('toH', $event)"
                          (blur)="onTimeBlur('toH')" />
-                  <span class="text-slate-400">:</span>
+                  <span class="text-neutral-400">:</span>
                   <input type="text" inputmode="numeric" maxlength="2"
-                         class="w-9 h-8 border border-slate-200 rounded-md text-center text-xs text-slate-700
-                                focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300"
+                         class="w-9 h-8 border border-neutral-200 rounded-r-sm text-center text-xs text-ink-700
+                                focus:outline-none focus:ring-2 focus:ring-action-surface focus:border-action"
                          [value]="toM()"
                          (input)="onTimeInput('toM', $event)"
                          (blur)="onTimeBlur('toM')" />
@@ -179,9 +179,9 @@ const PRESETS: { id: DateRangePreset; label: string }[] = [
               </div>
             </div>
 
-            <div class="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-100">
+            <div class="flex justify-end gap-2 mt-4 pt-3 border-t border-neutral-100">
               <button type="button"
-                      class="text-xs font-semibold text-slate-600 hover:bg-slate-50 rounded-lg px-4 py-1.5 border border-slate-200 transition-colors"
+                      class="text-xs font-semibold text-ink-600 hover:bg-neutral-50 rounded-r-sm px-4 py-1.5 border border-neutral-200 transition-colors"
                       (click)="cancel()">Cancel</button>
               <button type="button" class="btn-primary px-4 py-1.5" (click)="apply()">Apply</button>
             </div>
@@ -278,11 +278,11 @@ export class BaseDateRangePickerComponent {
     const to = this.draftTo();
     const isEndpoint = sameDay(c.date, from) || sameDay(c.date, to) ||
       (this.draftPreset() === 'all' && !from && !to && c.isToday);
-    if (isEndpoint) return 'bg-indigo-600 text-white';
-    if (from && to && c.date > from && c.date < to) return 'bg-indigo-50 text-indigo-700';
-    if (c.disabled) return c.inMonth ? 'text-slate-300 line-through' : 'text-slate-200 line-through';
-    if (c.isToday) return 'border border-indigo-300 text-indigo-600';
-    return c.inMonth ? 'text-slate-600 hover:bg-indigo-50' : 'text-slate-300 hover:bg-slate-50';
+    if (isEndpoint) return 'bg-action text-white';
+    if (from && to && c.date > from && c.date < to) return 'bg-action-surface text-action-hover';
+    if (c.disabled) return c.inMonth ? 'text-neutral-300 line-through' : 'text-neutral-200 line-through';
+    if (c.isToday) return 'border border-action text-action';
+    return c.inMonth ? 'text-ink-600 hover:bg-action-surface' : 'text-neutral-300 hover:bg-neutral-50';
   }
 
   pick(c: DayCell): void {

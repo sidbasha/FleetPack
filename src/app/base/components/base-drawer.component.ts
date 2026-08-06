@@ -21,15 +21,15 @@ import {
   template: `
     @if (open()) {
       <div class="fixed inset-0 z-40 flex" [class.justify-end]="side() === 'right'">
-        <div class="absolute inset-0 bg-slate-900/40" (click)="closeOnBackdrop() && close('backdrop')"></div>
-        <div class="relative bg-white shadow-xl h-full flex flex-col"
+        <div class="absolute inset-0 bg-ink-900/40" (click)="closeOnBackdrop() && close('backdrop')"></div>
+        <div class="relative bg-neutral-0 h-full flex flex-col" style="box-shadow: var(--shadow-e4);"
              [class]="side() === 'left' ? 'animate-drawer-in-left' : 'animate-drawer-in-right'"
              [style.width]="width()" role="dialog" aria-modal="true" [attr.aria-label]="title()">
           @if (title() || showClose()) {
-            <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 shrink-0">
-              <span class="text-sm font-bold text-slate-800">{{ title() }}</span>
+            <div class="flex items-center justify-between px-sp-5 py-sp-4 border-b border-neutral-100 shrink-0">
+              <span class="font-display text-display-md text-ink-900">{{ title() }}</span>
               @if (showClose()) {
-                <button type="button" class="text-slate-300 hover:text-slate-500 text-sm" (click)="close('button')"
+                <button type="button" class="text-neutral-300 hover:text-neutral-500 text-sm" (click)="close('button')"
                         aria-label="Close drawer">✕</button>
               }
             </div>
@@ -37,7 +37,7 @@ import {
           <div class="flex-1 min-h-0 overflow-y-auto">
             <ng-content />
           </div>
-          <div class="px-5 py-3 border-t border-slate-100 empty:hidden flex gap-2 shrink-0">
+          <div class="px-sp-5 py-sp-3 border-t border-neutral-100 empty:hidden flex gap-sp-2 shrink-0">
             <ng-content select="[footer]" />
           </div>
         </div>

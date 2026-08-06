@@ -85,6 +85,11 @@ interface AdditionalHeaderCell {
   selector: 'base-table',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  /** Exposes the [density] input as a CSS custom property that the global
+   *  `.table-td`/`.table-th` classes (styles.css) read with a fallback —
+   *  so density only affects this table instance, never other consumers
+   *  of those classes. See Foundations → Density & Themes. */
+  host: { '[style.--bt-row-pad.px]': 'densityPad()' },
   imports: [
     NgTemplateOutlet,
     BasePaginatorComponent,
@@ -115,14 +120,14 @@ interface AdditionalHeaderCell {
   `],
   template: `
     @if (showSearch()) {
-      <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-100">
+      <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-neutral-100">
         <base-search-input [placeholder]="searchPlaceholder()" (search)="onQuickSearch($event)" />
         <span class="flex items-center gap-3">
           @if (hasActiveFilters() && !readOnly()) {
-            <button type="button" class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800"
+            <button type="button" class="text-[11px] font-semibold text-action hover:text-action-hover"
                     (click)="clearAllFilters()">Clear All Filters</button>
           }
-          <span class="text-[11px] text-slate-400">{{ filteredTotal() }} record(s)</span>
+          <span class="text-[11px] text-neutral-400">{{ filteredTotal() }} record(s)</span>
         </span>
       </div>
     }
@@ -130,7 +135,7 @@ interface AdditionalHeaderCell {
     <div class="overflow-x-auto" [style.maxHeight]="maxHeight() || null" [style.overflowY]="maxHeight() ? 'auto' : null"
          (scroll)="onScroll($event)">
       <table class="w-full" [style.minWidth]="minWidth() || null">
-        <thead [class.bt-head-sticky]="stickyHeader()" class="bg-slate-50">
+        <thead [class.bt-head-sticky]="stickyHeader()" class="bg-neutral-50">
           @if (additionalHeaderRow(); as groups) {
             <tr>
               @if (expandable()) {
@@ -145,7 +150,7 @@ interface AdditionalHeaderCell {
                       [style.left]="stickyMeta()[cell.key!]?.left ?? null"
                       [style.right]="stickyMeta()[cell.key!]?.right ?? null"></th>
                 } @else {
-                  <th class="table-th text-center bg-indigo-50/60" [attr.colspan]="cell.span">{{ cell.group!.displayName }}</th>
+                  <th class="table-th text-center bg-action-surface/60" [attr.colspan]="cell.span">{{ cell.group!.displayName }}</th>
                 }
               }
             </tr>
@@ -185,7 +190,7 @@ interface AdditionalHeaderCell {
                     {{ c.header }}
                   }
                   @if (c.sortable) {
-                    <span class="text-[9px]" [class.text-indigo-500]="sortState().key === c.key">
+                    <span class="text-[9px]" [class.text-action]="sortState().key === c.key">
                       {{ sortState().key === c.key ? (sortState().direction === 'asc' ? '▲' : '▼') : '↕' }}
                     </span>
                   }
@@ -213,7 +218,7 @@ interface AdditionalHeaderCell {
                     }
                   }
                   @if (last && hasActiveFilters() && !readOnly()) {
-                    <button type="button" class="text-[9px] text-indigo-500 hover:text-indigo-700" title="Clear all filters"
+                    <button type="button" class="text-[9px] text-action hover:text-action-hover" title="Clear all filters"
                             (click)="$event.stopPropagation(); clearAllFilters()">⟲</button>
                   }
                 </span>
@@ -222,7 +227,7 @@ interface AdditionalHeaderCell {
           </tr>
 
           @if (showFilterRow() && hasTextFilterableColumn() && !readOnly()) {
-            <tr class="bg-white">
+            <tr class="bg-neutral-0">
               @if (expandable()) { <th class="px-2 py-1.5"></th> }
               @if (selectable() === 'multiple') { <th class="px-2 py-1.5"></th> }
               @for (c of visibleColumns(); track c.key) {
@@ -232,8 +237,8 @@ interface AdditionalHeaderCell {
                     [style.right]="stickyMeta()[c.key]?.right ?? null">
                   @if (c.filterable && (!c.filterKind || c.filterKind === 'text')) {
                     <input type="text" [value]="columnFilters()[c.key] || ''"
-                           class="w-full border border-slate-200 rounded-md px-2 py-1 text-[11px] text-slate-600
-                                  focus:outline-none focus:ring-1 focus:ring-indigo-200"
+                           class="w-full border border-neutral-200 rounded-r-sm px-2 py-1 text-[11px] text-ink-600
+                                  focus:outline-none focus:ring-1 focus:ring-action-surface"
                            [placeholder]="'Filter ' + c.header"
                            (input)="onColumnFilter(c.key, $event)" />
                   }
@@ -243,21 +248,21 @@ interface AdditionalHeaderCell {
           }
         </thead>
 
-        <tbody class="divide-y divide-slate-100">
+        <tbody class="divide-y divide-neutral-100">
           @for (g of groupedRows(); track g.key) {
             @if (g.key !== null && groupHeaderStyle() === 'plain') {
-              <tr class="bg-slate-50">
+              <tr class="bg-neutral-50">
                 <td [attr.colspan]="colspan()"
-                    class="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-400 border-t border-slate-100">
+                    class="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-neutral-400 border-t border-neutral-100">
                   {{ g.key }}
                 </td>
               </tr>
             } @else if (g.key !== null && groupHeaderStyle() === 'light') {
-              <tr class="bg-white">
+              <tr class="bg-neutral-0">
                 <td [attr.colspan]="groupActionLabel() ? colspan() - 1 : colspan()"
-                    class="px-3 py-2.5 text-[13px] font-bold text-slate-800">
+                    class="px-3 py-2.5 text-[13px] font-bold text-ink-700">
                   {{ g.key }}
-                  <span class="ml-1.5 text-[10px] font-semibold text-slate-500 bg-slate-100 rounded-full px-2 py-0.5 align-middle">
+                  <span class="ml-1.5 text-[10px] font-semibold text-ink-500 bg-neutral-100 rounded-r-full px-2 py-0.5 align-middle">
                     {{ g.rows.length }} {{ groupCountLabel() }}
                   </span>
                 </td>
@@ -268,14 +273,14 @@ interface AdditionalHeaderCell {
                 }
               </tr>
             } @else if (g.key !== null) {
-              <tr class="bg-indigo-50/60">
+              <tr class="bg-action-surface/60">
                 <td [attr.colspan]="groupActionLabel() ? colspan() - 1 : colspan()"
-                    class="px-3 py-1.5 text-[11px] font-bold text-indigo-800">
-                  {{ g.key }} <span class="font-medium text-indigo-400">· {{ g.rows.length }} {{ groupCountLabel() }}</span>
+                    class="px-3 py-1.5 text-[11px] font-bold text-action-hover">
+                  {{ g.key }} <span class="font-medium text-action">· {{ g.rows.length }} {{ groupCountLabel() }}</span>
                 </td>
                 @if (groupActionLabel()) {
                   <td class="px-3 py-1.5 text-right">
-                    <button type="button" class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800"
+                    <button type="button" class="text-[11px] font-semibold text-action hover:text-action-hover"
                             (click)="groupAction.emit(g.key!)">{{ groupActionLabel() }}</button>
                   </td>
                 }
@@ -286,7 +291,7 @@ interface AdditionalHeaderCell {
               @if (expandable()) {
                 <td class="table-td w-8 text-center" [class.bt-sticky-td]="hasLeftSticky()" [style.left]="leadingStickyLeft('expand')">
                   @if (hasChildren(row)) {
-                    <button type="button" class="inline-flex items-center justify-center w-5 h-5 rounded hover:bg-slate-100 text-slate-500"
+                    <button type="button" class="inline-flex items-center justify-center w-5 h-5 rounded-r-xs hover:bg-neutral-100 text-ink-500"
                             [attr.aria-label]="isExpanded(row) ? 'Collapse row' : 'Expand row'"
                             [attr.aria-expanded]="isExpanded(row)"
                             (click)="$event.stopPropagation(); toggleExpand(row)">
@@ -325,9 +330,9 @@ interface AdditionalHeaderCell {
               }
             </tr>
             @if (expandable() && isExpanded(row) && hasChildren(row)) {
-              <tr class="bg-slate-50/60">
+              <tr class="bg-neutral-50/60">
                 <td [attr.colspan]="colspan()" class="p-0">
-                  <div class="pl-9 pr-3 py-2 ml-3 border-l-2 border-indigo-200">
+                  <div class="pl-9 pr-3 py-2 ml-3 border-l-2 border-action-surface">
                     <base-table
                       [columns]="childColumns() ?? []"
                       [rows]="childRowsFor(row)"
@@ -372,7 +377,7 @@ interface AdditionalHeaderCell {
     </div>
 
     @if (paginate()) {
-      <div class="px-4 py-3 border-t border-slate-100">
+      <div class="px-4 py-3 border-t border-neutral-100">
         <base-paginator
           [page]="page()"
           [pageSize]="pageSize()"
@@ -400,6 +405,13 @@ export class BaseTableComponent<T = BaseRow> {
   readonly paginate = input(true);
   readonly initialPageSize = input(10);
   readonly pageSizeOptions = input<number[]>([10, 25, 50, 100]);
+
+  /** Row density: compact (26px rows) for log/alarm tables, standard (36px,
+   *  default) for everything else, comfortable (48px) for config tables
+   *  with in-row controls. See Foundations → Density & Themes. */
+  readonly density = input<'compact' | 'standard' | 'comfortable'>('standard');
+  /** @internal exposed for the [style.--bt-row-pad.px] host binding above. */
+  protected readonly densityPad = computed(() => ({ compact: 3, standard: 8, comfortable: 14 }[this.density()]));
 
   /** Show the built-in global search toolbar. */
   readonly showSearch = input(true);
@@ -432,7 +444,7 @@ export class BaseTableComponent<T = BaseRow> {
   /** Highlight the row whose trackKey value matches (external selection) and auto-scroll it into view. */
   readonly highlightKey = input<string | null>(null);
   /** CSS classes applied to the highlighted row. Default matches the existing selection color. */
-  readonly highlightClass = input('bg-indigo-50');
+  readonly highlightClass = input('bg-action-surface');
   readonly emptyTitle = input('No matching records');
   readonly emptyHint = input('Try adjusting filters or search.');
 
@@ -981,11 +993,11 @@ export class BaseTableComponent<T = BaseRow> {
     const editing = !!(row as BaseRow).isEditing;
     const stripe = this.striped() && !this.groupBy() && index % 2 === 1;
     const bg = highlighted ? this.highlightClass()
-      : this.isSelected(row) ? 'bg-indigo-50'
-      : editing ? 'bg-amber-50'
-      : stripe ? 'bg-slate-50/60'
+      : this.isSelected(row) ? 'bg-action-surface'
+      : editing ? 'bg-warning-surface'
+      : stripe ? 'bg-neutral-50/60'
       : '';
-    return `transition-colors hover:bg-indigo-50/50 ${clickable} ${bg}`.trim();
+    return `transition-colors hover:bg-action-surface/50 ${clickable} ${bg}`.trim();
   }
 
   stickyEdgeClass(c: BaseColumnDef<T>): string {

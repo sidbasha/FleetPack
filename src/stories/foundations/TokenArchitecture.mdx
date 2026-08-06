@@ -4,11 +4,11 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 # Token Architecture
 
-Three tiers. Components reference **only** the middle tier — that's what makes a
-future theme switch (dark / high-contrast) possible without touching a single
-component rule. The tokens documented across every other Foundations page
-(Color, Typography, Spacing & Sizing, Radius & Elevation) are all instances of
-this same three-tier shape, defined once in `src/styles.css`.
+Three tiers. Components reference **only** the middle tier — that indirection
+keeps every button, focus ring, and surface consistent from one place instead
+of scattered raw values. The tokens documented across every other Foundations
+page (Color, Typography, Spacing & Sizing, Radius & Elevation) are all
+instances of this same three-tier shape, defined once in `src/styles.css`.
 
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:20px 0;">
   <div style="border:1px solid var(--color-neutral-200);border-radius:8px;padding:16px;background:var(--color-neutral-50);">
@@ -43,6 +43,6 @@ it so they never leak into the generated utility set; every generated utility
 spacing/radius-scale name, never a raw primitive name.
 
 <div style="border-left:3px solid var(--color-action);background:var(--color-action-surface);border-radius:0 8px 8px 0;padding:12px 16px;margin:20px 0;">
-  <strong style="font-size:12px;color:var(--color-action-hover);">Why this matters for the theme switcher</strong>
-  <p style="font-size:13px;color:var(--color-ink-600);margin:6px 0 0;">Because every component rule resolves through a semantic variable and never a primitive, redefining <code>--color-action</code> once (say, for dark mode) repaints every button, focus ring, and active nav item without editing a single component file. That redefinition is scoped to light theme only for now — see <a href="/?path=/docs/foundations-density---themes--docs">Density &amp; Themes</a>.</p>
+  <strong style="font-size:12px;color:var(--color-action-hover);">Why this matters</strong>
+  <p style="font-size:13px;color:var(--color-ink-600);margin:6px 0 0;">Because every component rule resolves through a semantic variable and never a primitive, redefining <code>--color-action</code> once repaints every button, focus ring, and active nav item without editing a single component file.</p>
 </div>

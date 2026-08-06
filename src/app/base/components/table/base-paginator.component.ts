@@ -14,18 +14,18 @@ import { BasePageEvent } from '../../models/table.model';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
-      <span class="text-[11px] text-slate-400">
+    <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-neutral-400">
+      <span class="text-[11px] text-neutral-400 tabular-nums">
         @if (pageCountOverride() > 0) {
-          Page <b>{{ page() }}</b> of <b>{{ pageCount() }}</b>
+          Page <b class="text-ink-700">{{ page() }}</b> of <b class="text-ink-700">{{ pageCount() }}</b>
         } @else if (total() > 0) {
-          Showing <b>{{ rangeStart() }}</b>–<b>{{ rangeEnd() }}</b> of <b>{{ total() }}</b>
+          Showing <b class="text-ink-700">{{ rangeStart() }}</b>–<b class="text-ink-700">{{ rangeEnd() }}</b> of <b class="text-ink-700">{{ total() }}</b>
         } @else { No records }
       </span>
 
       <span class="flex items-center gap-1.5">
         @if (showPageSize()) {
-          <select class="border border-slate-200 rounded-lg px-1.5 py-1 text-xs text-slate-600 bg-white"
+          <select class="border border-neutral-200 rounded-r-sm px-1.5 py-1 text-xs text-ink-600 bg-neutral-0"
                   [value]="pageSize()" (change)="onPageSize($event)" aria-label="Rows per page">
             @for (s of pageSizeOptions(); track s) { <option [value]="s">{{ s }} / page</option> }
           </select>
@@ -33,10 +33,10 @@ import { BasePageEvent } from '../../models/table.model';
         <button class="btn-ghost" [disabled]="page() <= 1" (click)="go(1)" aria-label="First page">«</button>
         <button class="btn-ghost" [disabled]="page() <= 1" (click)="go(page() - 1)" aria-label="Previous page">‹ Prev</button>
         @for (p of pageWindow(); track p) {
-          <button class="rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors"
+          <button class="rounded-r-sm px-2.5 py-1 text-xs font-semibold transition-colors tabular-nums"
                   [class]="p === page()
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'"
+                    ? 'bg-action text-neutral-0'
+                    : 'text-ink-600 hover:bg-action-surface hover:text-action'"
                   (click)="go(p)">{{ p }}</button>
         }
         <button class="btn-ghost" [disabled]="page() >= pageCount()" (click)="go(page() + 1)" aria-label="Next page">Next ›</button>
@@ -103,13 +103,13 @@ export class BasePaginatorComponent {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <label class="relative inline-flex items-center">
-      <span class="absolute left-2.5 text-slate-300 text-xs pointer-events-none">⌕</span>
+      <span class="icon-outline absolute left-2.5 text-neutral-300 pointer-events-none" style="font-size:16px;" aria-hidden="true">search</span>
       <input type="text" [value]="value()" [placeholder]="placeholder()"
-             class="border border-slate-200 rounded-lg pl-7 pr-7 py-1.5 text-xs text-slate-700 bg-white
-                    focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 w-56"
+             class="h-9 border border-neutral-200 rounded-r-sm pl-8 pr-7 text-xs text-ink-700 bg-neutral-0
+                    focus:outline-none focus:ring-2 focus:ring-action-surface focus:border-action w-56"
              (input)="onInput($event)" />
       @if (value()) {
-        <button class="absolute right-2 text-slate-300 hover:text-slate-500 text-xs" (click)="clear()"
+        <button class="absolute right-2 text-neutral-300 hover:text-neutral-500 text-xs" (click)="clear()"
                 aria-label="Clear search">✕</button>
       }
     </label>

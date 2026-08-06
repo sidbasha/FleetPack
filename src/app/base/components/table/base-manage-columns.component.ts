@@ -46,26 +46,26 @@ export interface ManageColumnItem {
   template: `
     <div class="relative inline-block normal-case font-normal">
       <button type="button"
-              class="inline-flex items-center justify-center w-5 h-5 rounded hover:bg-slate-100
-                     text-slate-400 hover:text-indigo-600 transition-colors"
+              class="inline-flex items-center justify-center w-5 h-5 rounded-r-xs hover:bg-neutral-100
+                     text-neutral-400 hover:text-action transition-colors"
               aria-label="Manage columns" (click)="toggle()">⚙</button>
 
       @if (open()) {
-        <div baseTeleport #panel class="fixed z-30 w-56 bg-white border border-slate-200 rounded-lg shadow-lg p-3 text-left"
+        <div baseTeleport #panel class="fixed z-30 w-56 bg-neutral-0 border border-neutral-200 rounded-r-lg shadow-lg p-3 text-left"
              [style.top.px]="panelPos().top" [style.left.px]="panelPos().left" [style.right.px]="panelPos().right">
           <input type="text" [value]="search()" (input)="onSearch($event)" placeholder="Search columns"
-                 class="w-full border border-slate-200 rounded-md px-2 py-1 text-[11px] mb-2
-                        focus:outline-none focus:ring-1 focus:ring-indigo-200" />
+                 class="w-full border border-neutral-200 rounded-r-sm px-2 py-1 text-[11px] mb-2
+                        focus:outline-none focus:ring-1 focus:ring-action-surface" />
 
-          <label class="flex items-center gap-1.5 py-1 text-[11px] font-semibold text-slate-600 cursor-pointer
-                         border-b border-slate-100 mb-1">
+          <label class="flex items-center gap-1.5 py-1 text-[11px] font-semibold text-ink-600 cursor-pointer
+                         border-b border-neutral-100 mb-1">
             <input type="checkbox" class="cb" [checked]="allSelected()" (change)="toggleSelectAll()" /> Select All
           </label>
 
           <div class="max-h-52 overflow-y-auto flex flex-col">
             @for (i of visibleLockedItems(); track i.key) {
-              <div class="flex items-center gap-1.5 py-1 text-[11px] text-slate-500 border-b border-slate-50">
-                <span class="w-3 text-center text-slate-300">🔒</span>
+              <div class="flex items-center gap-1.5 py-1 text-[11px] text-ink-500 border-b border-neutral-50">
+                <span class="w-3 text-center text-neutral-300">🔒</span>
                 <label class="flex items-center gap-1.5 flex-1 cursor-not-allowed">
                   <input type="checkbox" class="cb" checked disabled /> {{ i.header }}
                 </label>
@@ -74,8 +74,8 @@ export interface ManageColumnItem {
 
             <div cdkDropList (cdkDropListDropped)="drop($event)" class="flex flex-col">
               @for (key of visibleDraggableKeys(); track key) {
-                <div cdkDrag class="flex items-center gap-1.5 py-1 text-[11px] text-slate-600 border-b border-slate-50 bg-white">
-                  <span cdkDragHandle class="w-3 text-center text-slate-300 cursor-grab">⠿</span>
+                <div cdkDrag class="flex items-center gap-1.5 py-1 text-[11px] text-ink-600 border-b border-neutral-50 bg-neutral-0">
+                  <span cdkDragHandle class="w-3 text-center text-neutral-300 cursor-grab">⠿</span>
                   <label class="flex items-center gap-1.5 flex-1 cursor-pointer">
                     <input type="checkbox" class="cb" [checked]="draftVisible().has(key)"
                            (change)="toggleVisible(key)" />
@@ -86,10 +86,10 @@ export interface ManageColumnItem {
             </div>
           </div>
 
-          <div class="flex gap-2 mt-2 pt-2 border-t border-slate-100">
+          <div class="flex gap-2 mt-2 pt-2 border-t border-neutral-100">
             <button type="button"
-                    class="flex-1 text-xs font-semibold text-slate-600 hover:bg-slate-50 rounded-lg px-3 py-1.5
-                           border border-slate-200 transition-colors"
+                    class="flex-1 text-xs font-semibold text-ink-600 hover:bg-neutral-50 rounded-r-sm px-3 py-1.5
+                           border border-neutral-200 transition-colors"
                     (click)="cancel()">Cancel</button>
             <button type="button" class="flex-1 btn-primary justify-center" (click)="applyChanges()">Apply</button>
           </div>

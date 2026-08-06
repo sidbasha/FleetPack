@@ -18,7 +18,7 @@ import { APP_BRAND, APP_ROUTES, AUTH_CONFIG, LOGIN_TEXT } from '../../core/const
         </div>
         <div class="relative z-10 flex flex-col justify-between p-10 xl:p-14 w-full">
           <div class="flex items-center gap-3">
-            <span class="w-10 h-10 rounded-lg bg-white text-nexus-950 grid place-items-center font-extrabold">{{ brand.mark }}</span>
+            <span class="w-10 h-10 rounded-lg bg-white text-surface-inverse grid place-items-center font-extrabold">{{ brand.mark }}</span>
             <div>
               <p class="text-sm font-bold tracking-wide">{{ brand.moduleName }}</p>
             </div>
@@ -38,7 +38,7 @@ import { APP_BRAND, APP_ROUTES, AUTH_CONFIG, LOGIN_TEXT } from '../../core/const
       <section class="flex items-center justify-center px-5 py-10">
         <div class="w-full max-w-sm">
           <div class="lg:hidden mb-8 flex items-center gap-3">
-            <span class="w-10 h-10 rounded-lg bg-nexus-950 text-white grid place-items-center font-extrabold">{{ brand.mark }}</span>
+            <span class="w-10 h-10 rounded-lg bg-surface-inverse text-white grid place-items-center font-extrabold">{{ brand.mark }}</span>
             <div>
               <p class="text-sm font-bold text-slate-900">{{ brand.moduleName }}</p>
               <p class="text-xs text-slate-500">{{ brand.productName }}</p>

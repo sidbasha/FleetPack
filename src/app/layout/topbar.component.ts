@@ -15,66 +15,66 @@ import { BaseBreadcrumbsComponent, BaseSelectComponent, BaseSelectOption } from 
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [BaseSelectComponent, BaseBreadcrumbsComponent],
   template: `
-    <header class="h-14 sticky top-0 z-20 bg-white/90 backdrop-blur-sm border-b border-slate-200 flex items-center gap-4 px-5">
+    <header class="h-14 sticky top-0 z-20 bg-neutral-0/90 backdrop-blur-sm border-b border-neutral-200 flex items-center gap-4 px-5">
       <base-breadcrumbs class="min-w-0" [items]="crumbItems()" [separator]="text.breadcrumbSeparator" />
 
       <div class="flex-1"></div>
 
       <div class="hidden lg:flex items-center gap-2">
         <span class="flex flex-col items-end leading-tight mr-1">
-          <label class="text-[9px] font-bold uppercase tracking-wide text-slate-400">{{ text.dateRangeLabel }}</label>
-          <span class="text-[11px] font-medium text-slate-600">{{ store.dateRangeLabel() }}</span>
+          <label class="text-[9px] font-bold uppercase tracking-wide text-neutral-400">{{ text.dateRangeLabel }}</label>
+          <span class="text-[11px] font-medium text-ink-600">{{ store.dateRangeLabel() }}</span>
         </span>
 
-        <label class="text-[10px] font-bold uppercase tracking-wide text-slate-400 ml-2">{{ text.fleetLabel }}</label>
+        <label class="text-[10px] font-bold uppercase tracking-wide text-neutral-400 ml-2">{{ text.fleetLabel }}</label>
         <base-select class="w-36" [options]="fleetOptions()" [value]="store.fleet()"
                      (valueChange)="onFleetPick($event)" />
 
-        <label class="text-[10px] font-bold uppercase tracking-wide text-slate-400 ml-2">{{ text.durationLabel }}</label>
+        <label class="text-[10px] font-bold uppercase tracking-wide text-neutral-400 ml-2">{{ text.durationLabel }}</label>
         <base-select class="w-32" [options]="durationOptions" [value]="store.filters().duration"
                      (valueChange)="onDurationPick($event)" />
       </div>
 
-      <div class="relative flex items-center gap-3 pl-3 border-l border-slate-200">
-        <button class="text-xs font-bold text-slate-400 hover:text-indigo-600" title="{{ text.notificationsTitle }}">
+      <div class="relative flex items-center gap-3 pl-3 border-l border-neutral-200">
+        <button class="text-xs font-bold text-neutral-400 hover:text-action" title="{{ text.notificationsTitle }}">
           {{ text.notificationsShortLabel }}
         </button>
-        <button class="text-xs font-bold text-slate-400 hover:text-indigo-600" title="{{ text.messagesTitle }}">
+        <button class="text-xs font-bold text-neutral-400 hover:text-action" title="{{ text.messagesTitle }}">
           {{ text.messagesShortLabel }}
         </button>
         <button
           type="button"
-          class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 grid place-items-center text-[11px] font-bold hover:bg-indigo-200"
+          class="w-8 h-8 rounded-r-full bg-action-surface text-action-hover grid place-items-center text-[11px] font-bold hover:bg-action/20 transition-colors"
           title="{{ user().username }}"
           (click)="toggleUserPopup($event)"
         >{{ user().initials }}</button>
 
         @if (showUserPopup()) {
-          <div class="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-lg border border-slate-200 p-4 z-30" (click)="$event.stopPropagation()">
-            <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
-              <span class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 grid place-items-center text-sm font-bold">{{ user().initials }}</span>
+          <div class="absolute right-0 top-full mt-2 w-64 bg-neutral-0 rounded-r-lg border border-neutral-200 p-4 z-30" style="box-shadow: var(--shadow-e3);" (click)="$event.stopPropagation()">
+            <div class="flex items-center gap-3 pb-3 border-b border-neutral-100">
+              <span class="w-10 h-10 rounded-r-full bg-action-surface text-action-hover grid place-items-center text-sm font-bold">{{ user().initials }}</span>
               <div class="min-w-0">
-                <p class="text-sm font-semibold text-slate-800 truncate">{{ user().name }}</p>
-                <p class="text-[11px] text-slate-400 truncate">{{ user().role }}</p>
+                <p class="text-sm font-semibold text-ink-700 truncate">{{ user().name }}</p>
+                <p class="text-[11px] text-neutral-400 truncate">{{ user().role }}</p>
               </div>
             </div>
             <dl class="pt-3 space-y-1.5 text-xs">
               <div class="flex justify-between gap-2">
-                <dt class="text-slate-400">{{ text.usernameLabel }}</dt>
-                <dd class="text-slate-700 font-medium truncate">{{ user().username }}</dd>
+                <dt class="text-neutral-400">{{ text.usernameLabel }}</dt>
+                <dd class="text-ink-700 font-medium truncate">{{ user().username }}</dd>
               </div>
               <div class="flex justify-between gap-2">
-                <dt class="text-slate-400">{{ text.emailLabel }}</dt>
-                <dd class="text-slate-700 font-medium truncate">{{ user().email }}</dd>
+                <dt class="text-neutral-400">{{ text.emailLabel }}</dt>
+                <dd class="text-ink-700 font-medium truncate">{{ user().email }}</dd>
               </div>
               <div class="flex justify-between gap-2">
-                <dt class="text-slate-400">{{ text.fleetLabel }}</dt>
-                <dd class="text-slate-700 font-medium truncate">{{ store.fleet() }}</dd>
+                <dt class="text-neutral-400">{{ text.fleetLabel }}</dt>
+                <dd class="text-ink-700 font-medium truncate">{{ store.fleet() }}</dd>
               </div>
             </dl>
             <button
               type="button"
-              class="mt-4 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:border-red-200 hover:bg-red-50 hover:text-red-700 transition-colors"
+              class="mt-4 w-full rounded-r-sm border border-neutral-200 px-3 py-2 text-xs font-semibold text-ink-700 hover:border-error/40 hover:bg-error-surface hover:text-error transition-colors"
               (click)="logout()"
             >
               {{ text.signOutLabel }}

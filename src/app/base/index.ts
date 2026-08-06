@@ -17,3 +17,7 @@ export * from './components/base-date-range-picker.component';
 export * from './components/base-nav.components';
 export * from './components/base-overlay.components';
 export * from './components/base-drawer.component';
+export * from './components/base-advanced-form.components';
+export * from './components/base-charts.components';
+export * from './components/base-timeline.components';
+export * from './components/base-notification.components';
