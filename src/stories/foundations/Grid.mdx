@@ -1,0 +1,72 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Foundations/Grid &#38; Layout" />
+
+# Grid & Layout
+
+Desktop-first, built for fixed workstation monitors and ultra-wide fab
+displays.
+
+## Breakpoints
+
+| Breakpoint | Min width | Token | Behavior |
+|---|---|---|---|
+| `compact` | 1024px | `--breakpoint-compact` | Nav rail collapses to icon-only; table toolbars wrap to two rows; minimum supported width for any FleetPack page |
+| `standard` | 1280px | `--breakpoint-standard` | Default target: 264px nav rail + content, 12-column content grid, 24px gutter |
+| `wide` | 1600px | `--breakpoint-wide` | Dashboards move from 1 to 2 KPI-panel columns; tables gain side margins |
+| `ultra-wide` | 1920px+ | `--breakpoint-ultrawide` | Content max-width caps at 1600px and centers, so a table never stretches full-bleed on a fab-floor ultra-wide |
+
+These are additive Tailwind breakpoint names (`compact:`, `standard:`,
+`wide:`, `ultrawide:`) — the framework's own `sm`/`md`/`lg`/`xl`/`2xl` are
+untouched, since existing components already key off them.
+
+## Base grid, columns & gutters
+
+A 12-column grid underlies every FleetPack page. Components span whole
+columns; nothing is positioned at an arbitrary fractional width.
+
+| Property | Value | Rule |
+|---|---|---|
+| Columns | 12 | Standard & wide breakpoints; compact collapses to 4; ultra-wide keeps 12 within the capped container |
+| Gutter | 24px | `sp-6`, fixed regardless of breakpoint |
+| Margin | 64px / 24px | Content edge to viewport edge: `sp-16` at standard/wide, `sp-6` at compact |
+| Min column width | 64px | Below this a component should span 2+ columns rather than shrink further |
+
+## Containers: fixed & fluid
+
+| Container | Behavior | Used for |
+|---|---|---|
+| Fluid | Width tracks the viewport between breakpoints, gutters and margins fixed | Page shell, table wrappers, dashboards |
+| Fixed-capped | Fluid until 1600px, then centers with equal margins | Page content on ultra-wide fab monitors |
+| Fixed | A hard pixel width regardless of viewport | Modals (360/440/640px), drawers (340–480px) |
+
+## Dashboard & card grids
+
+KPI rows and card grids intentionally use explicit column counts rather than
+the full 12, favoring legibility over mathematical purity: a KPI row uses
+3–4 explicit columns (2 at compact), a module dashboard uses 1 panel-per-column
+at standard and 2 at wide with each panel independently sized to its own
+content rather than a fixed grid cell, and a card grid uses 3 columns
+standard / 2 compact with a 280px minimum card width before reflowing.
+
+## Form grids
+
+Single column is the default for any form under ~5 fields, since top-to-bottom
+scanning beats side-by-side for short forms. Two-column layouts are reserved
+for related-pair fields only (e.g. From/To range) — never two unrelated
+fields side by side purely to save vertical space. Inline toolbars (filter
+rows) sit in a single wrapping flex row with a fixed minimum width each.
+
+## Safe areas & alignment
+
+| ✅ Do | ❌ Don't |
+|---|---|
+| Keep 24px clear around any fixed overlay (toast stack, modal) so it never touches the viewport edge on any supported width | Center content by eyeballing margins. Align to the column grid even inside a card — off-grid alignment is the fastest way to make a page look unintentional |
+
+## Usage guidelines
+
+| Rule | Meaning |
+|---|---|
+| Start fluid | Design the standard breakpoint first, then verify compact and wide — not the reverse |
+| Whole columns only | No component spans a fractional column; if it doesn't fit cleanly, the grid should flex, not the component |
+| One gutter value | 24px everywhere. A tighter gutter inside a dense table toolbar uses `sp-3`/`sp-2` spacing tokens, never a fractional gutter |

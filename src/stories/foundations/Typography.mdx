@@ -1,0 +1,108 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Foundations/Typography" />
+
+# Typography
+
+Three families, one job each: **Instrument Sans** carries personality on
+headings only, **Inter** stays neutral and dense for all UI text,
+**JetBrains Mono** marks anything literal — IDs, code, hex values, file
+paths. Every sample below is rendered with the live `text-*` utility, not a
+screenshot.
+
+## Type scale
+
+<table style="width:100%;border-collapse:collapse;font-size:13px;margin:16px 0;">
+  <thead>
+    <tr style="background:var(--color-neutral-50);text-align:left;">
+      <th style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-200);font-size:11px;color:var(--color-ink-500);text-transform:uppercase;">Token</th>
+      <th style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-200);font-size:11px;color:var(--color-ink-500);text-transform:uppercase;">Sample</th>
+      <th style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-200);font-size:11px;color:var(--color-ink-500);text-transform:uppercase;">Spec</th>
+      <th style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-200);font-size:11px;color:var(--color-ink-500);text-transform:uppercase;">Usage</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);font-family:var(--font-mono);color:var(--color-ink-500);">display/xl</td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);"><span class="font-display text-display-xl" style="color:var(--color-ink-900);">Fleet Availability</span></td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);font-family:var(--font-mono);color:var(--color-ink-500);">32/40/700</td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Page-level hero headings only</td>
+    </tr>
+    <tr>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);font-family:var(--font-mono);color:var(--color-ink-500);">display/lg</td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);"><span class="font-display text-display-lg" style="color:var(--color-ink-900);">Module Dashboard</span></td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);font-family:var(--font-mono);color:var(--color-ink-500);">24/32/700</td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Section h2, page titles</td>
+    </tr>
+    <tr>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);font-family:var(--font-mono);color:var(--color-ink-500);">display/md</td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);"><span class="font-display text-display-md" style="color:var(--color-ink-900);">Alarm Explorer</span></td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);font-family:var(--font-mono);color:var(--color-ink-500);">17/24/600</td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Card / panel headings, h3</td>
+    </tr>
+    <tr>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);font-family:var(--font-mono);color:var(--color-ink-500);">body/lg</td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);"><span class="text-body-lg" style="color:var(--color-ink-700);">Uptime rolling average across selected fleet</span></td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);font-family:var(--font-mono);color:var(--color-ink-500);">15/24/400</td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Lead paragraphs, empty-state copy</td>
+    </tr>
+    <tr>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);font-family:var(--font-mono);color:var(--color-ink-500);">body/md</td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);"><span class="text-body-md" style="color:var(--color-ink-700);">Column filters narrow rows by field value</span></td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);font-family:var(--font-mono);color:var(--color-ink-500);">13/20/400</td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Default UI text, table cells, labels</td>
+    </tr>
+    <tr>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);font-family:var(--font-mono);color:var(--color-ink-500);">body/sm</td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);"><span class="text-body-sm" style="color:var(--color-ink-700);">Last updated 3 minutes ago</span></td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);font-family:var(--font-mono);color:var(--color-ink-500);">12/18/400</td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Meta text, helper text, timestamps</td>
+    </tr>
+    <tr>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);font-family:var(--font-mono);color:var(--color-ink-500);">caption</td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);"><span class="text-caption" style="color:var(--color-ink-700);text-transform:uppercase;">Fleet Segment</span></td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);font-family:var(--font-mono);color:var(--color-ink-500);">10/14/700</td>
+      <td style="padding:10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Eyebrows, table headers, badge text</td>
+    </tr>
+    <tr>
+      <td style="padding:10px;font-family:var(--font-mono);color:var(--color-ink-500);">mono/data</td>
+      <td style="padding:10px;"><span class="mono-data" style="color:var(--color-ink-900);">MTBR 128.4 hrs</span></td>
+      <td style="padding:10px;font-family:var(--font-mono);color:var(--color-ink-500);">12/18/400</td>
+      <td style="padding:10px;color:var(--color-ink-600);">Numeric readouts, IDs, hex, paths</td>
+    </tr>
+  </tbody>
+</table>
+
+## Weights & families
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;border:1px solid var(--color-neutral-200);border-radius:8px;padding:16px;margin:16px 0;">
+  <div style="text-align:center;">
+    <div class="font-display" style="font-size:28px;font-weight:700;color:var(--color-ink-900);">Aa</div>
+    <div style="font-size:11px;color:var(--color-ink-500);margin-top:6px;">Instrument Sans 700</div>
+  </div>
+  <div style="text-align:center;">
+    <div class="font-display" style="font-size:28px;font-weight:600;color:var(--color-ink-900);">Aa</div>
+    <div style="font-size:11px;color:var(--color-ink-500);margin-top:6px;">Instrument Sans 600</div>
+  </div>
+  <div style="text-align:center;">
+    <div style="font-size:28px;font-weight:500;color:var(--color-ink-900);">Aa</div>
+    <div style="font-size:11px;color:var(--color-ink-500);margin-top:6px;">Inter 500</div>
+  </div>
+  <div style="text-align:center;">
+    <div class="mono-data" style="font-size:28px;color:var(--color-ink-900);">Aa</div>
+    <div style="font-size:11px;color:var(--color-ink-500);margin-top:6px;">JetBrains Mono 400</div>
+  </div>
+</div>
+
+## Rules
+
+All numeric table and KPI values use `font-variant-numeric: tabular-nums` (the
+`.mono-data` utility class, or `tabular-nums` directly) so columns of digits
+align. Percentages always show one decimal (`98.2%`), hours show one decimal
+(`120.4h`). Single-line labels truncate with an ellipsis at the container edge
+and always carry a native `title` tooltip with the full value — tool and
+fleet names are never silently cut.
+
+| ✅ Do | ❌ Don't |
+|---|---|
+| Use Instrument Sans (`font-display`) only for headings (h1–h4) and hero numerals. Keep all UI copy in Inter (`font-sans`, the default). | Set body paragraphs or table cells in Instrument Sans — it was drawn for short display strings, not dense reading. |

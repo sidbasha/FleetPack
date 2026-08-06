@@ -66,10 +66,31 @@ event log. Use that route to see components wired together in a workflow;
 use *this* catalog to review one component in isolation, drive every input,
 and check accessibility.
 
+## Foundations
+
+Tokens now have both a source and a set of pages: `src/styles.css` is the
+actual token source (a three-tier Tailwind v4 `@theme` block — primitive →
+semantic → component, see **Foundations → Token Architecture**), and every
+cross-cutting rule that isn't a component has its own documented page:
+
+- **Foundations / Token Architecture** — the three-tier system and naming convention every other page (and every future component) builds on
+- **Foundations / Color** — the audited KLA Vivid Electric palette, the 4-step error ramp, and how Machine State / Alarm Severity re-key onto it
+- **Foundations / Typography** — the Instrument Sans / Inter / JetBrains Mono type scale
+- **Foundations / Spacing & Sizing** — the 12-step 4px spacing scale and control/overlay sizing table
+- **Foundations / Radius & Elevation** — the 5-step radius and 5-level elevation scales
+- **Foundations / Grid & Layout** — breakpoints, the 12-column grid, and container rules
+- **Foundations / Iconography** — Material Symbols Outlined, the size scale, and the icon-by-category reference
+- **Foundations / Density & Themes** — row-density modes, plus the Dark / High Contrast theme spec (**not implemented yet** — Light is the only theme this pass ships; see that page for why landing the others later doesn't require a component rewrite)
+
 ## What's still open
 
-Per the design-system coverage matrix, tokens (`Foundations & Design Tokens`)
-and cross-cutting rules (motion, elevation, grid, engineering handoff
-narrative) aren't components and so don't get their own story — those belong
-in `src/styles.css` (the actual token source, Tailwind v4 `@theme` block) and
-should be documented as MDX pages here as that work lands.
+The foundations layer above is additive by design — it introduces new
+`sp-*`/`r-*`/`display-*`/`body-*` utilities and re-points a handful of
+already-global `styles.css` classes (`.panel`, `.btn-primary`, `.chip*`, …)
+to the new semantic tokens, but it does **not** yet touch any individual
+Base component's own template/class bindings. Restyling each Base component
+(button, forms, table, modal/drawer, nav, alert/toast, badge/tag/chip,
+tooltip, cards/KPI) to the new spec, and building the components that don't
+exist yet (segmented control, combo box, stat bar, state heatmap, Gantt
+timeline, and the rest of the chart family), is deliberately deferred to a
+follow-up pass — see each component's own story once that work lands.

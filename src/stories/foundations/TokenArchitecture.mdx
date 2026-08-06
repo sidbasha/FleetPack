@@ -1,0 +1,48 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Foundations/Token Architecture" />
+
+# Token Architecture
+
+Three tiers. Components reference **only** the middle tier — that's what makes a
+future theme switch (dark / high-contrast) possible without touching a single
+component rule. The tokens documented across every other Foundations page
+(Color, Typography, Spacing & Sizing, Radius & Elevation) are all instances of
+this same three-tier shape, defined once in `src/styles.css`.
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:20px 0;">
+  <div style="border:1px solid var(--color-neutral-200);border-radius:8px;padding:16px;background:var(--color-neutral-50);">
+    <div style="font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--color-action);text-transform:uppercase;margin-bottom:8px;">01 · Primitive</div>
+    <p style="font-size:13px;color:var(--color-ink-600);margin:0;">Raw values. <code>--p-cobalt: #2563EB</code>. Plain <code>:root</code>, outside <code>@theme</code> — never consumed by a component directly, never changes per-theme, never generates its own Tailwind utility.</p>
+  </div>
+  <div style="border:1px solid var(--color-neutral-200);border-radius:8px;padding:16px;background:var(--color-neutral-50);">
+    <div style="font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--color-action);text-transform:uppercase;margin-bottom:8px;">02 · Semantic</div>
+    <p style="font-size:13px;color:var(--color-ink-600);margin:0;">Meaning aliases. <code>--color-action: var(--p-cobalt)</code>, inside Tailwind's <code>@theme</code> block. The tier every theme redefines, and the <strong>only</strong> tier components reference.</p>
+  </div>
+  <div style="border:1px solid var(--color-neutral-200);border-radius:8px;padding:16px;background:var(--color-neutral-50);">
+    <div style="font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--color-action);text-transform:uppercase;margin-bottom:8px;">03 · Component</div>
+    <p style="font-size:13px;color:var(--color-ink-600);margin:0;">Scoped overrides. <code>--btn-height-md: 36px</code>. Falls back to a semantic or spacing token wherever possible; only introduced when tier 2 alone can't express a fixed control size.</p>
+  </div>
+</div>
+
+## Naming convention
+
+| Pattern | Example (real, in `styles.css`) | Rule |
+|---|---|---|
+| `--{category}-{value}` | `--sp-4`, `--r-md`, `--mo-slow` | Primitive spacing / radius / motion scales, a numeric or t-shirt step — never a raw pixel value inside component CSS |
+| `--{role}` | `--color-action`, `--color-error` | Semantic color role, no numeric suffix — the role itself is the name |
+| `--{role}-{modifier}` | `--color-error-hover`, `--color-action-surface` | A themed variant of a role: `hover` / `active` / `surface` (tint) / `text` (on-tint text) |
+| `--{component}-{prop}` | `--btn-height-md`, `--modal-width-lg` | Component-scoped override, only introduced when tier 2 is insufficient |
+
+## Where this lives
+
+`src/styles.css` is the single source of truth — a Tailwind v4 `@theme` block,
+not a separate JS config. Primitives sit in a plain `:root` block just above
+it so they never leak into the generated utility set; every generated utility
+(`bg-action`, `text-ink-700`, `p-sp-4`, `rounded-r-md`, …) is a semantic or
+spacing/radius-scale name, never a raw primitive name.
+
+<div style="border-left:3px solid var(--color-action);background:var(--color-action-surface);border-radius:0 8px 8px 0;padding:12px 16px;margin:20px 0;">
+  <strong style="font-size:12px;color:var(--color-action-hover);">Why this matters for the theme switcher</strong>
+  <p style="font-size:13px;color:var(--color-ink-600);margin:6px 0 0;">Because every component rule resolves through a semantic variable and never a primitive, redefining <code>--color-action</code> once (say, for dark mode) repaints every button, focus ring, and active nav item without editing a single component file. That redefinition is scoped to light theme only for now — see <a href="/?path=/docs/foundations-density---themes--docs">Density &amp; Themes</a>.</p>
+</div>

@@ -20,7 +20,19 @@ const preview: Preview = {
       storySort: {
         order: [
           'Introduction',
-          'Foundations',
+          [
+            'Foundations',
+            [
+              'Token Architecture',
+              'Color',
+              'Typography',
+              'Spacing & Sizing',
+              'Radius & Elevation',
+              'Grid & Layout',
+              'Iconography',
+              'Density & Themes'
+            ]
+          ],
           'Base',
           ['Actions', 'Forms', 'Feedback', 'Navigation', 'Overlays', 'Tables & Data', 'Cards & Containers'],
           'Widgets',

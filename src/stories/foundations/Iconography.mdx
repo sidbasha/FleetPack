@@ -1,0 +1,167 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Foundations/Iconography" />
+
+# Iconography
+
+Icons **Outlined** exclusively — Material Symbols Outlined, loaded globally
+in `index.html`. Every glyph below renders live via the `.icon-outline`
+utility class (`src/styles.css`): a `<span>` whose text content is the
+icon's name, e.g. `<span class="icon-outline">delete</span>`. No icon
+*component* exists yet — this page is the foundation a future `<base-icon>`
+builds on.
+
+## Icon sizes
+
+<div style="display:flex;gap:32px;align-items:flex-end;margin:16px 0;">
+  <div style="text-align:center;">
+    <span class="icon-outline" style="font-size:14px;color:var(--color-ink-700);">bolt</span>
+    <div style="font-size:11px;color:var(--color-ink-500);margin-top:8px;">14px · xs<br/>inline w/ 11–12px text</div>
+  </div>
+  <div style="text-align:center;">
+    <span class="icon-outline" style="font-size:16px;color:var(--color-ink-700);">bolt</span>
+    <div style="font-size:11px;color:var(--color-ink-500);margin-top:8px;">16px · sm<br/>buttons, table cells</div>
+  </div>
+  <div style="text-align:center;">
+    <span class="icon-outline" style="font-size:20px;color:var(--color-ink-700);">bolt</span>
+    <div style="font-size:11px;color:var(--color-ink-500);margin-top:8px;">20px · md<br/>default, nav items</div>
+  </div>
+  <div style="text-align:center;">
+    <span class="icon-outline" style="font-size:24px;color:var(--color-ink-700);">bolt</span>
+    <div style="font-size:11px;color:var(--color-ink-500);margin-top:8px;">24px · lg<br/>page headers</div>
+  </div>
+  <div style="text-align:center;">
+    <span class="icon-outline" style="font-size:32px;color:var(--color-ink-700);">bolt</span>
+    <div style="font-size:11px;color:var(--color-ink-500);margin-top:8px;">32px · xl<br/>hero use only</div>
+  </div>
+</div>
+
+## Icons by component category
+
+Not a generic symbol library — every icon below is one actually referenced
+by a Base component or a FleetPack pattern, grouped by the job it does.
+
+<table style="width:100%;border-collapse:collapse;font-size:13px;margin:16px 0;">
+  <thead>
+    <tr style="background:var(--color-neutral-50);text-align:left;">
+      <th style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-200);font-size:11px;color:var(--color-ink-500);text-transform:uppercase;">Icon</th>
+      <th style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-200);font-size:11px;color:var(--color-ink-500);text-transform:uppercase;">Used in</th>
+      <th style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-200);font-size:11px;color:var(--color-ink-500);text-transform:uppercase;">Meaning</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td colspan="3" style="padding:6px 10px;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--color-action);text-transform:uppercase;background:var(--color-action-surface);">Actions</td></tr>
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);"><span class="icon-outline" style="font-size:20px;color:var(--color-error);">delete</span> <code>delete</code></td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Buttons, table row actions</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Destructive action trigger, always paired with a confirmation modal</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);"><span class="icon-outline" style="font-size:20px;color:var(--color-ink-700);">file_download</span> <code>file_download</code></td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Table / chart toolbars</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Export current view as CSV, Excel, or PDF depending on context</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);"><span class="icon-outline" style="font-size:20px;color:var(--color-ink-700);">content_copy</span> <code>content_copy</code></td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Code panels</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Copy code to clipboard; pairs with the "Copied" confirmation state</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);"><span class="icon-outline" style="font-size:20px;color:var(--color-ink-700);">filter_alt</span> <code>filter_alt</code></td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Table toolbars, drawers</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Opens a filter panel or drawer</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);"><span class="icon-outline" style="font-size:20px;color:var(--color-ink-700);">tune</span> <code>tune</code></td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Popovers, Manage Columns header</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Adjustable settings or column options</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);"><span class="icon-outline" style="font-size:20px;color:var(--color-ink-700);">expand_more</span> <code>expand_more</code></td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Cards, table nested rows</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Discloses more content in place; rotates on open, never navigates</td>
+    </tr>
+    <tr><td colspan="3" style="padding:6px 10px;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--color-action);text-transform:uppercase;background:var(--color-action-surface);">Status &amp; severity</td></tr>
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);"><span class="icon-outline" style="font-size:20px;color:var(--color-success);">check_circle</span> <code>check_circle</code></td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Do/don't, banners, toasts</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Success, confirmation, or the affirmative half of a comparison</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);"><span class="icon-outline" style="font-size:20px;color:var(--color-error);">cancel</span> <code>cancel</code></td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Do/don't, badges</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Failure, or the negative half of a comparison — never used for "close"</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);"><span class="icon-outline" style="font-size:20px;color:var(--color-warning);">warning</span> <code>warning</code></td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Banners, notes</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Needs attention but isn't blocking</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);"><span class="icon-outline" style="font-size:20px;color:var(--color-error);">error</span> <code>error</code></td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Table error states</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">A load or operation failed outright</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);"><span class="icon-outline" style="font-size:20px;color:var(--color-info);">info</span> <code>info</code></td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">KPI tiles, notes</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Neutral contextual detail, no action implied</td>
+    </tr>
+    <tr><td colspan="3" style="padding:6px 10px;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--color-action);text-transform:uppercase;background:var(--color-action-surface);">Navigation</td></tr>
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);"><span class="icon-outline" style="font-size:20px;color:var(--color-ink-700);">dashboard</span> <code>dashboard</code></td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Side nav, module dashboard</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">The landing/overview destination of a module</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);"><span class="icon-outline" style="font-size:20px;color:var(--color-ink-700);">table_rows</span> <code>table_rows</code></td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Cross-reference chips</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Links to the Tables &amp; data grids component</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);"><span class="icon-outline" style="font-size:20px;color:var(--color-ink-700);">grid_view</span> <code>grid_view</code></td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Cross-reference chips</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Links to a card-grid pattern (TQual insight cards)</td>
+    </tr>
+    <tr><td colspan="3" style="padding:6px 10px;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--color-action);text-transform:uppercase;background:var(--color-action-surface);">Data &amp; charts</td></tr>
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);"><span class="icon-outline" style="font-size:20px;color:var(--color-ink-700);">show_chart</span> <code>show_chart</code></td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Charts component, cross-refs</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Represents the trend-chart family specifically</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);"><span class="icon-outline" style="font-size:20px;color:var(--color-success);">trending_up</span> <code>trending_up</code> / <code>_down</code> / <code>_flat</code></td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">KPI tiles</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Directional trend; colored only once the module defines which direction is good</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);"><span class="icon-outline" style="font-size:20px;color:var(--color-ink-700);">calendar_view_week</span> <code>calendar_view_week</code></td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Cross-reference chips</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Links to the FAM Tool Availability pattern (Gantt/heatmap)</td>
+    </tr>
+    <tr><td colspan="3" style="padding:6px 10px;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--color-action);text-transform:uppercase;background:var(--color-action-surface);">Feedback &amp; overlays</td></tr>
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);"><span class="icon-outline" style="font-size:20px;color:var(--color-ink-700);">campaign</span> <code>campaign</code></td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Notes, a11y sections</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">An announcement to assistive technology, or a note worth broadcasting</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);"><span class="icon-outline" style="font-size:20px;color:var(--color-ink-700);">notifications_active</span> <code>notifications_active</code></td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Alarm Explorer cross-refs</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--color-neutral-100);color:var(--color-ink-600);">Represents the Alarm Explorer pattern specifically, distinct from generic "info"</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 10px;"><span class="icon-outline" style="font-size:20px;color:var(--color-ink-700);">close</span> <code>close</code></td>
+      <td style="padding:8px 10px;color:var(--color-ink-600);">Banners, chips, modals</td>
+      <td style="padding:8px 10px;color:var(--color-ink-600);">Dismiss or remove, always with an <code>aria-label</code>, never bare</td>
+    </tr>
+  </tbody>
+</table>
+
+## Color & state rules
+
+| Rule | Detail |
+|---|---|
+| Inherit by default | Icons take `currentColor` unless carrying independent semantic meaning (e.g. a fixed error-red delete icon). |
+| Never color-only | A status icon always ships with a text label or pairs with color rather than color alone. |
+| Filled = active | Fill marks the active/selected state of a toggleable icon; outlined is resting. |

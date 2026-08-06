@@ -6,59 +6,324 @@
 @source "./index.html";
 @source "./stories";
 
-/* ── Design tokens (was tailwind.config.js in v3) ── */
+/* ══════════════════════════════════════════════════════════════════════
+   NEXUS DESIGN SYSTEM — TOKEN ARCHITECTURE
+   Three tiers. Components (and the legacy utility classes just below)
+   reference ONLY tier 2 (semantic) — that indirection is what makes a
+   future theme switch (dark / high-contrast) possible without touching
+   a single component rule. See Foundations → Token Architecture.
+
+   01 · PRIMITIVE  --p-{name}         raw values, never themed, never
+                                       consumed by a component directly
+   02 · SEMANTIC   --{role}           inside @theme so Tailwind turns it
+                                       into real utilities (bg-action, …)
+   03 · COMPONENT  --{component}-{prop}  scoped overrides, fall back to
+                                       a semantic/spacing token first
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Tier 1 · Primitives ──────────────────────────────────────────────
+   Source of truth: KLA Vivid Electric, Option 3, WCAG 2.2 / ADA 508
+   audited. Plain :root (not @theme) so these never generate their own
+   Tailwind utilities — only the semantic aliases below do. */
+:root {
+  /* Brand & action */
+  --p-indigo: #41007f;   /* Brand · KLA Indigo        13.71:1 AAA on white */
+  --p-blue: #00a7e1;     /* Interactive · KLA Blue      7.61:1 AAA on dark */
+  --p-cobalt: #2563eb;   /* Action · Elec. Cobalt       5.17:1 AA  on white */
+  --p-violet: #7c3aed;   /* Accent · Elec. Violet       5.70:1 AA  on white */
+
+  /* Semantic hues */
+  --p-teal: #0e7490;     /* Info · Elec. Teal           5.36:1 AA */
+  --p-green: #15803d;    /* Success · Vivid Green       5.02:1 AA */
+  --p-amber: #b45309;    /* Warning · Vivid Amber       5.02:1 AA */
+
+  /* Error & destructive ramp — 4 steps, not one flat red. Replaces the
+     old "KLA Red" #F01E69 (4.12:1, fails AA). */
+  --p-red-700: #99181b;  /* error-700 · base            8.31:1 AAA */
+  --p-red-600: #b91c1c;  /* error-600 · hover           6.21:1 AA */
+  --p-red-50: #fef2f2;   /* error-50  · surface (tint only) */
+  --p-red-text: #7f1d1d; /* error-text · on surface     9.22:1 AAA */
+
+  /* Text */
+  --p-ink-900: #0c0c12;
+  --p-ink-700: #1e293b;
+  --p-ink-600: #454552;
+  --p-ink-500: #475569;
+
+  /* Neutral / surface scale */
+  --p-gray-0: #ffffff;
+  --p-gray-50: #f8fafc;
+  --p-gray-100: #f1f4f8;
+  --p-gray-200: #e2e8f0;
+  --p-gray-300: #c8d5e1;
+  --p-gray-400: #94a3b8;
+
+  /* Dark surface (side nav / login), audited separately from the ramp
+     above since it's a fixed inverse surface, not a themeable role */
+  --p-surface-inverse: #0e1230;
+
+  /* Motion — referenced by name elsewhere in the spec (e.g. accordion
+     chevron uses "mo-slow") though the dedicated Motion foundations
+     page isn't authored yet; durations only, no dedicated easing spec */
+  --mo-fast: 120ms;
+  --mo-base: 180ms;
+  --mo-slow: 240ms;
+  --mo-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Tier 2 · Semantic (Tailwind v4 theme — generates real utilities) ── */
 @theme {
+  /* Typography families — Instrument Sans carries personality on
+     headings only (h1–h4, hero numerals); Inter stays neutral/dense
+     for all UI copy; JetBrains Mono marks anything literal. */
+  --font-display: "Instrument Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  --color-nexus-950: #0e1230;
-  --color-nexus-900: #151a3d;
-  --color-nexus-800: #1e2452;
-  --color-nexus-700: #2a3168;
-  --color-nexus-accent: #6366f1;
-  --color-nexus-accentSoft: #818cf8;
-  --color-nexus-violet: #8b5cf6;
+  /* Type scale — token / sample / spec(size-leading-weight) / usage,
+     see Foundations → Typography. Additive names (display-xl, body-md,
+     …) so they never collide with Tailwind's own text-sm/text-lg/etc. */
+  --text-display-xl: 2rem;            /* 32px */
+  --text-display-xl--line-height: 2.5rem;   /* 40px */
+  --text-display-xl--font-weight: 700;
 
-  --color-state-production: #16a34a;
-  --color-state-engineering: #3b82f6;
-  --color-state-standby: #8b5cf6;
-  --color-state-scheduled: #f59e0b;
-  --color-state-unscheduled: #ef4444;
-  --color-state-gap: #cbd5e1;
+  --text-display-lg: 1.5rem;          /* 24px */
+  --text-display-lg--line-height: 2rem;     /* 32px */
+  --text-display-lg--font-weight: 700;
 
-  --color-alarm-safety: #ef4444;
-  --color-alarm-attention: #f59e0b;
-  --color-alarm-integrity: #6366f1;
-  --color-alarm-irrecoverable: #7c3aed;
+  --text-display-md: 1.0625rem;       /* 17px */
+  --text-display-md--line-height: 1.5rem;   /* 24px */
+  --text-display-md--font-weight: 600;
 
-  --shadow-panel: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .10);
+  --text-body-lg: 0.9375rem;          /* 15px */
+  --text-body-lg--line-height: 1.5rem;      /* 24px */
+  --text-body-lg--font-weight: 400;
+
+  --text-body-md: 0.8125rem;          /* 13px */
+  --text-body-md--line-height: 1.25rem;     /* 20px */
+  --text-body-md--font-weight: 400;
+
+  --text-body-sm: 0.75rem;            /* 12px */
+  --text-body-sm--line-height: 1.125rem;    /* 18px */
+  --text-body-sm--font-weight: 400;
+
+  --text-caption: 0.625rem;           /* 10px */
+  --text-caption--line-height: 0.875rem;    /* 14px */
+  --text-caption--font-weight: 700;
+  --text-caption--letter-spacing: 0.03em;
+
+  --text-mono-data: 0.75rem;          /* 12px */
+  --text-mono-data--line-height: 1.125rem;  /* 18px */
+  --text-mono-data--font-weight: 400;
+
+  /* Color — semantic roles, the only tier components should reference */
+  --color-brand: var(--p-indigo);
+  --color-interactive: var(--p-blue);
+
+  --color-action: var(--p-cobalt);
+  --color-action-hover: color-mix(in srgb, var(--p-cobalt) 85%, black);
+  --color-action-active: color-mix(in srgb, var(--p-cobalt) 72%, black);
+  --color-action-surface: color-mix(in srgb, var(--p-cobalt) 8%, white);
+
+  --color-accent: var(--p-violet);
+  --color-accent-hover: color-mix(in srgb, var(--p-violet) 85%, black);
+  --color-accent-surface: color-mix(in srgb, var(--p-violet) 10%, white);
+
+  --color-success: var(--p-green);
+  --color-success-hover: color-mix(in srgb, var(--p-green) 85%, black);
+  --color-success-surface: color-mix(in srgb, var(--p-green) 10%, white);
+
+  --color-warning: var(--p-amber);
+  --color-warning-hover: color-mix(in srgb, var(--p-amber) 85%, black);
+  --color-warning-surface: color-mix(in srgb, var(--p-amber) 10%, white);
+
+  --color-error: var(--p-red-700);
+  --color-error-hover: var(--p-red-600);
+  --color-error-surface: var(--p-red-50);
+  --color-error-text: var(--p-red-text);
+
+  --color-info: var(--p-teal);
+  --color-info-hover: color-mix(in srgb, var(--p-teal) 85%, black);
+  --color-info-surface: color-mix(in srgb, var(--p-teal) 10%, white);
+
+  /* Text roles (spec: Text/900, Text/700, Text/600, Text/500) — named
+     "ink" on the Tailwind side to avoid the text-text-900 stutter */
+  --color-ink-900: var(--p-ink-900);
+  --color-ink-700: var(--p-ink-700);
+  --color-ink-600: var(--p-ink-600);
+  --color-ink-500: var(--p-ink-500);
+
+  /* Neutral / surface scale (spec: 0, 50, 100, 200, 300, 400) */
+  --color-neutral-0: var(--p-gray-0);
+  --color-neutral-50: var(--p-gray-50);
+  --color-neutral-100: var(--p-gray-100);
+  --color-neutral-200: var(--p-gray-200);
+  --color-neutral-300: var(--p-gray-300);
+  --color-neutral-400: var(--p-gray-400);
+
+  --color-surface-inverse: var(--p-surface-inverse);
+
+  /* Product-specific scales, re-keyed to the tokens above so meaning
+     stays consistent app-wide instead of living as a parallel palette */
+  --color-state-production: var(--color-success);
+  --color-state-engineering: var(--color-action);
+  --color-state-standby: var(--color-accent);
+  --color-state-scheduled: var(--color-warning);
+  --color-state-unscheduled: var(--color-error);
+  --color-state-gap: var(--color-neutral-300);
+
+  --color-alarm-urgent: var(--color-error);
+  --color-alarm-warning: var(--color-warning);
+  --color-alarm-abnormal: var(--color-ink-500);
+
+  --color-insight-pending-kla: var(--color-accent);
+  --color-insight-pending-customer: var(--color-warning);
+  --color-insight-executed: var(--color-success);
+
+  /* Spacing — 4px base unit, 12 steps (--spacing-sp-N → utilities like
+     p-sp-4, gap-sp-2). Purely additive: Tailwind's numeric scale
+     (p-4, gap-2, …) is untouched. */
+  --spacing-sp-1: 0.25rem;   /* 4px  · icon-to-label gap, badge inner gap */
+  --spacing-sp-2: 0.5rem;    /* 8px  · button icon gap, chip padding */
+  --spacing-sp-3: 0.75rem;   /* 12px · table cell v-padding, form field gap */
+  --spacing-sp-4: 1rem;      /* 16px · card padding, grid gutter */
+  --spacing-sp-5: 1.25rem;   /* 20px · panel padding, modal body padding */
+  --spacing-sp-6: 1.5rem;    /* 24px · page content padding (dense), grid gutter */
+  --spacing-sp-8: 2rem;      /* 32px · section-to-section rhythm */
+  --spacing-sp-10: 2.5rem;   /* 40px · page-level padding */
+  --spacing-sp-12: 3rem;     /* 48px */
+  --spacing-sp-16: 4rem;     /* 64px · standard-breakpoint content margin */
+  --spacing-sp-20: 5rem;     /* 80px */
+  --spacing-sp-24: 6rem;     /* 96px · hero spacing */
+
+  /* Radius — additive r-* scale (rounded-r-xs …). Deliberately does
+     NOT override Tailwind's own rounded-xs/sm/md/lg, since ~90 existing
+     call sites rely on those at their current (different) values; a
+     per-component migration to rounded-r-* is follow-up work. */
+  --radius-r-xs: 4px;    /* chips, tags */
+  --radius-r-sm: 6px;    /* buttons, inputs */
+  --radius-r-md: 8px;    /* cards, tables — the workhorse */
+  --radius-r-lg: 12px;   /* modals, panels */
+  --radius-r-full: 999px; /* pills, avatars */
+
+  /* Elevation — e0 (flush) … e4 (overlay). Light-theme ambient shadows;
+     dark-theme swaps to higher-opacity black with no tint (deferred —
+     light-only this pass, see Foundations → Density & Themes). */
+  --shadow-e0: none;
+  --shadow-e1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-e2: 0 2px 4px rgba(15, 23, 42, 0.07), 0 4px 8px rgba(15, 23, 42, 0.08);
+  --shadow-e3: 0 4px 10px rgba(15, 23, 42, 0.10), 0 8px 20px rgba(15, 23, 42, 0.10);
+  --shadow-e4: 0 8px 16px rgba(15, 23, 42, 0.14), 0 16px 40px rgba(15, 23, 42, 0.16);
+
+  /* Legacy alias, kept so the two live consumers (login, sidebar) don't
+     need to change; equals the previous literal value. */
+  --shadow-panel: var(--shadow-e1);
+
+  /* Breakpoints — additive named set matching the spec's desktop-first
+     scale. Tailwind's default sm/md/lg/xl/2xl stay exactly as they are
+     (actively used across ~9 files) so nothing existing shifts. */
+  --breakpoint-compact: 1024px;
+  --breakpoint-standard: 1280px;
+  --breakpoint-wide: 1600px;
+  --breakpoint-ultrawide: 1920px;
+}
+
+/* ── Tier 3 · Component-scoped tokens ─────────────────────────────────
+   Introduced only where tier 2 alone isn't enough (fixed control
+   heights, fixed overlay widths). Not yet consumed by any component —
+   this is the contract the next pass (base-button, base-modal, …
+   restyle) implements against. */
+:root {
+  --btn-height-sm: 28px;
+  --btn-height-md: 36px;
+  --btn-height-lg: 44px;
+  --input-height: 36px;
+  --icon-btn-size: 32px;
+
+  --row-height-compact: 26px;
+  --row-height-standard: 36px;
+  --row-height-comfortable: 48px;
+
+  --modal-width-sm: 360px;
+  --modal-width-md: 440px;
+  --modal-width-lg: 640px;
+  --drawer-width-min: 340px;
+  --drawer-width-max: 480px;
+
+  --icon-xs: 14px;  /* inline w/ 11–12px text */
+  --icon-sm: 16px;  /* buttons, table cells */
+  --icon-md: 20px;  /* default, nav items */
+  --icon-lg: 24px;  /* page headers */
+  --icon-xl: 32px;  /* hero use only */
+
+  --layout-gutter: var(--spacing-sp-6);       /* 24px, fixed at every breakpoint */
+  --layout-margin-standard: 4rem;             /* 64px */
+  --layout-margin-compact: var(--spacing-sp-6); /* 24px */
 }
 
 @layer base {
   html { font-family: var(--font-sans); }
+  h1, h2, h3, h4 { font-family: var(--font-display); }
 }
 
+/* ── Legacy component-layer utility classes ───────────────────────────
+   Pre-existing global classes consumed across 27 feature files. Kept
+   as-is by name (so nothing calling `.btn-primary` etc. breaks) but
+   repointed from ad-hoc Tailwind stock colors to the semantic tokens
+   above, and to the new type/spacing scale where it maps cleanly. */
 @layer components {
-  .panel { @apply bg-white rounded-xl border border-slate-200 shadow-panel; }
-  .panel-header { @apply flex items-center justify-between px-4 py-3 border-b border-slate-100; }
-  .panel-title { @apply text-sm font-semibold text-slate-800; }
-  .badge-fam { @apply ml-2 text-[10px] font-bold tracking-wider text-white bg-emerald-600 rounded-sm px-1.5 py-0.5; }
-  .kpi-value { @apply text-2xl font-bold text-slate-900 leading-none; }
-  .kpi-label { @apply text-[11px] font-medium uppercase tracking-wide text-slate-400; }
-  .filter-select { @apply text-xs font-medium bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 hover:border-indigo-300 focus:outline-hidden focus:ring-2 focus:ring-indigo-200 cursor-pointer; }
-  .btn-primary { @apply text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-3 py-1.5 transition-colors; }
-  .btn-ghost { @apply text-xs font-semibold text-slate-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg px-3 py-1.5 transition-colors; }
-  .table-th { @apply text-left text-[11px] font-semibold uppercase tracking-wide text-slate-400 px-3 py-2 whitespace-nowrap; }
-  .table-td { @apply text-xs text-slate-700 px-3 py-2 whitespace-nowrap; }
-  .tab-btn { @apply text-xs font-semibold px-3.5 py-2 rounded-lg text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 transition-colors; }
-  .tab-btn-active { @apply bg-indigo-600 text-white hover:bg-indigo-600 hover:text-white; }
-  .chip { @apply inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-600; }
-  .chip-dot { @apply inline-block w-2.5 h-2.5 rounded-xs; }
-  .chip-toggle { @apply inline-flex items-center gap-1.5 text-[11px] font-semibold rounded-full border px-2.5 py-1 transition-colors; }
-  .chip-toggle-active { @apply bg-indigo-50 text-indigo-700 border-indigo-200; }
-  .chip-toggle-inactive { @apply bg-white text-slate-500 border-slate-200 hover:border-indigo-200; }
+  .panel { @apply bg-neutral-0 border border-neutral-200; border-radius: var(--radius-r-md); box-shadow: var(--shadow-e1); }
+  .panel-header { @apply flex items-center justify-between px-sp-4 py-sp-3 border-b border-neutral-100; }
+  .panel-title { @apply font-display text-display-md text-ink-700; }
+  .badge-fam { @apply ml-2 text-caption text-neutral-0 px-sp-2; background-color: var(--color-success); border-radius: var(--radius-r-xs); }
+  .kpi-value { @apply font-display text-display-lg text-ink-900 leading-none tabular-nums; }
+  .kpi-label { @apply text-caption uppercase text-neutral-400; }
+  .filter-select { @apply text-body-sm font-medium bg-neutral-0 border border-neutral-200 px-sp-3 py-sp-2 text-ink-700 cursor-pointer transition-colors; border-radius: var(--radius-r-sm); }
+  .filter-select:hover { border-color: var(--color-action); }
+  .filter-select:focus { outline: none; box-shadow: 0 0 0 2px var(--color-action-surface); }
+  .btn-primary { @apply text-body-sm font-semibold text-neutral-0 px-sp-3 py-sp-2 transition-colors; background-color: var(--color-action); border-radius: var(--radius-r-sm); }
+  .btn-primary:hover { background-color: var(--color-action-hover); }
+  .btn-ghost { @apply text-body-sm font-semibold text-ink-600 px-sp-3 py-sp-2 transition-colors; border-radius: var(--radius-r-sm); }
+  .btn-ghost:hover { color: var(--color-action); background-color: var(--color-action-surface); }
+  .table-th { @apply text-left text-caption uppercase text-neutral-400 px-sp-3 py-sp-2 whitespace-nowrap; }
+  .table-td { @apply text-left text-body-md text-ink-700 px-sp-3 py-sp-2 whitespace-nowrap; }
+  .tab-btn { @apply text-body-sm font-semibold px-sp-4 py-sp-2 text-neutral-400 transition-colors; border-radius: var(--radius-r-sm); }
+  .tab-btn:hover { color: var(--color-action); background-color: var(--color-action-surface); }
+  .tab-btn-active { color: var(--color-neutral-0); background-color: var(--color-action); }
+  .tab-btn-active:hover { color: var(--color-neutral-0); background-color: var(--color-action); }
+  .chip { @apply inline-flex items-center gap-sp-1 text-body-sm font-medium text-ink-600; }
+  .chip-dot { @apply inline-block w-2.5 h-2.5; border-radius: var(--radius-r-xs); }
+  .chip-toggle { @apply inline-flex items-center gap-sp-1 text-body-sm font-semibold border px-sp-3 py-sp-1 transition-colors; border-radius: var(--radius-r-full); }
+  .chip-toggle-active { color: var(--color-action-hover); background-color: var(--color-action-surface); border-color: color-mix(in srgb, var(--color-action) 30%, white); }
+  .chip-toggle-inactive { @apply bg-neutral-0 text-neutral-400 border-neutral-200; }
+  .chip-toggle-inactive:hover { border-color: color-mix(in srgb, var(--color-action) 30%, white); }
+}
+
+@layer utilities {
+  /* Numeric/ID readouts: mono family + tabular alignment + the mono/data
+     scale in one class, per Typography → Rules. */
+  .mono-data { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--text-mono-data); line-height: var(--text-mono-data--line-height); }
+
+  /* Iconography → "Icons Outlined exclusively". Base rendering rule for
+     Material Symbols Outlined (loaded in index.html); usage: a <span> whose
+     text content is the icon's name, e.g. <span class="icon-outline">delete</span>.
+     No icon *component* exists yet — this is the foundation the future
+     icon component builds on. */
+  .icon-outline {
+    font-family: "Material Symbols Outlined";
+    font-weight: normal;
+    font-style: normal;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 20;
+  }
 }
 
 ::-webkit-scrollbar { height: 8px; width: 8px; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+::-webkit-scrollbar-thumb { background: var(--color-neutral-300); border-radius: var(--radius-r-full); }
 ::-webkit-scrollbar-track { background: transparent; }
