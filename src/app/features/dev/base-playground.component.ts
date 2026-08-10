@@ -1,36 +1,74 @@
 import { JsonPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ViewChild, inject, signal } from '@angular/core';
 import {
   AdditionalHeaderGroup,
+  BaseAccordionComponent,
   BaseAlertComponent,
   BaseBadgeComponent,
+  BaseBarChartComponent,
   BaseBreadcrumbsComponent,
   BaseButtonComponent,
   BaseCellDirective,
+  BaseChartPoint,
   BaseChildCellDirective,
+  BaseChipComponent,
   BaseCheckboxComponent,
   BaseColumnDef,
+  BaseComboOption,
+  BaseComboboxComponent,
+  BaseContextMenuComponent,
+  BaseDateRangePickerComponent,
   BaseDatepickerComponent,
+  BaseDividerComponent,
+  BaseDrawerComponent,
   BaseDropdownMenuComponent,
+  BaseEmptyStateComponent,
+  BaseFileUploadComponent,
   BaseFilterEvent,
+  BaseGanttRow,
+  BaseGanttTimelineComponent,
+  BaseGlobalSearchComponent,
   BaseHandleActionEvent,
+  BaseHeatmapRow,
+  BaseHistogramComponent,
   BaseKpiCardComponent,
+  BaseListItemComponent,
+  BaseLoadingComponent,
+  BaseMenuItem,
   BaseModalComponent,
+  BaseMultiSelectChipsComponent,
+  BaseNotification,
+  BaseNotificationsPanelComponent,
   BasePageEvent,
+  BasePopoverComponent,
   BaseProgressBarComponent,
   BaseRadioGroupComponent,
   BaseRowAction,
+  BaseScatterChartComponent,
+  BaseScatterPoint,
+  BaseSearchResult,
+  BaseSegmentedControlComponent,
   BaseSelectComponent,
   BaseSkeletonComponent,
+  BaseSliderComponent,
   BaseSortEvent,
   BaseSparklineComponent,
+  BaseSplitButtonComponent,
+  BaseStateHeatmapComponent,
+  BaseStatBarComponent,
   BaseTableComponent,
   BaseTabsComponent,
+  BaseTagComponent,
   BaseTextInputComponent,
   BaseTextareaComponent,
+  BaseToastHostComponent,
+  BaseToastService,
   BaseToggleComponent,
   BaseTooltipDirective,
-  BaseTrendComponent
+  BaseTrendChartComponent,
+  BaseTrendComponent,
+  BaseUploadFile,
+  DateRangeValue
 } from '../../base';
 
 interface ToolRow {
@@ -103,7 +141,34 @@ function mockRows(n: number): ToolRow[] {
     BaseAlertComponent,
     BaseProgressBarComponent,
     BaseSkeletonComponent,
-    BaseTooltipDirective
+    BaseTooltipDirective,
+    BaseComboboxComponent,
+    BaseMultiSelectChipsComponent,
+    BaseFileUploadComponent,
+    BaseSliderComponent,
+    BaseSegmentedControlComponent,
+    BaseDateRangePickerComponent,
+    BaseTagComponent,
+    BaseChipComponent,
+    BaseStatBarComponent,
+    BaseListItemComponent,
+    BaseAccordionComponent,
+    BaseDividerComponent,
+    BaseEmptyStateComponent,
+    BaseLoadingComponent,
+    BaseSplitButtonComponent,
+    BaseContextMenuComponent,
+    BasePopoverComponent,
+    BaseNotificationsPanelComponent,
+    BaseGlobalSearchComponent,
+    BaseDrawerComponent,
+    BaseToastHostComponent,
+    BaseTrendChartComponent,
+    BaseBarChartComponent,
+    BaseScatterChartComponent,
+    BaseHistogramComponent,
+    BaseStateHeatmapComponent,
+    BaseGanttTimelineComponent
   ],
   template: `
     <div class="space-y-5">
@@ -140,27 +205,124 @@ function mockRows(n: number): ToolRow[] {
                 </div>
                 <base-textarea class="md:col-span-2" label="Notes" [(value)]="notes" [maxLength]="200"
                                placeholder="Handover notes…" [rows]="2" />
+                <base-combobox label="Recipe (type-ahead)" [options]="comboOptions" [(value)]="comboValue"
+                               placeholder="Type to search…" hint="Accepts free text too"
+                               (optionSelected)="log('combobox optionSelected', $event.label)" />
+                <base-multi-select-chips label="Fabs" [options]="multiSelectOptions" [(value)]="multiSelectValue" />
+                <base-slider label="Alert threshold" [min]="0" [max]="100" unit="%" [(value)]="sliderValue" />
+                <base-segmented-control [options]="segmentOptions" [(value)]="segment" ariaLabel="Time bucket" />
+                <base-date-range-picker [(value)]="dateRange" (applied)="log('dateRangePicker applied', $event.preset)" />
+                <base-file-upload class="md:col-span-2 xl:col-span-3" label="Attachments" accept="CSV, XLSX" [maxSizeMb]="10"
+                                  [(files)]="uploadFiles" (filesAdded)="log('fileUpload filesAdded', $event.length + ' file(s)')" />
                 <div class="flex items-end gap-2">
                   <base-button variant="primary" (clicked)="openModal.set(true)">Open modal</base-button>
                   <base-button variant="secondary" baseTooltip="I am a tooltip" tooltipPosition="top">Hover me</base-button>
                   <base-button variant="danger" [loading]="saving()" (clicked)="fakeSave()">Save</base-button>
+                  <base-split-button [items]="splitButtonItems" (clicked)="log('splitButton clicked', 'primary')"
+                                     (itemSelect)="log('splitButton itemSelect', $event.label)">More actions</base-split-button>
                 </div>
               </div>
             }
             @case ('feedback') {
-              <div class="space-y-3 max-w-xl">
-                <base-alert kind="info" title="Heads up" message="CDC sync runs every 5 minutes." [dismissible]="true"
-                            (dismissed)="log('alert dismissed', 'info')" />
-                <base-alert kind="success" message="Fleet snapshot exported." />
-                <base-alert kind="warning" message="3 tools have stale telemetry." />
-                <base-alert kind="error" title="Connection lost" message="Retrying ClickHouse…" />
-                <base-progress-bar [value]="72" />
-                <div class="flex items-center gap-3">
-                  <base-skeleton width="40px" height="40px" shape="circle" />
-                  <div class="flex-1 space-y-2">
-                    <base-skeleton width="60%" />
-                    <base-skeleton width="90%" />
+              <div class="space-y-5 max-w-2xl">
+                <div class="space-y-3">
+                  <base-alert kind="info" title="Heads up" message="CDC sync runs every 5 minutes." [dismissible]="true"
+                              (dismissed)="log('alert dismissed', 'info')" />
+                  <base-alert kind="success" message="Fleet snapshot exported." />
+                  <base-alert kind="warning" message="3 tools have stale telemetry." />
+                  <base-alert kind="error" title="Connection lost" message="Retrying ClickHouse…" />
+                  <base-progress-bar [value]="72" />
+                  <div class="flex items-center gap-3">
+                    <base-skeleton width="40px" height="40px" shape="circle" />
+                    <div class="flex-1 space-y-2">
+                      <base-skeleton width="60%" />
+                      <base-skeleton width="90%" />
+                    </div>
                   </div>
+                  <div class="flex items-center gap-3">
+                    <base-loading message="Loading fleet snapshot…" />
+                    <base-button variant="secondary" (clicked)="showToast()">Show toast</base-button>
+                  </div>
+                </div>
+
+                <base-divider label="Data display" />
+
+                <div class="flex flex-wrap items-center gap-2">
+                  <base-tag label="Fleet A" icon="🏷" />
+                  <base-tag label="Q3 Review" />
+                  <base-chip label="Status: Active" (removed)="log('chip removed', 'Status: Active')" />
+                  <base-chip label="Locked" [removable]="false" />
+                </div>
+
+                <base-stat-bar [stats]="statBarSample" />
+
+                <div class="panel divide-y divide-neutral-100">
+                  <base-list-item label="Fab-A / CH-1" icon="⚙" meta="3 alarms" [clickable]="true"
+                                  (itemClick)="log('listItem itemClick', 'Fab-A / CH-1')" />
+                  <base-list-item label="Fab-B / CH-2" icon="⚙" meta="0 alarms" [clickable]="true"
+                                  (itemClick)="log('listItem itemClick', 'Fab-B / CH-2')" />
+                </div>
+
+                <base-accordion title="What counts as a Gap?">
+                  A Gap is any interval with no reported machine state — distinct from Standby, which is a reported state.
+                </base-accordion>
+
+                <base-empty-state kind="no-results" hint="Try widening the date range or clearing filters."
+                                  actionLabel="Clear filters" (action)="log('emptyState action', 'clear filters')" />
+              </div>
+            }
+            @case ('navigation') {
+              <div class="space-y-5 max-w-2xl">
+                <div class="flex flex-wrap items-center gap-3">
+                  <base-popover>
+                    <button trigger class="btn-secondary">Column options</button>
+                    <div panel class="p-sp-4 w-56 space-y-2">
+                      <base-checkbox label="Show photo column" />
+                      <base-checkbox label="Show chamber column" />
+                    </div>
+                  </base-popover>
+                  <base-button variant="secondary" (clicked)="drawerOpen.set(true)">Open drawer</base-button>
+                </div>
+
+                <div class="border border-dashed border-neutral-200 rounded-r-md px-sp-4 py-sp-6 text-center text-xs text-neutral-400"
+                     (contextmenu)="contextMenuRef?.openAt($event.clientX, $event.clientY); $event.preventDefault()">
+                  Right-click anywhere in this box to open a context menu
+                </div>
+                <base-context-menu #contextMenu [items]="contextMenuItems" (itemSelect)="log('contextMenu itemSelect', $event.label)" />
+
+                <div class="bg-surface-inverse p-6 rounded-r-md flex flex-wrap items-center justify-between gap-3">
+                  <base-global-search [results]="globalSearchResults" (resultSelect)="log('globalSearch resultSelect', $event.label)" />
+                  <base-notifications-panel [notifications]="notifications"
+                                            (itemClick)="log('notificationsPanel itemClick', $event.title)"
+                                            (markAllRead)="log('notificationsPanel', 'mark all read')" />
+                </div>
+              </div>
+            }
+            @case ('charts') {
+              <div class="grid md:grid-cols-2 gap-5">
+                <div class="panel p-4">
+                  <p class="panel-title mb-2">Trend chart</p>
+                  <base-trend-chart [data]="trendChartData" [target]="95" seriesLabel="Uptime %" />
+                </div>
+                <div class="panel p-4">
+                  <p class="panel-title mb-2">Bar chart</p>
+                  <base-bar-chart [data]="barChartData" />
+                </div>
+                <div class="panel p-4">
+                  <p class="panel-title mb-2">Scatter chart</p>
+                  <base-scatter-chart [data]="scatterChartData" />
+                </div>
+                <div class="panel p-4">
+                  <p class="panel-title mb-2">Histogram</p>
+                  <base-histogram [bins]="histogramBins" />
+                </div>
+                <div class="panel p-4 md:col-span-2">
+                  <p class="panel-title mb-2">State heatmap</p>
+                  <base-state-heatmap [rows]="heatmapRows" [columns]="heatmapColumns" />
+                </div>
+                <div class="panel p-4 md:col-span-2">
+                  <p class="panel-title mb-2">Gantt timeline</p>
+                  <base-gantt-timeline [rows]="ganttRows" />
                 </div>
               </div>
             }
@@ -178,6 +340,19 @@ function mockRows(n: number): ToolRow[] {
           <base-button variant="primary" (clicked)="openModal.set(false); log('modal', 'saved')">Save</base-button>
         </div>
       </base-modal>
+
+      <base-drawer [(open)]="drawerOpen" title="Tool inspector" side="right" width="380px"
+                   (closed)="log('drawer closed', $event)">
+        <div class="px-sp-5 py-sp-4 space-y-2 text-xs text-ink-600">
+          <p><b class="text-ink-900">Tool ID:</b> {{ toolId() }}</p>
+          <p>Drawers keep the current view in place — reach for one instead of a modal when the task doesn't need to leave the page.</p>
+        </div>
+        <div footer class="flex gap-2">
+          <base-button variant="secondary" (clicked)="drawerOpen.set(false)">Close</base-button>
+        </div>
+      </base-drawer>
+
+      <base-toast-host />
 
       <div class="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <base-kpi-card label="Fleet Uptime" [value]="94.2" unit="%" [trendPct]="1.8" [accent]="true" />
@@ -352,8 +527,10 @@ export class BasePlaygroundComponent {
   ];
   readonly tabs = [
     { id: 'table', label: 'Table' },
-    { id: 'forms', label: 'Form controls', badge: 9 },
-    { id: 'feedback', label: 'Feedback' },
+    { id: 'forms', label: 'Form controls', badge: 15 },
+    { id: 'feedback', label: 'Feedback & data display', badge: 9 },
+    { id: 'navigation', label: 'Navigation & overlay', badge: 7 },
+    { id: 'charts', label: 'Charts & timeline', badge: 6 },
     { id: 'disabled', label: 'Disabled', disabled: true }
   ];
   readonly activeTab = signal('forms');
@@ -383,6 +560,98 @@ export class BasePlaygroundComponent {
   readonly saving = signal(false);
   /** Drives [highlightKey] — set to a row's toolId to highlight + auto-scroll to it. */
   readonly highlightedToolId = signal<string | null>(null);
+
+  // ── Advanced form control demo state ────────────────────────────────────
+  readonly comboValue = signal('');
+  readonly comboOptions: BaseComboOption[] = FABS.map(f => ({ label: f, value: f }));
+  readonly multiSelectValue = signal<string[]>(['Fab-A']);
+  readonly multiSelectOptions: BaseComboOption[] = [
+    { label: 'Fab-A', value: 'Fab-A' },
+    { label: 'Fab-B', value: 'Fab-B' },
+    { label: 'Fab-C', value: 'Fab-C' },
+    { label: 'Engineering', value: 'Engineering' }
+  ];
+  readonly sliderValue = signal(65);
+  readonly uploadFiles = signal<BaseUploadFile[]>([]);
+  readonly segment = signal<string | null>('week');
+  readonly segmentOptions = [
+    { label: 'Day', value: 'day' },
+    { label: 'Week', value: 'week' },
+    { label: 'Month', value: 'month' }
+  ];
+  readonly dateRange = signal<DateRangeValue>({ preset: 'last7', from: null, to: null });
+  readonly splitButtonItems: BaseMenuItem[] = [
+    { id: 'save-as', label: 'Save as new version', icon: '📄' },
+    { id: 'duplicate', label: 'Duplicate', icon: '⧉' },
+    { id: 'archive', label: 'Archive', icon: '🗄', dividerBefore: true, danger: true }
+  ];
+
+  // ── Feedback / data display demo state ──────────────────────────────────
+  private readonly toastSvc = inject(BaseToastService);
+  readonly statBarSample = [
+    { value: '94.2%', label: 'Uptime' },
+    { value: 128, label: 'Active alarms' },
+    { value: '3.4h', label: 'MTTR' }
+  ];
+
+  showToast(): void {
+    this.toastSvc.success('Export complete', 'service_activity.xlsx is ready to download.');
+  }
+
+  // ── Navigation & overlay demo state ─────────────────────────────────────
+  @ViewChild('contextMenu') contextMenuRef?: BaseContextMenuComponent;
+  readonly drawerOpen = signal(false);
+  readonly contextMenuItems: BaseMenuItem[] = [
+    { id: 'view', label: 'View details', icon: '👁' },
+    { id: 'flag', label: 'Flag for review', icon: '🚩' },
+    { id: 'remove', label: 'Remove', icon: '🗑', dividerBefore: true, danger: true }
+  ];
+  readonly notifications: BaseNotification[] = [
+    { id: 'n1', icon: 'warning', title: 'Fab-B uptime dipped below 90%', time: '4m ago', read: false },
+    { id: 'n2', icon: 'check_circle', title: 'Weekly export completed', message: 'service_activity.xlsx', time: '1h ago', read: false },
+    { id: 'n3', icon: 'info', title: 'Scheduled maintenance tonight', time: 'Yesterday', read: true }
+  ];
+  readonly globalSearchResults: BaseSearchResult[] = [
+    { id: 'r1', label: 'KLA-1042', type: 'Tool' },
+    { id: 'r2', label: 'Fab-A', type: 'Fleet' },
+    { id: 'r3', label: 'Alarm Explorer', type: 'Module' }
+  ];
+
+  // ── Chart & timeline demo data ───────────────────────────────────────────
+  readonly trendChartData: BaseChartPoint[] = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8']
+    .map((x, i) => ({ x, y: 90 + Math.round(Math.sin(i) * 4 + i * 0.3) }));
+  readonly barChartData: BaseChartPoint[] = FABS.map(f => ({ x: f, y: 10 + Math.round(Math.random() * 30) }));
+  readonly scatterChartData: BaseScatterPoint[] = Array.from({ length: 18 }, () => ({
+    x: 10 + Math.round(Math.random() * 80),
+    y: 60 + Math.round(Math.random() * 40)
+  }));
+  readonly histogramBins = [
+    { label: '0-1h', count: 12 },
+    { label: '1-2h', count: 18 },
+    { label: '2-4h', count: 9 },
+    { label: '4-8h', count: 5 },
+    { label: '8h+', count: 2 }
+  ];
+  readonly heatmapColumns = Array.from({ length: 12 }, (_, i) => `${i * 2}:00`);
+  readonly heatmapRows: BaseHeatmapRow[] = ['CH-1', 'CH-2', 'CH-3'].map(label => ({
+    label,
+    cells: this.heatmapColumns.map(col => ({
+      col,
+      state: (['production', 'engineering', 'standby', 'scheduled-dt', 'unscheduled-dt', 'gap'] as const)[Math.floor(Math.random() * 6)]
+    }))
+  }));
+  readonly ganttRows: BaseGanttRow[] = [
+    { label: 'System', badge: '96.2%', segments: [
+      { startHour: 0, endHour: 6, state: 'standby' },
+      { startHour: 6, endHour: 18, state: 'production' },
+      { startHour: 18, endHour: 24, state: 'engineering' }
+    ] },
+    { label: 'Tool', badge: '91.7%', segments: [
+      { startHour: 0, endHour: 8, state: 'production' },
+      { startHour: 8, endHour: 9, state: 'unscheduled-dt' },
+      { startHour: 9, endHour: 24, state: 'production' }
+    ] }
+  ];
 
   fakeSave(): void {
     this.saving.set(true);
