@@ -1,27 +1,10 @@
 import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core';
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * BASE MODULE · State Heatmap & Gantt Timeline
- * Both read the six-state Machine State scale (see Foundations → Color,
- * "Product-specific scales, re-keyed") — never a chart-local palette. Two of
- * those six steps (Standby/accent vs Engineering/action) sit close enough in
- * OKLab space that a colorblind or even a normal-vision reader can miss the
- * difference on a bare color chip alone — per Foundations → Color's
- * accessibility rule, every cell and legend swatch here is a secondary
- * encoding, never color-only: a text label always ships alongside (legend),
- * and every cell/segment carries a title tooltip + focusable button so the
- * exact state is one hover or Tab-stop away. Gap/no-data renders as a
- * hatched pattern, not a flat fill, since it represents absence rather than
- * a state.
- *
- * These are generic, presentational versions for the base library — the
- * live app screens (`state-heatmap.component.ts`, `activity-gantt.component.ts`
- * in `features/uptime-availability`) read from real stores and aren't
- * replaced by these; see Components → Charts & Visualization.
- * ─────────────────────────────────────────────────────────────────────────────
- */
-
+/** Six-state Machine State color scale (see Foundations → Color). These are
+ *  generic, presentational versions for the base library — the live app
+ *  screens (`state-heatmap.component.ts`, `activity-gantt.component.ts` in
+ *  `features/uptime-availability`) read from real stores and aren't replaced
+ *  by these. */
 export type BaseMachineState = 'production' | 'engineering' | 'standby' | 'scheduled-dt' | 'unscheduled-dt' | 'gap';
 
 export const BASE_MACHINE_STATE_META: Record<BaseMachineState, { label: string; colorVar: string }> = {
@@ -38,9 +21,7 @@ const HATCH = 'repeating-linear-gradient(45deg, var(--color-neutral-300) 0 2px, 
 export interface BaseHeatmapCell { col: string; state: BaseMachineState; }
 export interface BaseHeatmapRow { label: string; cells: BaseHeatmapCell[]; }
 
-/** A day × hour grid, one cell per hour, colored by the dominant machine
- *  state in that window. Built for spotting a recurring pattern (e.g.
- *  "always down Tuesday mornings") that a line chart would average away. */
+/** Day × hour grid colored by dominant machine state — spots patterns a line chart would average away. */
 @Component({
   selector: 'base-state-heatmap',
   standalone: true,
@@ -103,10 +84,7 @@ export class BaseStateHeatmapComponent {
 export interface BaseGanttSegment { startHour: number; endHour: number; state: BaseMachineState; }
 export interface BaseGanttRow { label: string; segments: BaseGanttSegment[]; badge?: string; }
 
-/** A 24-hour axis, one or more per-row tracks (e.g. system state above, tool
- *  state below), and an optional per-row badge (e.g. a daily availability
- *  percentage). The detail view a heatmap cell expands into when a pattern
- *  needs investigating. */
+/** 24h per-row state segments — the detail view a heatmap cell expands into. */
 @Component({
   selector: 'base-gantt-timeline',
   standalone: true,
@@ -165,8 +143,7 @@ export class BaseGanttTimelineComponent {
     return `${hh}:${mm}`;
   }
 
-  /** Availability badges read as success/warning/error the same way a KPI
-   *  trend would, per Foundations → Color usage guidelines. */
+  /** Availability badges read as success/warning/error, same as a KPI trend. */
   badgeTone(badge: string): string {
     const pct = parseFloat(badge);
     if (Number.isNaN(pct)) return 'text-ink-600';

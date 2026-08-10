@@ -15,15 +15,9 @@ import {
   signal
 } from '@angular/core';
 
-/**
- * Content-projected dialog. Modals interrupt for a focused decision; reach
- * for a drawer (`<base-drawer>`) instead when the task doesn't need to leave
- * the current view.
- *   <base-modal [(open)]="showEdit" title="Edit tool" size="md">
- *     ...body...
- *     <div footer>...action buttons...</div>
- *   </base-modal>
- */
+/** Content-projected dialog; use `<base-drawer>` instead when the task doesn't
+ *  need to leave the view. Footer buttons go in a `<div footer>` block:
+ *  `<base-modal [(open)]="show" title="Edit tool"><div footer>...</div></base-modal>` */
 @Component({
   selector: 'base-modal',
   standalone: true,
@@ -59,11 +53,9 @@ export class BaseModalComponent {
   readonly size = input<'sm' | 'md' | 'lg' | 'xl'>('md');
   readonly closeOnBackdrop = input(true);
   readonly showClose = input(true);
-  /** Destructive confirmation modals require an explicit button choice —
-   *  set true to force backdrop-dismiss off regardless of [closeOnBackdrop]. */
+  /** Forces backdrop-dismiss off regardless of [closeOnBackdrop], for destructive confirmations. */
   readonly destructive = input(false);
-  /** Mid-submit "processing" state disables Escape until it completes;
-   *  clicking the backdrop is unaffected (already excluded for destructive). */
+  /** Disables Escape while a submit is in flight; the backdrop is unaffected. */
   readonly processing = input(false);
 
   /** Fired when the modal closes; reason = 'button' | 'backdrop' | 'escape'. */
@@ -88,10 +80,7 @@ export class BaseModalComponent {
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
-/** A tooltip explains; appears on :hover AND keyboard :focus (never
- *  mouse-only), with a ~400ms show delay. Never the only source of
- *  information — content here must also be reachable another way for
- *  touch/no-hover contexts. Attach to any element:
+/** Hover/focus tooltip, ~400ms show delay. Attach to any element:
  *  `<button baseTooltip="Refresh data" tooltipPosition="top">` */
 @Directive({ selector: '[baseTooltip]', standalone: true })
 export class BaseTooltipDirective {
@@ -149,17 +138,9 @@ export class BaseTooltipDirective {
   }
 }
 
-/**
- * A popover contains interactive content (a button, a checkbox) — if it has
- * one, it's a popover, not a tooltip. Keeps focus inside while open: Tab
- * cycles within the panel, Escape closes it and returns focus to the
- * trigger. Project the trigger into `[trigger]` and the panel body into
- * `[panel]`:
- *   <base-popover>
- *     <button trigger class="btn-secondary">Column options</button>
- *     <div panel class="p-sp-4">...interactive content...</div>
- *   </base-popover>
- */
+/** Anchored panel for interactive content; traps focus while open. Project the
+ *  trigger into `[trigger]` and the panel body into `[panel]`:
+ *  `<base-popover><button trigger>...</button><div panel>...</div></base-popover>` */
 @Component({
   selector: 'base-popover',
   standalone: true,
@@ -230,18 +211,11 @@ export class BasePopoverComponent {
   }
 }
 
-/**
- * Moves the host element to `document.body` as soon as it's created, escaping any
- * ancestor's stacking context / overflow clipping — e.g. a `position: fixed` dropdown
- * panel nested inside a `position: sticky` table header still only out-ranks *siblings
- * within that header cell* for z-index purposes, not the table's other header cells,
- * because z-index comparisons never cross an ancestor's stacking context boundary. Apply
- * directly to a popup panel that's conditionally rendered with `@if`:
- *   `<div baseTeleport #panel class="fixed z-30 ...">`
- * Angular's own view-node bookkeeping (not DOM parentage) is what `@if` uses to remove
- * the element again when the block closes, so moving it here is safe — no manual cleanup
- * needed. The element keeps its Angular template bindings; only its DOM *location* changes.
- */
+/** Moves the host element to `document.body` on creation, escaping ancestor
+ *  stacking contexts (e.g. a `position: fixed` panel nested in a `position:
+ *  sticky` table header). Apply to a popup panel rendered with `@if`:
+ *  `<div baseTeleport class="fixed z-30 ...">` — Angular's view bookkeeping
+ *  removes it again when the block closes, so no manual cleanup is needed. */
 @Directive({ selector: '[baseTeleport]', standalone: true })
 export class BaseTeleportDirective implements OnInit {
   private readonly host = inject(ElementRef<HTMLElement>);
@@ -252,11 +226,8 @@ export class BaseTeleportDirective implements OnInit {
   }
 }
 
-/** Banners are persistent and page/section-scoped; toasts (`BaseToastService`
- *  below) are transient and global. Neither replaces an inline field error.
- *  A banner is dismissible only if re-triggering the underlying condition
- *  would show it again — a permanent, unfixable condition banner should be
- *  passed [dismissible]="false" by the host. */
+/** Persistent, page/section-scoped banner — toasts (BaseToastService) are
+ *  transient and global instead. */
 @Component({
   selector: 'base-alert',
   standalone: true,
@@ -310,11 +281,7 @@ export class BaseAlertComponent {
   }[this.kind()]));
 }
 
-/** A determinate progress bar, for an operation with a known duration or
- *  measurable percent complete — distinct from the indeterminate spinner
- *  (`<base-loading>`). Label states the operation, not just a percentage;
- *  the host should throttle [value] updates to at most once per 200ms so it
- *  reads as progress, not flicker. */
+/** Determinate progress bar — use `<base-loading>` for an indeterminate spinner instead. */
 @Component({
   selector: 'base-progress-bar',
   standalone: true,
@@ -346,7 +313,7 @@ export class BaseProgressBarComponent {
   readonly label = input('');
   /** Semantic fill color; ignored when [color] is set. */
   readonly tone = input<'action' | 'success' | 'warning' | 'error'>('action');
-  /** Arbitrary CSS color override (e.g. a widget-config-driven hex), takes precedence over [tone]. */
+  /** Arbitrary CSS color override, takes precedence over [tone]. */
   readonly color = input('');
   readonly height = input(6);
   readonly showLabel = input(true);
@@ -357,10 +324,8 @@ export class BaseProgressBarComponent {
   }[this.tone()]));
 }
 
-/** A skeleton shape per content type, so the placeholder always previews
- *  the real layout rather than a generic gray block. Use [shape]="'rect'"
- *  or [shape]="'circle'" for a custom size, or one of the content-type
- *  presets (table-row / kpi-tile / card / chart) for a ready-made block. */
+/** Loading placeholder shaped like its content — rect/circle, or a
+ *  table-row/kpi-tile/card/chart preset. */
 @Component({
   selector: 'base-skeleton',
   standalone: true,
@@ -412,15 +377,9 @@ export interface BaseToast {
 const TOAST_DURATION_MS = 3500;
 const TOAST_MAX_VISIBLE = 3;
 
-/**
- * Transient, global, auto-dismissing after 3.5s; stacks bottom-right, newest
- * on top; hovering pauses the dismiss timer. A fourth concurrent toast
- * queues rather than stacking the viewport into unreadability. Error toasts
- * never auto-dismiss — a deliberate asymmetry with success/info/warning,
- * since a failure the user didn't see acted on is worse than a lingering
- * toast; they require explicit dismissal. Mount `<base-toast-host />` once
- * near the app root, then call this service from anywhere.
- */
+/** Transient, global toasts — auto-dismiss after 3.5s except errors, which
+ *  require explicit dismissal. Stacks bottom-right (max 3 visible, rest
+ *  queue); mount `<base-toast-host />` once near the app root. */
 @Injectable({ providedIn: 'root' })
 export class BaseToastService {
   private readonly _toasts = signal<BaseToast[]>([]);

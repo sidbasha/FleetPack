@@ -1,10 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseNotificationsPanelComponent } from '../../app/base';
 
-/** Read state uses text opacity as its cue, not a background change. Unread
- *  carries a small dot, the same token as an active nav item. Shown here
- *  against a dark surface since it's header-anchored (see the Global Header
- *  anatomy in Foundations → Navigation). */
+/** Header-anchored notifications overlay; unread items carry a small dot.
+ *  Shown here on a dark surface since that's where it's actually anchored. */
 const meta: Meta<BaseNotificationsPanelComponent> = {
   title: 'Base/Navigation/Notifications Panel',
   component: BaseNotificationsPanelComponent,

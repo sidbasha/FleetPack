@@ -3,9 +3,7 @@ import type { Meta, StoryObj } from '@storybook/angular';
 import { moduleMetadata } from '@storybook/angular';
 import { BaseContextMenuComponent, BaseMenuItem } from '../../app/base';
 
-/** Right-click or overflow-icon triggered; closes on selection, Escape, or
- *  outside click. Destructive items are visually separated by a divider and
- *  colored, never the first item in the list. */
+/** Right-click/overflow-triggered menu; destructive items get a divider + red text, never listed first. */
 @Component({
   selector: 'story-context-menu-demo',
   standalone: true,

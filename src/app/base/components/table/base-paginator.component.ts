@@ -1,14 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { BasePageEvent } from '../../models/table.model';
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * <base-paginator>
- * Standalone pagination control. Used internally by <base-table>, and reusable
- * with any list/grid. Fully controlled: parent owns [page]; the component
- * emits (pageChange) and never mutates state silently.
- * ─────────────────────────────────────────────────────────────────────────────
- */
+/** Standalone pagination control, used internally by `<base-table>` and
+ *  reusable elsewhere. Fully controlled — parent owns [page]. */
 @Component({
   selector: 'base-paginator',
   standalone: true,
@@ -91,12 +85,7 @@ export class BasePaginatorComponent {
   }
 }
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * <base-search-input>
- * Debounced text input for quick filtering. Reusable with any list or table.
- * ─────────────────────────────────────────────────────────────────────────────
- */
+/** Debounced text input for quick filtering. */
 @Component({
   selector: 'base-search-input',
   standalone: true,

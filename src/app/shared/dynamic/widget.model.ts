@@ -2,12 +2,9 @@ import { Type } from '@angular/core';
 import { ChartConfiguration, ChartType } from 'chart.js';
 
 /**
- * ─────────────────────────────────────────────────────────────
- * Dynamic widget model
- * Every screen is composed of WidgetConfig[] rendered by
- * <fam-dynamic-page>. Adding a new panel = adding a config
- * object, not a new template.
- * ─────────────────────────────────────────────────────────────
+ * Dynamic widget model — every screen is composed of WidgetConfig[] rendered
+ * by <fam-dynamic-page>. Adding a new panel means adding a config object,
+ * not a new template.
  */
 
 export interface LegendItem { label: string; color: string; }

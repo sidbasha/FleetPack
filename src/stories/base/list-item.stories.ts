@@ -1,9 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseListItemComponent } from '../../app/base';
 
-/** Full-row click target when it navigates; hairline divider between rows,
- *  never a card border per item. Reserve for flat, single-line collections —
- *  anything with two or more data points per row belongs in a table. */
+/** Single-line row with a hairline divider; use a table for multi-column rows. */
 const meta: Meta<BaseListItemComponent> = {
   title: 'Base/Data Display/List Item',
   component: BaseListItemComponent,

@@ -7,13 +7,8 @@ import {
   output
 } from '@angular/core';
 
-/**
- * Content-projected side drawer (slide-over panel).
- *   <base-drawer [(open)]="showInspector" title="Alarm Info" side="right" width="420px">
- *     ...body...
- *     <div footer>...action buttons...</div>
- *   </base-drawer>
- */
+/** Content-projected slide-over panel:
+ *  `<base-drawer [(open)]="show" title="Alarm Info"><div footer>...</div></base-drawer>` */
 @Component({
   selector: 'base-drawer',
   standalone: true,

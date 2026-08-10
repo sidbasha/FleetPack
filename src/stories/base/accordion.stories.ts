@@ -1,10 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseAccordionComponent } from '../../app/base';
 
-/** Chevron rotates 180° on open with `mo-slow`; collapsed by default unless
- *  the content is required to complete a task. Multiple accordions on a
- *  page are independent (never single-open-only) unless the host
- *  explicitly coordinates that. */
+/** Collapsible section; siblings are independent, not single-open-only. */
 const meta: Meta<BaseAccordionComponent> = {
   title: 'Base/Data Display/Accordion',
   component: BaseAccordionComponent,

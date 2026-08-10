@@ -55,40 +55,20 @@ interface AdditionalHeaderCell {
   key?: string;
 }
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * <base-table> · Core reusable data table
- *
- * Covers the six core requirements:
- *  1. DYNAMIC COLUMNS   — [columns] is plain data; add/remove/reorder at runtime.
- *  2. PAGINATION        — built-in client-side, or server-side via [serverSide].
- *  3. CUSTOM CELL       — <ng-template baseCell="key"> accepts ANY content
- *     TEMPLATES           (text, number, image, chart, buttons, components…),
- *                          plus built-in cell kinds for zero-template use.
- *  4. FILTERING         — global quick search + per-column text/checkbox/
- *                          calendar/numeric-range filters.
- *  5. STICKY HEADER     — [stickyHeader] + [maxHeight] for vertical scroll.
- *  6. STICKY COLUMNS    — column.sticky = 'left' | 'right' (requires width).
- *
- * Plus: Manage Columns (drag reorder + show/hide), typed row-action registry,
- * merged/additional header rows, header-cell templates, row highlight with
- * auto-scroll, infinite scroll, and several data-type/visual conveniences —
- * see src/app/base/README.md for the full feature list.
- *
- * MODES
- *  Client-side (default): pass all rows; the table filters/sorts/paginates.
- *  Server-side ([serverSide]="true"): the table renders rows as given and only
- *  EMITS (filterChange)/(sortChange)/(pageChange); the host fetches data.
- * ─────────────────────────────────────────────────────────────────────────────
- */
+/** Core reusable data table: dynamic columns, client- or server-side
+ *  pagination/filter/sort, per-column custom cell templates
+ *  (`<ng-template baseCell="key">`) or built-in cell kinds, sticky
+ *  header/columns, drag reorder + show/hide via Manage Columns, typed row
+ *  actions, merged header rows, row highlight/auto-scroll, and infinite
+ *  scroll. In server-side mode ([serverSide]="true") the table only emits
+ *  (filterChange)/(sortChange)/(pageChange) — the host fetches and passes
+ *  back the current page. See src/app/base/README.md for the full feature list. */
 @Component({
   selector: 'base-table',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  /** Exposes the [density] input as a CSS custom property that the global
-   *  `.table-td`/`.table-th` classes (styles.css) read with a fallback —
-   *  so density only affects this table instance, never other consumers
-   *  of those classes. See Foundations → Density & Themes. */
+  /** Exposes [density] as a CSS custom property that `.table-td`/`.table-th`
+   *  (styles.css) read, scoped to this table instance only. */
   host: { '[style.--bt-row-pad.px]': 'densityPad()' },
   imports: [
     NgTemplateOutlet,
@@ -110,7 +90,6 @@ interface AdditionalHeaderCell {
     /* Below .bt-head-sticky/.bt-sticky-th (10/12) on purpose — a frozen body column must stay
        UNDER the sticky header while scrolling vertically, not outrank it. */
     .bt-sticky-td { position: sticky; z-index: 1; background: #ffffff; }
-    /* tr:hover .bt-sticky-td { background: inherit; } */    
     .bt-sticky-left-edge::after, .bt-sticky-right-edge::after {
       content: ''; position: absolute; top: 0; bottom: 0; width: 6px; pointer-events: none;
     }
@@ -406,9 +385,7 @@ export class BaseTableComponent<T = BaseRow> {
   readonly initialPageSize = input(10);
   readonly pageSizeOptions = input<number[]>([10, 25, 50, 100]);
 
-  /** Row density: compact (26px rows) for log/alarm tables, standard (36px,
-   *  default) for everything else, comfortable (48px) for config tables
-   *  with in-row controls. See Foundations → Density & Themes. */
+  /** Row density: compact (26px), standard (36px, default), or comfortable (48px). */
   readonly density = input<'compact' | 'standard' | 'comfortable'>('standard');
   /** @internal exposed for the [style.--bt-row-pad.px] host binding above. */
   protected readonly densityPad = computed(() => ({ compact: 3, standard: 8, comfortable: 14 }[this.density()]));
@@ -578,19 +555,15 @@ export class BaseTableComponent<T = BaseRow> {
     if (!groups || groups.length === 0) return null;
     const colKeys = this.visibleColumns().map(c => c.key);
 
-    // legacy/manual mode: no group uses `columnIds`, so positions can't be reconciled
-    // against the actual column order - render exactly as authored (colSpan totals
-    // are the consumer's responsibility) rather than guessing at gaps.
+    // legacy/manual mode: no group uses `columnIds` — render exactly as authored.
     if (!groups.some(g => g.columnIds)) {
       const manual: AdditionalHeaderCell[] = groups.map(group => ({ group, span: group.colSpan ?? 1, blank: false }));
       return manual.length > 0 ? manual : null;
     }
 
-    // columnIds mode: anchor each group at the first of its visible columns (in actual
-    // column order) and auto-fill any column not covered by any group with a plain blank
-    // cell (NOT rowspan="2" — the normal header row below always renders one <th> per
-    // column regardless, so a rowspan cell here would double-book that column's slot
-    // and shove every subsequent header sideways), so both header rows stay column-aligned.
+    // columnIds mode: anchor each group at its first visible column and fill
+    // uncovered columns with a blank cell (not rowspan — that would double-book
+    // the column's slot in the row below and shift every later header sideways).
     const startsAt = new Map<string, { group: AdditionalHeaderGroup; span: number }>();
     const consumed = new Set<string>();
     for (const group of groups) {
@@ -1011,18 +984,16 @@ export class BaseTableComponent<T = BaseRow> {
     return rights[0] === c ? 'bt-sticky-right-edge' : '';
   }
 
-  /** CSS class for a blank additional-header-row cell — matches the sticky/edge-shadow
-   *  treatment of the real column header below it, so the two header rows stay in sync
-   *  during horizontal scroll (a plain, non-sticky blank cell would drift out of position
-   *  the moment the sticky column beneath it stays pinned while everything else scrolls). */
+  /** CSS class for a blank additional-header-row cell — mirrors the sticky/edge
+   *  treatment of the real header below it so both rows stay aligned on scroll. */
   blankHeaderClass(key: string): string {
     const col = this.visibleColumns().find(c => c.key === key);
     if (!col?.sticky) return 'table-th';
     return `table-th bt-sticky-th ${this.stickyEdgeClass(col)}`.trim();
   }
 
-  /** Thin delegates to the shared table-cell utils — kept as instance methods so existing `this.cellValue(...)` call
-   *  sites throughout filtering/sorting below don't need to change; `<base-table-cell>` uses the same utils directly. */
+  /** Thin delegates to the shared table-cell utils, kept as instance methods
+   *  for the `this.cellValue(...)` call sites already used below. */
   cellValue(c: BaseColumnDef<T>, row: T): unknown {
     return getCellValue(c, row);
   }

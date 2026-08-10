@@ -22,17 +22,10 @@ export interface FixedPopupPosition {
   right?: number;
 }
 
-/**
- * Viewport-fixed position for a dropdown panel anchored just below `el`. Table column
- * headers can sit inside a `position: sticky` `<th>` within an `overflow-y: auto` scroll
- * container ([stickyHeader] + [maxHeight]) — a plain `position: absolute` panel would get
- * clipped by that container and drift out of sync with the trigger during scroll. Computing
- * a `position: fixed` top/left from `getBoundingClientRect()` escapes both problems, the same
- * technique `BaseTooltipDirective` already uses for tooltips. Pair with `baseTeleport` on the
- * panel so its z-index also escapes the header's `position: sticky` stacking context (a fixed
- * descendant of a stacking-context ancestor only out-ranks *siblings within that ancestor* —
- * it does not out-rank the ancestor's own siblings, e.g. the *next* column's `<th>`).
- */
+/** Viewport-fixed position for a panel anchored below `el` — escapes a
+ *  `position: sticky` table header's clipping/stacking-context issues that a
+ *  plain `position: absolute` panel would hit. Pair with `baseTeleport` on
+ *  the panel itself. */
 export function computeFixedPopupPosition(el: HTMLElement, align: 'left' | 'right', gap = 4): FixedPopupPosition {
   const r = el.getBoundingClientRect();
   return align === 'right'
@@ -40,15 +33,9 @@ export function computeFixedPopupPosition(el: HTMLElement, align: 'left' | 'righ
     : { top: r.bottom + gap, left: r.left };
 }
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * <base-checkbox-filter>
- * Per-column "Value Filter" dropdown for <base-table>: search box, checkbox list
- * of unique values, optional Sort Asc/Desc radios, Clear link, Apply button.
- * Self-contained trigger + panel (like <base-dropdown-menu>) — the host owns the
- * actual filter/sort state and passes it back in via [selected]/[currentSort].
- * ─────────────────────────────────────────────────────────────────────────────
- */
+/** Per-column value-filter dropdown for `<base-table>`: search, checkbox
+ *  list, optional sort radios. Self-contained trigger + panel — the host owns
+ *  filter/sort state via [selected]/[currentSort]. */
 @Component({
   selector: 'base-checkbox-filter',
   standalone: true,
@@ -126,8 +113,7 @@ export class BaseCheckboxFilterComponent {
   protected readonly panelPos = signal<FixedPopupPosition>({ top: 0 });
   protected readonly radioName = `bcf-sort-${++uid}`;
   private readonly host = inject(ElementRef<HTMLElement>);
-  /** `baseTeleport` moves the panel to document.body, so outside-click/scroll checks must
-   *  also test against it directly — it's no longer a DOM descendant of `host`. */
+  /** Panel is teleported to document.body, so outside-click checks must test it directly too. */
   @ViewChild('panel') private panelRef?: ElementRef<HTMLElement>;
 
   /** Ignores clicks/scrolls that originate inside the trigger or the (teleported) panel. */
@@ -191,14 +177,7 @@ export class BaseCheckboxFilterComponent {
   }
 }
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * <base-calendar-filter>
- * Per-column "Calendar / Date-Range Filter" dropdown: Start Date / End Date via
- * two <base-datepicker>, Clear link, Apply button. Dependency-free (no
- * ngx-daterangepicker-bootstrap) — reuses the base module's own datepicker.
- * ─────────────────────────────────────────────────────────────────────────────
- */
+/** Per-column date-range filter dropdown — Start/End via two `<base-datepicker>`. */
 @Component({
   selector: 'base-calendar-filter',
   standalone: true,
@@ -290,13 +269,7 @@ export class BaseCalendarFilterComponent {
   }
 }
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * <base-range-filter>
- * Per-column "Numeric Range Filter" dropdown: From/To number inputs, inline
- * validation ("Enter Valid Range" when From > To, Apply disabled), Clear link.
- * ─────────────────────────────────────────────────────────────────────────────
- */
+/** Per-column numeric range filter dropdown — From/To with inline validation. */
 @Component({
   selector: 'base-range-filter',
   standalone: true,

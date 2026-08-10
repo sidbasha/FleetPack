@@ -1,16 +1,6 @@
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * BASE MODULE · Table model
- *
- * All types consumed by <base-table>. A table is fully described by:
- *   - BaseColumnDef[]  → dynamic columns (add/remove/reorder at runtime)
- *   - rows: T[]        → any row shape
- *
- * Every cell can render one of the built-in kinds below, OR be completely
- * overridden with a custom <ng-template baseCell="key"> (text, number, image,
- * chart, buttons — anything).
- * ─────────────────────────────────────────────────────────────────────────────
- */
+/** All types consumed by `<base-table>`: `BaseColumnDef[]` for dynamic
+ *  columns plus a `rows: T[]` of any shape. Every cell renders one of the
+ *  built-in kinds below, or a custom `<ng-template baseCell="key">`. */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type BaseRow = any;

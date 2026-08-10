@@ -1,30 +1,11 @@
 import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * BASE MODULE · Charts & Visualization
- * Dependency-free inline SVG, matching `<base-sparkline>`'s approach — no
- * chart.js required. Every chart reads the same status/semantic color scale
- * as the rest of the system (see Foundations → Color); none invents its own
- * palette. Emphasis line = one solid 2px stroke (the metric tracked);
- * comparison/context lines are thinner and dashed. Gridlines are
- * border-subtle (neutral-200), 1px, never heavier. Numeric labels are
- * JetBrains Mono with tabular-nums. See Components → Charts & Visualization.
- * ─────────────────────────────────────────────────────────────────────────────
- */
-
 export interface BaseChartPoint { x: string; y: number; }
 
 const CHART_FONT = 'font-family:var(--font-mono);font-variant-numeric:tabular-nums;';
 
-/**
- * Rolling-average line chart with an optional target band and area fill —
- * the workhorse for any "is this metric healthy over time?" question. A
- * single tracked series needs no legend box (the title names it); rolling
- * windows are context lines and always render thinner + dashed so the
- * emphasis line reads first. Hover shows the exact value at that point.
- */
+/** Rolling-average line chart with optional target band and area fill. */
 @Component({
   selector: 'base-trend-chart',
   standalone: true,
@@ -152,8 +133,7 @@ export class BaseTrendChartComponent {
   }
 }
 
-/** Category comparison, e.g. alarms by module. One semantic hue (Action); a
- *  categorical rainbow is never used for a single-metric bar chart. */
+/** Category comparison bar chart, e.g. alarms by module. */
 @Component({
   selector: 'base-bar-chart',
   standalone: true,
@@ -211,8 +191,7 @@ export class BaseBarChartComponent {
 
 export interface BaseScatterPoint { x: number; y: number; label?: string; }
 
-/** Correlation between two metrics, e.g. MTBR vs utilization. One hue;
- *  markers ≥8px so adjacent points stay distinguishable on hover. */
+/** Correlation chart between two metrics, e.g. MTBR vs utilization. */
 @Component({
   selector: 'base-scatter-chart',
   standalone: true,
@@ -264,9 +243,7 @@ export class BaseScatterChartComponent {
   }
 }
 
-/** Distribution of one metric, e.g. downtime-duration buckets. Bars touch
- *  (no gap) to read as a continuous distribution, not discrete categories —
- *  the one visual difference from `<base-bar-chart>`. */
+/** Distribution of one metric into touching bars (no gap), e.g. downtime-duration buckets. */
 @Component({
   selector: 'base-histogram',
   standalone: true,

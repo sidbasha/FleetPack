@@ -1,8 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseSliderComponent } from '../../app/base';
 
-/** Arrow keys step by 1, Page Up/Down step by 10; the current value is
- *  always visible as a number, never hidden behind the thumb alone. */
+/** Bounded numeric range slider with a visible current value. */
 const meta: Meta<BaseSliderComponent> = {
   title: 'Base/Forms/Slider',
   component: BaseSliderComponent,

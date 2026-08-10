@@ -2,29 +2,20 @@ import { Signal, computed, signal } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 
 /**
- * ─────────────────────────────────────────────────────────────
- * Store foundation for all current & future FAM modules.
- *
- *   createQuery(fetcher, opts)   — async server state: status,
- *                                  TTL cache, in-flight dedupe,
- *                                  cancellation, refresh, clear
- *   createPagination(source)     — client-side paging over any
- *                                  Signal<T[]>
+ * Store foundation for all current & future FAM modules:
+ *   createQuery(fetcher, opts)   — async server state (status, TTL cache,
+ *                                  in-flight dedupe, cancellation, refresh)
+ *   createPagination(source)     — client-side paging over any Signal<T[]>
  *   createListFilter(source, fn) — reactive predicate filtering
  *
- * A feature store is then just composition:
- *
+ * A feature store is just composition:
  *   @Injectable({ providedIn: 'root' })
  *   export class MyModuleStore {
  *     private api = inject(ApiService);
- *     readonly detailQuery = createQuery(
- *       (id: string) => this.api.getDetail(id),
- *       { cacheTtlMs: 300_000 }
- *     );
- *     readonly rows  = computed(() => this.detailQuery.data()?.rows ?? []);
+ *     readonly detailQuery = createQuery((id: string) => this.api.getDetail(id), { cacheTtlMs: 300_000 });
+ *     readonly rows = computed(() => this.detailQuery.data()?.rows ?? []);
  *     readonly pager = createPagination(this.rows, 20);
  *   }
- * ─────────────────────────────────────────────────────────────
  */
 
 export type QueryStatus = 'idle' | 'loading' | 'loaded' | 'error';

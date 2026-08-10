@@ -1,13 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseDrawerComponent } from '../../app/base';
 
-/**
- * `open` is a two-way `model()`, so these stories bind it one-way and default
- * to `true` to show the drawer's anatomy directly in the canvas. Backdrop/ESC
- * close will flicker rather than stay closed (the story's static arg keeps
- * re-asserting `open`) - exercise the real open/close lifecycle at `/dev/base`
- * or in a feature that owns the signal itself.
- */
+/** `open` is bound one-way here (default `true`) just to show the drawer's
+ *  anatomy in the canvas — backdrop/ESC close will flicker rather than stay
+ *  closed. Exercise the real open/close lifecycle at `/dev/base` instead. */
 const meta: Meta<BaseDrawerComponent> = {
   title: 'Base/Overlays/Drawer',
   component: BaseDrawerComponent,

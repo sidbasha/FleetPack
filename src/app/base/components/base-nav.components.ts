@@ -20,9 +20,7 @@ export interface BaseBreadcrumbItem {
   icon?: string;
 }
 
-/** A breadcrumb's current (last) segment is always plain text, never a link
- *  — it duplicates the page the user is already on. Should mirror the
- *  drill-down the user actually took, not the URL structure. */
+/** Drill-down trail; the current (last) segment is always plain text, never a link. */
 @Component({
   selector: 'base-breadcrumbs',
   standalone: true,
@@ -72,12 +70,7 @@ export interface BaseTabItem {
   disabled?: boolean;
 }
 
-/**
- * Headless tab bar: it renders the strip and manages the active id; the host
- * switches content with @if / @switch on [(activeId)]. Only the active tab
- * is a Tab stop; arrow keys move selection, making every tab reachable in
- * one Tab press.
- */
+/** Headless tab strip — host switches content with @if/@switch on [(activeId)]. */
 @Component({
   selector: 'base-tabs',
   standalone: true,
@@ -139,8 +132,7 @@ export class BaseTabsComponent {
     this.tabSelect.emit(t);
   }
 
-  /** Arrow-key roving tabindex: moves selection to the next/previous
-   *  enabled tab and focuses it, without requiring a second Tab press. */
+  /** Arrow-key roving tabindex to the next/previous enabled tab. */
   moveFocus(dir: 1 | -1): void {
     const list = this.tabs().filter(t => !t.disabled);
     if (!list.length) return;
@@ -158,8 +150,7 @@ export interface BaseMenuItem {
   /** Renders in red (destructive actions). */
   danger?: boolean;
   disabled?: boolean;
-  /** Draws a divider line above this item — destructive items should
-   *  always be separated this way, never placed first in the list. */
+  /** Draws a divider line above this item. */
   dividerBefore?: boolean;
 }
 
@@ -225,16 +216,9 @@ export class BaseDropdownMenuComponent {
   }
 }
 
-/**
- * Right-click or overflow-icon triggered; closes on selection, Escape, or
- * outside click. Destructive items are visually separated by a divider and
- * colored, never the first item in the list (reuses `BaseMenuItem`, same
- * rule as `<base-dropdown-menu>`). Unlike the dropdown, it has no trigger
- * button of its own — call `openAt(x, y)` from a host's (contextmenu)
- * handler:
- *   <div (contextmenu)="menu.openAt($event.clientX, $event.clientY); $event.preventDefault()">
- *   <base-context-menu #menu [items]="rowActions" (itemSelect)="onAction($event)" />
- */
+/** Right-click/overflow-triggered menu with no trigger button of its own —
+ *  call `openAt(x, y)` from a host's (contextmenu) handler:
+ *  `menu.openAt($event.clientX, $event.clientY)`. */
 @Component({
   selector: 'base-context-menu',
   standalone: true,
@@ -266,8 +250,7 @@ export class BaseContextMenuComponent {
   protected readonly open = signal(false);
   protected readonly pos = signal({ x: 0, y: 0 });
 
-  /** Opens the menu at a fixed viewport coordinate, e.g. from
-   *  `$event.clientX/clientY` inside a (contextmenu) handler. */
+  /** Opens the menu at a fixed viewport coordinate. */
   openAt(x: number, y: number): void {
     this.pos.set({ x, y });
     this.open.set(true);

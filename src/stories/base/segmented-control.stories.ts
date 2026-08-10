@@ -1,9 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseSegmentedControlComponent } from '../../app/base';
 
-/** A closed set of 2–4 mutually exclusive view options. Reserve for options
- *  that fit one line without wrapping; beyond that, `<base-select>` reads
- *  better than a segmented control that wraps to a second row. */
+/** 2–4 mutually exclusive view options that fit one line — use `<base-select>` beyond that. */
 const meta: Meta<BaseSegmentedControlComponent> = {
   title: 'Base/Actions/Segmented Control',
   component: BaseSegmentedControlComponent,

@@ -7,13 +7,10 @@ import {
 } from '../../base';
 
 /**
- * ─────────────────────────────────────────────────────────────────────────────
- * LEGACY SHARED COMPONENTS → thin wrappers over the BASE MODULE
- *
- * These selectors (fam-kpi, fam-loading, fam-trend) are kept so existing
- * feature templates continue to compile, but ALL rendering is delegated to
- * the base library. New code should import from src/app/base directly.
- * ─────────────────────────────────────────────────────────────────────────────
+ * Legacy shared components — thin wrappers over the base module. The
+ * selectors (fam-kpi, fam-loading, fam-trend) are kept so existing feature
+ * templates still compile, but rendering is fully delegated to the base
+ * library. New code should import from src/app/base directly.
  */
 
 /** @deprecated Use <base-kpi-card> from the base module. */

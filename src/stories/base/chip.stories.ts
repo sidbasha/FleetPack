@@ -1,8 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseChipComponent } from '../../app/base';
 
-/** Chips are removable, user-applied filters. Removing one fires (removed)
- *  immediately — there's no separate "Apply" step, unlike panel filters. */
+/** Removable, user-applied filter chip; removing fires (removed) immediately. */
 const meta: Meta<BaseChipComponent> = {
   title: 'Base/Data Display/Chip',
   component: BaseChipComponent,

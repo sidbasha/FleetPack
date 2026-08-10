@@ -4,9 +4,7 @@ import { BaseTrendChartComponent } from '../../app/base';
 const WEEKS = ['25-20', '25-26', '25-32', '25-38', '25-44', '26-02', '26-08'];
 const ACTUAL = [98, 91, 78, 62, 58, 74, 96];
 
-/** Rolling-average line chart with an optional target band and area fill —
- *  the workhorse for any "is this metric healthy over time?" question:
- *  uptime, MTBR, alarm volume. */
+/** Rolling-average line chart with optional target band and area fill. */
 const meta: Meta<BaseTrendChartComponent> = {
   title: 'Base/Charts & Visualization/Trend Chart',
   component: BaseTrendChartComponent,

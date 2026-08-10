@@ -121,11 +121,8 @@ function buildHeatmap(rand: () => number): HeatmapDay[] {
   return days;
 }
 
-// ─────────────────────────────────────────────────────────────
-// 2b) Tool State Segments — raw feed backing both the Activity
-// Gantt bars and the Event Details rows (single source of truth,
-// see core/state/segment-derivation.util.ts for the derivation)
-// ─────────────────────────────────────────────────────────────
+// Tool State Segments — raw feed backing both the Activity Gantt bars and
+// the Event Details rows; see segment-derivation.util.ts for the derivation.
 const SEGMENT_STATES: { name: string; weight: number }[] = [
   { name: 'production', weight: 0.62 },
   { name: 'engineering', weight: 0.10 },
@@ -185,11 +182,8 @@ export function buildStateSegments(toolId: string, days = 14): StateSegmentsResp
   return { stateSegments };
 }
 
-// ─────────────────────────────────────────────────────────────
-// 2c) Segment Activities — task/recipe-level detail generated
-// inside the 'tool' track's Production windows, so it correlates
-// with the same StateSegment data backing the Gantt/Event tables.
-// ─────────────────────────────────────────────────────────────
+// Segment Activities — task/recipe-level detail generated inside the 'tool'
+// track's Production windows, correlated with the StateSegment data above.
 const RECIPE_SEGMENT_NAMES = ['Recipe Editor', 'Recipe Run', 'Wafer Process', 'Lot Load', 'Lot Unload'];
 const RECIPE_IDS = [
   'Chelsie\\MetroHost\\2_XYS_TIS_fail_UI',

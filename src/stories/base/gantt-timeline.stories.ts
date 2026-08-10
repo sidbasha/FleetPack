@@ -32,9 +32,7 @@ const rows: BaseGanttRow[] = [
   }
 ];
 
-/** Dual-row per day (system state above, tool state below), a 24-hour axis,
- *  and a per-day availability badge. The detail view a heatmap cell expands
- *  into when a pattern needs investigating. */
+/** 24h per-row state segments — the detail view a heatmap cell expands into. */
 const meta: Meta<BaseGanttTimelineComponent> = {
   title: 'Base/Charts & Visualization/Gantt Timeline',
   component: BaseGanttTimelineComponent,

@@ -26,18 +26,8 @@ import {
 } from '../../utils/table-cell.utils';
 import { BaseSparklineComponent, BaseTrendComponent } from '../base-ui.components';
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * <base-table-cell> · Renders one <base-table> cell for its column's built-in
- * `kind` (number, date, badge, dot, trend, image, progress, sparkline, link,
- * row-actions, …). Used whenever the column has no custom `baseCell` template
- * — that override still wins and is resolved by the host table, not here.
- *
- * All rendering is driven purely by `[column]` + `[row]`, i.e. by the props
- * already on `BaseColumnDef` (kind, numberFormat, badgeClassMap, …) — adding
- * a new column feature means adding a prop there and a case here, nothing else.
- * ─────────────────────────────────────────────────────────────────────────────
- */
+/** Renders one `<base-table>` cell for its column's built-in `kind`. A
+ *  custom `baseCell` template on the column still wins over this. */
 @Component({
   selector: 'base-table-cell',
   standalone: true,
@@ -145,7 +135,7 @@ export class BaseTableCellComponent<T = BaseRow> {
   readonly actionRun = output<BaseHandleActionEvent<T>>();
 
   protected readonly value = computed(() => cellValue(this.column(), this.row()));
-  /** Display text for kinds that render `{{ display() }}` verbatim — dispatches to each kind's own formatter (Intl number/date, deduped array, …), falling back to plain `cellText`. */
+  /** Display text for kinds that render `{{ display() }}` verbatim. */
   protected readonly display = computed(() => {
     const c = this.column(), row = this.row();
     switch (c.kind) {
@@ -168,8 +158,7 @@ export class BaseTableCellComponent<T = BaseRow> {
   protected readonly progLabel = computed(() => progressLabel(this.column(), this.row()));
   protected readonly spark = computed(() => sparkData(this.column(), this.row()));
   protected readonly actions = computed<ResolvedRowAction<T>[]>(() => resolvedActions(this.column(), this.row()));
-  /** Each action paired with its `baseActionTemplate` override (if any) — resolved here so the template
-   *  never has to conditionally invoke the (possibly null) `actionTemplateFor` function directly. */
+  /** Each action paired with its `baseActionTemplate` override, if any. */
   protected readonly actionsWithTemplate = computed(() => {
     const resolve = this.actionTemplateFor();
     return this.actions().map(a => ({ ...a, template: resolve ? resolve(a.type) : null }));

@@ -561,7 +561,7 @@ export class BasePlaygroundComponent {
   /** Drives [highlightKey] — set to a row's toolId to highlight + auto-scroll to it. */
   readonly highlightedToolId = signal<string | null>(null);
 
-  // ── Advanced form control demo state ────────────────────────────────────
+  // Advanced form control demo state
   readonly comboValue = signal('');
   readonly comboOptions: BaseComboOption[] = FABS.map(f => ({ label: f, value: f }));
   readonly multiSelectValue = signal<string[]>(['Fab-A']);
@@ -586,7 +586,7 @@ export class BasePlaygroundComponent {
     { id: 'archive', label: 'Archive', icon: '🗄', dividerBefore: true, danger: true }
   ];
 
-  // ── Feedback / data display demo state ──────────────────────────────────
+  // Feedback / data display demo state
   private readonly toastSvc = inject(BaseToastService);
   readonly statBarSample = [
     { value: '94.2%', label: 'Uptime' },
@@ -598,7 +598,7 @@ export class BasePlaygroundComponent {
     this.toastSvc.success('Export complete', 'service_activity.xlsx is ready to download.');
   }
 
-  // ── Navigation & overlay demo state ─────────────────────────────────────
+  // Navigation & overlay demo state
   @ViewChild('contextMenu') contextMenuRef?: BaseContextMenuComponent;
   readonly drawerOpen = signal(false);
   readonly contextMenuItems: BaseMenuItem[] = [
@@ -617,7 +617,7 @@ export class BasePlaygroundComponent {
     { id: 'r3', label: 'Alarm Explorer', type: 'Module' }
   ];
 
-  // ── Chart & timeline demo data ───────────────────────────────────────────
+  // Chart & timeline demo data
   readonly trendChartData: BaseChartPoint[] = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8']
     .map((x, i) => ({ x, y: 90 + Math.round(Math.sin(i) * 4 + i * 0.3) }));
   readonly barChartData: BaseChartPoint[] = FABS.map(f => ({ x: f, y: 10 + Math.round(Math.random() * 30) }));

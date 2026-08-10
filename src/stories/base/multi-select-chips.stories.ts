@@ -1,9 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseMultiSelectChipsComponent } from '../../app/base';
 
-/** Selected values render as chips inside the field itself; removing a chip
- *  and removing the value are the same action. The field grows vertically
- *  as chips wrap, never scrolls horizontally. */
+/** Multi-select field; selected values render as removable chips inline. */
 const meta: Meta<BaseMultiSelectChipsComponent> = {
   title: 'Base/Forms/Multi-Select (Chips)',
   component: BaseMultiSelectChipsComponent,

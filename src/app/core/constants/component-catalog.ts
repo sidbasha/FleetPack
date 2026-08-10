@@ -18,12 +18,12 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
   { name: 'StateLegendComponent', selector: 'fam-state-legend', group: 'Shared · UI Atoms', file: 'shared/components/ui.components.ts', description: 'Fixed legend chips for the tool states (Production … Gap).' },
   { name: 'TrendPillComponent', selector: 'fam-trend', group: 'Shared · UI Atoms', file: 'shared/components/ui.components.ts', description: '▲ / ▼ percentage pill; color flips via badWhenUp.' },
 
-  // ── Base Module · Actions ──────────────────────────────────────────────
+  // Base Module · Actions
   { name: 'BaseButtonComponent', selector: 'base-button', group: 'Base Module · Actions', file: 'base/components/base-form.components.ts', description: 'Primary command surface — primary / secondary / tertiary / ghost / destructive variants, loading + disabled states.' },
   { name: 'BaseSplitButtonComponent', selector: 'base-split-button', group: 'Base Module · Actions', file: 'base/components/base-form.components.ts', description: 'A default action plus a chevron menu of closely related variants.' },
   { name: 'BaseSegmentedControlComponent', selector: 'base-segmented-control', group: 'Base Module · Actions', file: 'base/components/base-form.components.ts', description: 'A closed set of 2–4 mutually exclusive view options that changes what\'s shown without navigating.' },
 
-  // ── Base Module · Forms ────────────────────────────────────────────────
+  // Base Module · Forms
   { name: 'BaseTextInputComponent', selector: 'base-text-input', group: 'Base Module · Forms', file: 'base/components/base-form.components.ts', description: 'Text field with label/hint/error, prefix/suffix, clearable, CVA-compatible.' },
   { name: 'BaseTextareaComponent', selector: 'base-textarea', group: 'Base Module · Forms', file: 'base/components/base-form.components.ts', description: 'Multi-line text field with max-length counter.' },
   { name: 'BaseSelectComponent', selector: 'base-select', group: 'Base Module · Forms', file: 'base/components/base-form.components.ts', description: 'Single-select dropdown, optionally searchable.' },
@@ -37,7 +37,7 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
   { name: 'BaseDatepickerComponent', selector: 'base-datepicker', group: 'Base Module · Forms', file: 'base/components/base-datepicker.component.ts', description: 'Dependency-free popup calendar; optional time-of-day boxes.' },
   { name: 'BaseDateRangePickerComponent', selector: 'base-date-range-picker', group: 'Base Module · Forms', file: 'base/components/base-date-range-picker.component.ts', description: 'Quick-range presets + dual month calendars; committed only on Apply.' },
 
-  // ── Base Module · Data Display ─────────────────────────────────────────
+  // Base Module · Data Display
   { name: 'BaseBadgeComponent', selector: 'base-badge', group: 'Base Module · Data Display', file: 'base/components/base-ui.components.ts', description: 'States a fixed-vocabulary fact (e.g. "Active"); never interactive.' },
   { name: 'BaseTagComponent', selector: 'base-tag', group: 'Base Module · Data Display', file: 'base/components/base-ui.components.ts', description: 'Static, non-removable classifier ("Fleet A").' },
   { name: 'BaseChipComponent', selector: 'base-chip', group: 'Base Module · Data Display', file: 'base/components/base-ui.components.ts', description: 'Removable, user-applied filter chip.' },
@@ -52,7 +52,7 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
   { name: 'BaseSkeletonComponent', selector: 'base-skeleton', group: 'Base Module · Data Display', file: 'base/components/base-overlay.components.ts', description: 'Loading placeholder shaped like its content (rect / circle / table-row / kpi-tile / card / chart).' },
   { name: 'BaseEmptyStateComponent', selector: 'base-empty-state', group: 'Base Module · Data Display', file: 'base/components/base-ui.components.ts', description: 'No-results / no-access / not-configured / custom placeholder with an optional CTA.' },
 
-  // ── Base Module · Navigation ────────────────────────────────────────────
+  // Base Module · Navigation
   { name: 'BaseBreadcrumbsComponent', selector: 'base-breadcrumbs', group: 'Base Module · Navigation', file: 'base/components/base-nav.components.ts', description: 'Drill-down trail; current segment is always plain text.' },
   { name: 'BaseTabsComponent', selector: 'base-tabs', group: 'Base Module · Navigation', file: 'base/components/base-nav.components.ts', description: 'Headless tab strip — host switches content on [(activeId)].' },
   { name: 'BaseDropdownMenuComponent', selector: 'base-dropdown-menu', group: 'Base Module · Navigation', file: 'base/components/base-nav.components.ts', description: 'Button-triggered action menu.' },
@@ -60,7 +60,7 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
   { name: 'BaseNotificationsPanelComponent', selector: 'base-notifications-panel', group: 'Base Module · Navigation', file: 'base/components/base-notification.components.ts', description: 'Header-anchored notifications overlay with unread state.' },
   { name: 'BaseGlobalSearchComponent', selector: 'base-global-search', group: 'Base Module · Navigation', file: 'base/components/base-notification.components.ts', description: 'Header-anchored command-style global search (⌘K).' },
 
-  // ── Base Module · Overlay & Feedback ────────────────────────────────────
+  // Base Module · Overlay & Feedback
   { name: 'BaseModalComponent', selector: 'base-modal', group: 'Base Module · Overlay & Feedback', file: 'base/components/base-overlay.components.ts', description: 'Content-projected dialog for a focused, interrupting decision.' },
   { name: 'BaseDrawerComponent', selector: 'base-drawer', group: 'Base Module · Overlay & Feedback', file: 'base/components/base-drawer.component.ts', description: 'Content-projected slide-over panel that keeps the current view in place.' },
   { name: 'BasePopoverComponent', selector: 'base-popover', group: 'Base Module · Overlay & Feedback', file: 'base/components/base-overlay.components.ts', description: 'Anchored panel for interactive content, with focus-trapping.' },
@@ -69,7 +69,7 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
   { name: 'BaseToastHostComponent', selector: 'base-toast-host', group: 'Base Module · Overlay & Feedback', file: 'base/components/base-overlay.components.ts', description: 'Renders the transient, auto-dismissing toast stack from BaseToastService.' },
   { name: 'BaseTooltipDirective', selector: '[baseTooltip]', group: 'Base Module · Overlay & Feedback', file: 'base/components/base-overlay.components.ts', description: 'Hover/focus tooltip directive — attach to any element.' },
 
-  // ── Base Module · Charts & Timeline ─────────────────────────────────────
+  // Base Module · Charts & Timeline
   { name: 'BaseTrendChartComponent', selector: 'base-trend-chart', group: 'Base Module · Charts & Timeline', file: 'base/components/base-charts.components.ts', description: 'Rolling-average line chart with optional target band and area fill.' },
   { name: 'BaseBarChartComponent', selector: 'base-bar-chart', group: 'Base Module · Charts & Timeline', file: 'base/components/base-charts.components.ts', description: 'Category comparison bar chart, one semantic hue.' },
   { name: 'BaseScatterChartComponent', selector: 'base-scatter-chart', group: 'Base Module · Charts & Timeline', file: 'base/components/base-charts.components.ts', description: 'Correlation chart between two metrics.' },
@@ -77,7 +77,7 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
   { name: 'BaseStateHeatmapComponent', selector: 'base-state-heatmap', group: 'Base Module · Charts & Timeline', file: 'base/components/base-timeline.components.ts', description: 'Day × hour grid colored by dominant machine state, for spotting recurring patterns.' },
   { name: 'BaseGanttTimelineComponent', selector: 'base-gantt-timeline', group: 'Base Module · Charts & Timeline', file: 'base/components/base-timeline.components.ts', description: '24h per-row state segments — the detail view a heatmap cell expands into.' },
 
-  // ── Base Module · Table ─────────────────────────────────────────────────
+  // Base Module · Table
   { name: 'BaseTableComponent', selector: 'base-table', group: 'Base Module · Table', file: 'base/components/table/base-table.component.ts', description: 'Data grid: dynamic columns, pagination, filtering, sorting, selection, sticky header/columns, row expansion.' },
   { name: 'BasePaginatorComponent', selector: 'base-paginator', group: 'Base Module · Table', file: 'base/components/table/base-paginator.component.ts', description: 'Standalone, fully-controlled pagination control (used internally by Base Table).' },
   { name: 'BaseSearchInputComponent', selector: 'base-search-input', group: 'Base Module · Table', file: 'base/components/table/base-paginator.component.ts', description: 'Debounced quick-filter text input.' },

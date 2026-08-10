@@ -14,18 +14,6 @@ import {
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { BaseControl } from './base-form.components';
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * BASE MODULE · Advanced form controls
- * Seven enterprise patterns beyond the core field set (text/select/checkbox/
- * radio/toggle in base-form.components.ts). Date & time pickers already live
- * in base-datepicker.component.ts / base-date-range-picker.component.ts
- * (the latter's per-side HH:MM boxes double as the documented Time Picker);
- * the remaining four — combo box, multi-select with chips, file upload,
- * slider — are defined here. See Components → Forms & Selection.
- * ─────────────────────────────────────────────────────────────────────────────
- */
-
 let uid = 0;
 const nextId = (prefix: string) => `${prefix}-${++uid}`;
 
@@ -37,11 +25,8 @@ export interface BaseComboOption {
   value: string;
 }
 
-/**
- * Unlike Select, the typed text is a real value, not just a filter — you
- * type but an unmatched entry is still accepted if the field allows free
- * text. Options narrow as you type; arrow keys / Enter pick a suggestion.
- */
+/** Type-ahead field where the typed text is a real value, not just a filter —
+ *  options narrow as you type; arrow keys / Enter pick a suggestion. */
 @Component({
   selector: 'base-combobox',
   standalone: true,
@@ -132,11 +117,7 @@ export class BaseComboboxComponent extends BaseControl<string> {
   writeValue(v: string): void { this.value.set(v ?? ''); }
 }
 
-/**
- * Selected values render as chips inside the field itself; removing a chip
- * and removing the value are the same action. The field grows vertically as
- * chips wrap, never scrolls horizontally.
- */
+/** Multi-select field; selected values render as removable chips inline. */
 @Component({
   selector: 'base-multi-select-chips',
   standalone: true,
@@ -220,11 +201,8 @@ export interface BaseUploadFile {
   error?: string;
 }
 
-/**
- * Drag-and-drop zone doubles as a click target; each accepted file gets its
- * own row with a determinate progress bar (§Feedback) and a remove control
- * until upload completes.
- */
+/** Drag-and-drop upload zone; each file gets its own row with a progress bar
+ *  and a remove control until upload completes. */
 @Component({
   selector: 'base-file-upload',
   standalone: true,
@@ -264,7 +242,7 @@ export interface BaseUploadFile {
 })
 export class BaseFileUploadComponent {
   readonly label = input('');
-  /** e.g. "CSV, XLSX" — display text only, doesn't restrict the file picker unless [accept] is a valid HTML accept string. */
+  /** Display text, e.g. "CSV, XLSX"; only restricts the file picker if it's a valid HTML accept string. */
   readonly accept = input('');
   readonly maxSizeMb = input(0);
   readonly multiple = input(true);
@@ -301,11 +279,8 @@ export class BaseFileUploadComponent {
   }
 }
 
-/**
- * Arrow keys step by 1, Page Up/Down step by 10; the current value is
- * always visible as a number, never hidden behind the thumb alone. Reserve
- * for a bounded numeric range with fewer than ~100 discrete steps.
- */
+/** Bounded numeric range slider with a visible current value. Arrow keys step
+ *  by 1, Page Up/Down step by 10. */
 @Component({
   selector: 'base-slider',
   standalone: true,

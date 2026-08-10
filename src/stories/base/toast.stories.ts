@@ -3,10 +3,8 @@ import type { Meta, StoryObj } from '@storybook/angular';
 import { moduleMetadata } from '@storybook/angular';
 import { BaseToastHostComponent, BaseToastService } from '../../app/base';
 
-/** Transient, global, auto-dismissing after 3.5s; stacks bottom-right,
- *  newest on top; hovering pauses the dismiss timer. Error toasts never
- *  auto-dismiss — a deliberate asymmetry with success/info/warning, since a
- *  failure the user didn't see acted on is worse than a lingering toast. */
+/** Transient, global toasts, auto-dismissing after 3.5s — except errors,
+ *  which require explicit dismissal. Hovering pauses the dismiss timer. */
 @Component({
   selector: 'story-toast-demo',
   standalone: true,

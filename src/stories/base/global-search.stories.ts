@@ -1,9 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseGlobalSearchComponent } from '../../app/base';
 
-/** A single global search reachable from the header, distinct from the
- *  per-page filter search. Opens a command-style overlay, not an inline
- *  expand. Results group by type, shown as a tag on the right. */
+/** Header-anchored command-style global search; results show their type as a tag. */
 const meta: Meta<BaseGlobalSearchComponent> = {
   title: 'Base/Navigation/Global Search',
   component: BaseGlobalSearchComponent,

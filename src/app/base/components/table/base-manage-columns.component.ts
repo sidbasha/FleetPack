@@ -27,17 +27,9 @@ export interface ManageColumnItem {
   locked: boolean;
 }
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * <base-manage-columns>
- * Gear-icon trigger + dropdown panel for <base-table>'s "Manage Columns" feature:
- * search, Select All, per-column visibility checkbox, drag-to-reorder (CDK
- * drag-drop, Y-axis locked via a single-column list) for non-frozen columns.
- * Frozen (sticky) columns render locked at the top: no grip, checkbox disabled.
- * A "last-standing" guard blocks unchecking the final visible column.
- * Cancel discards the draft; Apply emits the new order + visible-key list.
- * ─────────────────────────────────────────────────────────────────────────────
- */
+/** Gear-icon panel for `<base-table>`'s column manager: search, Select All,
+ *  per-column visibility, drag-to-reorder for non-frozen columns. Frozen
+ *  columns lock at the top; a guard blocks unchecking the last visible column. */
 @Component({
   selector: 'base-manage-columns',
   standalone: true,
@@ -114,16 +106,14 @@ export class BaseManageColumnsComponent {
   protected readonly draftOrder = signal<string[]>([]);
   protected readonly panelPos = signal<FixedPopupPosition>({ top: 0 });
   private readonly host = inject(ElementRef<HTMLElement>);
-  /** `baseTeleport` moves the panel to document.body, so outside-click/scroll checks must
-   *  also test against it directly — it's no longer a DOM descendant of `host`. */
+  /** Panel is teleported to document.body, so outside-click checks must test it directly too. */
   @ViewChild('panel') private panelRef?: ElementRef<HTMLElement>;
 
   private isInside(target: Node): boolean {
     return this.host.nativeElement.contains(target) || (this.panelRef?.nativeElement.contains(target) ?? false);
   }
 
-  /** Ignores scroll events from within the panel itself (its own scrollable list, or CDK
-   *  auto-scrolling it during a drag) — only an outer scroll should close the popup. */
+  /** Ignores scroll events from within the panel (its own list, or CDK auto-scroll during drag). */
   private readonly closeOnScrollOrResize = (ev: Event) => {
     if (!this.isInside(ev.target as Node)) this.close();
   };

@@ -1,18 +1,7 @@
 import { DecimalPipe, NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input, model, output } from '@angular/core';
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * BASE MODULE · UI primitives
- * Small, dependency-free building blocks. All props are signal inputs; all
- * events are typed outputs. See Components → Badges, Tags & Chips / Cards &
- * KPI tiles for the source spec each component below implements.
- * ─────────────────────────────────────────────────────────────────────────────
- */
-
-/** Badges state a fact ("Active"). Badge text is fixed per status enum, never
- *  free text — the same word means the same thing across modules. Never
- *  interactive: no click, no hover state. */
+/** Fixed-vocabulary status badge — not interactive. */
 @Component({
   selector: 'base-badge',
   standalone: true,
@@ -37,8 +26,7 @@ export class BaseBadgeComponent {
   readonly icon = input('');
 }
 
-/** Tags classify ("Fleet A") — static, non-removable, a smaller/tighter
- *  shape than a badge so the two never get confused for one another. */
+/** Static, non-removable classification label. */
 @Component({
   selector: 'base-tag',
   standalone: true,
@@ -55,9 +43,7 @@ export class BaseTagComponent {
   readonly icon = input('');
 }
 
-/** Chips are removable, user-applied filters ("Status: Active ×"). Removing
- *  a chip fires (removed) immediately — there's no separate "Apply" for chip
- *  removal, unlike panel filters. */
+/** Removable, user-applied filter chip. */
 @Component({
   selector: 'base-chip',
   standalone: true,
@@ -81,6 +67,7 @@ export class BaseChipComponent {
   readonly removed = output<void>();
 }
 
+/** ▲ / ▼ percentage pill. */
 @Component({
   selector: 'base-trend',
   standalone: true,
@@ -102,8 +89,7 @@ export class BaseChipComponent {
 export class BaseTrendComponent {
   /** Percent change. null/undefined renders an em dash. */
   readonly value = input.required<number | null | undefined>();
-  /** When true, an increase is colored red (e.g. alarm counts) — trend
-   *  arrows are directional, not "good/bad" colored, until a module opts in. */
+  /** Colors an increase red instead of green, e.g. for alarm counts. */
   readonly badWhenUp = input(false);
   /** Angular number-pipe digits info. */
   readonly digits = input('1.1-1');
@@ -114,9 +100,7 @@ export class BaseTrendComponent {
   });
 }
 
-/** A card is fully clickable — its whole surface acting as the hit target —
- *  only when it has exactly one primary action; with 2+ actions, only the
- *  explicit buttons are clickable. */
+/** KPI tile: label, value, optional trend and click target. */
 @Component({
   selector: 'base-kpi-card',
   standalone: true,
@@ -157,17 +141,13 @@ export class BaseKpiCardComponent {
   readonly clickable = input(false);
   /** Selection state (border + implied checkbox) for bulk-select grids. */
   readonly selected = input(false);
-  /** Optional "why" tooltip next to the label, for a metric that isn't self-explanatory. */
+  /** Optional info tooltip next to the label. */
   readonly infoTooltip = input('');
 
-  /** Fired when a clickable card is clicked. */
   readonly cardClick = output<void>();
 }
 
-/** A borderless, horizontal row of metrics for a page header — lighter than
- *  a grid of KPI tiles, used when the numbers are context for the page
- *  rather than its main subject. Numerals use JetBrains Mono with
- *  tabular-nums; the label sits below in small caps. */
+/** Borderless horizontal row of metrics, lighter than a KPI grid. */
 @Component({
   selector: 'base-stat-bar',
   standalone: true,
@@ -202,9 +182,7 @@ export class BaseLoadingComponent {
   readonly message = input('Loading…');
 }
 
-/** Every list, table, chart, and panel needs all three states — none of
- *  them are optional edge cases. `kind` picks the icon + default copy for
- *  the three documented shapes: no results / no access / not configured. */
+/** Empty-state placeholder; `kind` picks a default icon + title. */
 @Component({
   selector: 'base-empty-state',
   standalone: true,
@@ -221,7 +199,6 @@ export class BaseLoadingComponent {
   `
 })
 export class BaseEmptyStateComponent {
-  /** Which documented shape this is; picks a sensible icon/title default. */
   readonly kind = input<'no-results' | 'no-access' | 'not-configured' | 'custom'>('no-results');
   readonly icon = input('');
   readonly title = input('');
@@ -229,7 +206,6 @@ export class BaseEmptyStateComponent {
   /** Optional call-to-action button label; enables (action). */
   readonly actionLabel = input('');
 
-  /** Fired when the call-to-action button is clicked. */
   readonly action = output<void>();
 
   protected readonly defaultIcon = computed(() => ({
@@ -241,8 +217,7 @@ export class BaseEmptyStateComponent {
   }[this.kind()]));
 }
 
-/** Dependency-free inline SVG mini chart. Used by the table's 'sparkline' cell
- *  kind, and reusable anywhere on its own. */
+/** Inline SVG mini line chart — no charting library. */
 @Component({
   selector: 'base-sparkline',
   standalone: true,
@@ -299,9 +274,7 @@ export class BaseSparklineComponent {
   });
 }
 
-/** Full-row click target when it navigates; hairline divider between rows,
- *  never a card border per item. Reserve for flat, single-line collections —
- *  anything with two or more data points per row belongs in a table. */
+/** Single-line row with a hairline divider; use a table for multi-column rows. */
 @Component({
   selector: 'base-list-item',
   standalone: true,
@@ -327,11 +300,7 @@ export class BaseListItemComponent {
   readonly itemClick = output<void>();
 }
 
-/** Chevron rotates 180° on open with the mo-slow duration; collapsed by
- *  default unless the content is required to complete a task. Multiple
- *  accordions on a page are independent (never single-open-only) unless the
- *  module explicitly needs that constraint — this component doesn't
- *  coordinate siblings, so that constraint is the host's to add if needed. */
+/** Collapsible section; siblings are independent, not single-open-only. */
 @Component({
   selector: 'base-accordion',
   standalone: true,
@@ -360,8 +329,7 @@ export class BaseAccordionComponent {
   toggle(): void { this.open.update(o => !o); }
 }
 
-/** A labeled divider (with inline text) uses the same weight as a plain one
- *  — the label never gets extra visual emphasis a plain divider doesn't have. */
+/** Plain or labeled horizontal rule. */
 @Component({
   selector: 'base-divider',
   standalone: true,

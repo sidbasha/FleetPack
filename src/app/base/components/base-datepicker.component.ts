@@ -27,16 +27,9 @@ const sameDay = (a: Date | null, b: Date | null) =>
   !!a && !!b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * <base-datepicker>
- * Dependency-free popup calendar.
- *  - two-way [(value)] (Date | null) + ControlValueAccessor (ngModel / forms)
- *  - min / max bounds, custom disabled-date rule, clearable, today shortcut
- *  - optional time-of-day (`showTime`): adds HH:MM boxes and keeps the panel
- *    open after a date is picked so the time can be adjusted before closing
- * ─────────────────────────────────────────────────────────────────────────────
- */
+/** Dependency-free popup calendar. Two-way [(value)], min/max bounds, a
+ *  custom disabled-date rule, and an optional [showTime] that adds HH:MM
+ *  boxes and keeps the panel open after a date pick. */
 @Component({
   selector: 'base-datepicker',
   standalone: true,
@@ -140,8 +133,7 @@ export class BaseDatepickerComponent extends BaseControl<Date | null> {
   readonly displayFormat = input<Intl.DateTimeFormatOptions>({ dateStyle: 'medium' });
   /** 0 = Sunday, 1 = Monday. */
   readonly weekStart = input<0 | 1>(1);
-  /** Adds HH:MM boxes below the grid; picking a date then keeps the panel open
-   *  for time adjustment instead of closing immediately. */
+  /** Adds HH:MM boxes; picking a date keeps the panel open for time adjustment. */
   readonly showTime = input(false);
 
   readonly opened = output<void>();

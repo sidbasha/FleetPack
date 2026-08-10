@@ -1,10 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseStatBarComponent } from '../../app/base';
 
-/** A borderless, horizontal row of metrics for a page header — lighter than
- *  a grid of KPI tiles, used when the numbers are context for the page
- *  rather than its main subject. Reach for `<base-kpi-card>` instead when
- *  the numbers *are* the content (a dashboard). */
+/** Borderless horizontal row of metrics, lighter than a KPI grid — reach for
+ *  `<base-kpi-card>` instead when the numbers are the page's main content. */
 const meta: Meta<BaseStatBarComponent> = {
   title: 'Base/Data Display/Stat Bar',
   component: BaseStatBarComponent,

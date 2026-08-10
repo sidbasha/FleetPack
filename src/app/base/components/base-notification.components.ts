@@ -10,15 +10,6 @@ import {
   signal
 } from '@angular/core';
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * BASE MODULE · Navigation — Notifications Center & Global Search
- * See Components → Navigation. Both are header-anchored overlays distinct
- * from the per-page filter search already covered by base-form's
- * `<base-search-input>`.
- * ─────────────────────────────────────────────────────────────────────────────
- */
-
 export interface BaseNotification {
   id: string;
   icon?: string;
@@ -28,9 +19,7 @@ export interface BaseNotification {
   read: boolean;
 }
 
-/** Read state uses text opacity as its cue, not a background change (that's
- *  reserved for §Tables row states). Unread carries a small dot, the same
- *  token as an active nav item. */
+/** Header-anchored notifications overlay; unread items carry a small dot. */
 @Component({
   selector: 'base-notifications-panel',
   standalone: true,
@@ -101,10 +90,7 @@ export interface BaseSearchResult {
   type: string;
 }
 
-/** A single global search reachable from the header, distinct from the
- *  per-page filter search. Opens a command-style overlay, not an inline
- *  expand. Results group by type, shown as a tag on the right rather than a
- *  separate section header per group, since most searches return one type. */
+/** Header-anchored command-style global search; results show their type as a tag. */
 @Component({
   selector: 'base-global-search',
   standalone: true,

@@ -1,10 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BasePopoverComponent } from '../../app/base';
 
-/** A tooltip explains; a popover contains interactive content. If it has a
- *  button or a checkbox inside, it's a popover, not a tooltip. Keeps focus
- *  inside while open: Tab cycles within the panel, Escape closes it and
- *  returns focus to the trigger. */
+/** A popover holds interactive content (vs. a tooltip, which only explains);
+ *  it traps focus while open and returns it to the trigger on close. */
 const meta: Meta<BasePopoverComponent> = {
   title: 'Base/Overlays/Popover',
   component: BasePopoverComponent,

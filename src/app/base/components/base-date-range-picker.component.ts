@@ -49,15 +49,9 @@ const PRESETS: { id: DateRangePreset; label: string }[] = [
   { id: 'custom', label: 'Custom range' }
 ];
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * <base-date-range-picker>
- * Dependency-free dropdown: quick-range sidebar (All / Last 1-7-30 Days / Custom
- * range) + dual side-by-side month calendars with per-side HH:MM time boxes.
- *  - two-way [(value)] (DateRangeValue), only committed on Apply (Cancel reverts)
- *  - future dates disabled (strikethrough) unless [disableFuture]="false"
- * ─────────────────────────────────────────────────────────────────────────────
- */
+/** Dependency-free dropdown: quick-range presets + dual month calendars with
+ *  per-side HH:MM boxes. Two-way [(value)] only commits on Apply — Cancel
+ *  reverts. Future dates are disabled unless [disableFuture]="false". */
 @Component({
   selector: 'base-date-range-picker',
   standalone: true,
@@ -192,16 +186,14 @@ const PRESETS: { id: DateRangePreset; label: string }[] = [
   `
 })
 export class BaseDateRangePickerComponent {
-  /** Two-way bound committed range: [(value)]. Only updated when Apply is clicked. */
+  /** Two-way bound committed range: [(value)]. */
   readonly value = model<DateRangeValue>({ preset: 'all', from: null, to: null });
   readonly disabled = input(false);
   /** Disables (strikethrough) any date after `maxDate` (or today, if maxDate is unset). */
   readonly disableFuture = input(true);
   readonly minDate = input<Date | null>(null);
   readonly maxDate = input<Date | null>(null);
-  /** Which edge of the trigger the panel's edge aligns to. Default 'left' opens rightward
-   *  (safe near a page's left edge); pass 'right' for triggers sitting at the far right
-   *  of a toolbar, where the panel should extend leftward instead. */
+  /** Which edge of the trigger the panel aligns to; 'right' for toolbar-edge triggers. */
   readonly align = input<'left' | 'right'>('left');
 
   readonly opened = output<void>();

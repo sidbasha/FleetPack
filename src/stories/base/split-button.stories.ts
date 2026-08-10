@@ -1,9 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseSplitButtonComponent } from '../../app/base';
 
-/** A default action plus a short menu of closely related variants — worth
- *  naming separately from a plain button (one action) and a dropdown menu
- *  (no default action of its own). */
+/** Default action plus a chevron menu of related variants. */
 const meta: Meta<BaseSplitButtonComponent> = {
   title: 'Base/Actions/Split Button',
   component: BaseSplitButtonComponent,

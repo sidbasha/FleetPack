@@ -1,9 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseFileUploadComponent } from '../../app/base';
 
-/** Drag-and-drop zone doubles as a click target; each accepted file gets its
- *  own row with a determinate progress bar and a remove control until
- *  upload completes. */
+/** Drag-and-drop upload zone; each file gets its own row with a progress bar. */
 const meta: Meta<BaseFileUploadComponent> = {
   title: 'Base/Forms/File Upload',
   component: BaseFileUploadComponent,

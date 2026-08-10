@@ -15,35 +15,16 @@ import {
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { BaseMenuItem } from './base-nav.components';
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * BASE MODULE · Form controls
- *
- * Every control:
- *  - exposes a two-way [(value)] / [(checked)] model signal (props + events),
- *  - implements ControlValueAccessor, so it ALSO works with ngModel and
- *    Reactive Forms (formControlName) with zero extra code,
- *  - supports label / hint / error / disabled uniformly.
- *
- * Tokens: see Foundations → Token Architecture. Interactive-control labels
- * (button/tab/menu text) intentionally use Tailwind's plain text-xs/sm scale
- * + font-semibold rather than the custom text-display-* / body-* tokens,
- * since those bake a fixed font-weight into the utility that a separate
- * font-semibold class isn't guaranteed to win over — the type-scale tokens
- * are reserved for content typography (headings, body copy, captions) where
- * that's a non-issue.
- * ─────────────────────────────────────────────────────────────────────────────
- */
-
 let uid = 0;
 const nextId = (prefix: string) => `${prefix}-${++uid}`;
 
-/** Shared CVA plumbing. */
+/** Base class every form control extends — wires ControlValueAccessor so
+ *  [(value)]/[(checked)] also work with ngModel and reactive forms. */
 @Directive()
 export abstract class BaseControl<T> implements ControlValueAccessor {
   protected onChange: (v: T) => void = () => {};
   protected onTouched: () => void = () => {};
-  /** Disabled state pushed by Reactive Forms. Combined with the [disabled] prop. */
+  /** Disabled state pushed by Reactive Forms; combined with the [disabled] prop. */
   protected readonly formDisabled = signal(false);
 
   abstract writeValue(v: T): void;
@@ -60,10 +41,7 @@ const INPUT_CLS = `w-full h-9 border rounded-r-sm px-sp-3 text-xs text-ink-700 b
 const HINT_CLS = `mt-1 text-caption normal-case font-normal text-neutral-400`;
 const ERROR_CLS = `mt-1 text-caption normal-case font-normal text-error`;
 
-/**
- * FleetPack's command surface. One primary action per view; the rest are
- * secondary, tertiary, or ghost. See Components → Buttons.
- */
+/** Primary command surface — one primary action per view, the rest secondary/tertiary/ghost. */
 @Component({
   selector: 'base-button',
   standalone: true,
@@ -119,12 +97,7 @@ export class BaseButtonComponent {
   });
 }
 
-/**
- * A closed set of 2–4 mutually exclusive view options, worth naming
- * separately from a button group (independent actions) and tabs (navigates,
- * changes the URL) — a segmented control changes what's shown without
- * navigating anywhere. See Components → Buttons → Segmented Control.
- */
+/** 2–4 mutually exclusive view options; changes what's shown without navigating anywhere. */
 @Component({
   selector: 'base-segmented-control',
   standalone: true,
@@ -503,12 +476,8 @@ export class BaseToggleComponent extends BaseControl<boolean> {
   writeValue(v: boolean): void { this.checked.set(!!v); }
 }
 
-/**
- * A default action plus a short menu of closely related variants — worth
- * naming separately from a plain button (one action) and a dropdown menu
- * (no default action of its own). The left segment fires (clicked)
- * immediately; the right chevron opens [items].
- */
+/** Default action plus a chevron menu of related variants. Left segment fires
+ *  (clicked) immediately; the chevron opens [items]. */
 @Component({
   selector: 'base-split-button',
   standalone: true,

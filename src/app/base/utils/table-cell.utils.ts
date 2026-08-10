@@ -1,13 +1,8 @@
 import { BaseColumnDef, BaseLegacyRowAction, BaseRow, BaseRowAction, ROW_ACTION_ICON } from '../models/table.model';
 
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * Pure (column, row) → value/text/class formatters for <base-table> cells.
- * Shared by BaseTableComponent (filtering/sorting/search need the raw value
- * and display text) and BaseTableCellComponent (rendering a single cell) so
- * neither owns its own copy of this logic.
- * ─────────────────────────────────────────────────────────────────────────────
- */
+/** Pure (column, row) → value/text/class formatters for `<base-table>` cells,
+ *  shared by `BaseTableComponent` (filtering/sorting/search) and
+ *  `BaseTableCellComponent` (rendering) so neither duplicates this logic. */
 
 /** Resolved row action ready to render — icon/variant/disabled state settled, typed or legacy alike. */
 export interface ResolvedRowAction<T> {

@@ -1,9 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseComboboxComponent } from '../../app/base';
 
-/** Unlike Select, the typed text is a real value, not just a filter — you
- *  type but an unmatched entry is still accepted if the field allows free
- *  text. */
+/** Type-ahead field where the typed text is a real value, not just a filter. */
 const meta: Meta<BaseComboboxComponent> = {
   title: 'Base/Forms/Combobox',
   component: BaseComboboxComponent,
