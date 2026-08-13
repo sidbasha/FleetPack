@@ -3,6 +3,7 @@ import {
   Component,
   ElementRef,
   HostListener,
+  computed,
   inject,
   input,
   model,
@@ -140,6 +141,133 @@ export class BaseTabsComponent {
     const next = list[(idx + dir + list.length) % list.length];
     this.select(next);
     queueMicrotask(() => (this.host.nativeElement.querySelector(`#tab-${next.id}`) as HTMLElement | null)?.focus());
+  }
+}
+
+export interface BaseStepperStep {
+  id: string;
+  label: string;
+  /** Optional secondary line under the label (vertical orientation only). */
+  description?: string;
+  disabled?: boolean;
+}
+
+export type BaseStepperStepStatus = 'completed' | 'active' | 'upcoming';
+
+/** Linear progress stepper — horizontal or vertical. Status per step (done /
+ *  current / not-yet) is derived purely from where `[(activeId)]` sits in
+ *  `[steps]`, so advancing the wizard is just moving `activeId` forward; no
+ *  per-step "completed" bookkeeping needed. */
+@Component({
+  selector: 'base-stepper',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    @if (orientation() === 'horizontal') {
+      <div class="flex items-center w-full" role="group" [attr.aria-label]="ariaLabel() || null">
+        @for (step of steps(); track step.id; let i = $index; let last = $last) {
+          <button type="button" class="flex items-center gap-2 shrink-0 outline-none
+                         focus-visible:ring-2 focus-visible:ring-action rounded-r-xs
+                         disabled:cursor-not-allowed"
+                  [disabled]="!isReachable(i)"
+                  [attr.aria-current]="statusOf(i) === 'active' ? 'step' : null"
+                  (click)="select(step, i)">
+            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full border text-[11px] font-bold shrink-0 transition-colors"
+                  [class]="circleClass(i)">
+              @if (statusOf(i) === 'completed') {
+                <span class="icon-outline" style="font-size:14px;" aria-hidden="true">check</span>
+              } @else { {{ i + 1 }} }
+            </span>
+            <span class="text-xs whitespace-nowrap" [class]="labelClass(i)">{{ step.label }}</span>
+          </button>
+          @if (!last) {
+            <span class="flex-1 h-0.5 mx-2 rounded-full transition-colors" [class]="connectorClass(i)" aria-hidden="true"></span>
+          }
+        }
+      </div>
+    } @else {
+      <div class="flex flex-col" role="group" [attr.aria-label]="ariaLabel() || null">
+        @for (step of steps(); track step.id; let i = $index; let last = $last) {
+          <div class="flex items-stretch gap-3">
+            <div class="flex flex-col items-center">
+              <span class="inline-flex items-center justify-center w-6 h-6 rounded-full border text-[11px] font-bold shrink-0 transition-colors"
+                    [class]="circleClass(i)">
+                @if (statusOf(i) === 'completed') {
+                  <span class="icon-outline" style="font-size:14px;" aria-hidden="true">check</span>
+                } @else { {{ i + 1 }} }
+              </span>
+              @if (!last) {
+                <span class="w-0.5 flex-1 my-1 min-h-[16px] rounded-full transition-colors" [class]="connectorClass(i)" aria-hidden="true"></span>
+              }
+            </div>
+            <button type="button" class="text-left pb-4 outline-none focus-visible:ring-2 focus-visible:ring-action rounded-r-xs
+                           disabled:cursor-not-allowed"
+                    [disabled]="!isReachable(i)"
+                    [attr.aria-current]="statusOf(i) === 'active' ? 'step' : null"
+                    (click)="select(step, i)">
+              <span class="block text-xs" [class]="labelClass(i)">{{ step.label }}</span>
+              @if (step.description) {
+                <span class="block text-[11px] text-neutral-400 mt-0.5">{{ step.description }}</span>
+              }
+            </button>
+          </div>
+        }
+      </div>
+    }
+  `
+})
+export class BaseStepperComponent {
+  readonly steps = input.required<BaseStepperStep[]>();
+  /** Two-way bound current step id: [(activeId)]. Emits (activeIdChange). */
+  readonly activeId = model('');
+  readonly orientation = input<'horizontal' | 'vertical'>('horizontal');
+  /** When true (default), only completed/active steps can be clicked — no
+   *  jumping ahead to a step not yet reached. Set false to allow free jumps. */
+  readonly linear = input(true);
+  readonly ariaLabel = input('');
+
+  /** Fired with the step + index whenever a reachable step is clicked. */
+  readonly stepSelect = output<{ step: BaseStepperStep; index: number }>();
+
+  protected readonly activeIndex = computed(() => this.steps().findIndex(s => s.id === this.activeId()));
+
+  protected statusOf(i: number): BaseStepperStepStatus {
+    const active = this.activeIndex();
+    if (active < 0) return 'upcoming';
+    return i < active ? 'completed' : i === active ? 'active' : 'upcoming';
+  }
+
+  protected isReachable(i: number): boolean {
+    if (this.steps()[i]?.disabled) return false;
+    return !this.linear() || this.statusOf(i) !== 'upcoming';
+  }
+
+  protected circleClass(i: number): string {
+    return {
+      completed: 'bg-success border-success text-neutral-0',
+      active: 'bg-action border-action text-neutral-0',
+      upcoming: 'bg-neutral-0 border-neutral-300 text-neutral-400'
+    }[this.statusOf(i)];
+  }
+
+  protected labelClass(i: number): string {
+    return {
+      completed: 'text-ink-900 font-semibold',
+      active: 'text-action font-semibold',
+      upcoming: 'text-neutral-400 font-medium'
+    }[this.statusOf(i)];
+  }
+
+  /** Green once the step *leading into* the next one is done, so the filled
+   *  portion always reflects progress made rather than the segment ahead. */
+  protected connectorClass(i: number): string {
+    return this.statusOf(i) === 'completed' ? 'bg-success' : 'bg-neutral-200';
+  }
+
+  select(step: BaseStepperStep, index: number): void {
+    if (!this.isReachable(index)) return;
+    this.activeId.set(step.id);
+    this.stepSelect.emit({ step, index });
   }
 }
 

@@ -35,6 +35,7 @@ use Storybook to review one component in isolation. See `src/stories/foundations
 | `<base-date-range-picker>` | Dropdown: quick-range sidebar (All / Last 1-7-30 Days / Custom range) + dual month calendars with per-side HH:MM time boxes, Cancel/Apply |
 | `<base-breadcrumbs>` | Navigation trail (routerLink or click events) |
 | `<base-tabs>` | Headless tab bar (underline or pills) |
+| `<base-stepper>` | Linear progress stepper (horizontal or vertical); step status derives from `[(activeId)]`'s position in `[steps]` |
 | `<base-dropdown-menu>` | Actions menu with icons, dividers, danger items |
 | `<base-modal>` | Content-projected dialog with footer slot |
 | `<base-drawer>` | Content-projected slide-over panel: left/right `side`, configurable `width`, backdrop dim, ESC/backdrop-to-close, footer slot |
@@ -56,6 +57,7 @@ All form controls expose a two-way `[(value)]` / `[(checked)]` model **and** imp
 <base-date-range-picker [(value)]="dateRange" (applied)="onRangeApplied($event)" />
 <base-breadcrumbs [items]="crumbs" (itemClick)="onCrumb($event)" />
 <base-tabs [tabs]="tabs" [(activeId)]="active" />
+<base-stepper [steps]="steps" [(activeId)]="currentStep" orientation="vertical" />
 <base-modal [(open)]="show" title="Edit"> ... <div footer>...</div> </base-modal>
 <base-drawer [(open)]="showInspector" side="right" width="460px" [showClose]="false">
   <fam-alarm-info-panel />

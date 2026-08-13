@@ -67,8 +67,12 @@ export function computeFixedPopupPosition(el: HTMLElement, align: 'left' | 'righ
           }
           <div class="flex items-center justify-between mb-1.5">
             <span class="text-[11px] font-semibold text-ink-500">Filter</span>
-            <button type="button" class="text-[11px] font-semibold text-action hover:text-action-hover"
-                    (click)="clearDraft()">Clear</button>
+            <span class="flex items-center gap-2">
+              <button type="button" class="text-[11px] font-semibold text-action hover:text-action-hover"
+                      (click)="clearDraft()">Clear</button>
+              <button type="button" class="text-neutral-300 hover:text-neutral-500 text-xs leading-none"
+                      aria-label="Close filter" (click)="close()">✕</button>
+            </span>
           </div>
           <input type="text" [value]="search()" (input)="onSearch($event)" placeholder="Search"
                  class="w-full border border-neutral-200 rounded-r-sm px-2 py-1 text-[11px] mb-2
@@ -125,14 +129,18 @@ export class BaseCheckboxFilterComponent {
     if (!this.isInside(ev.target as Node)) this.close();
   };
 
+  private readonly closeOnOutsideClick = (ev: MouseEvent) => {
+    if (!this.isInside(ev.target as Node)) this.close();
+  };
+
   protected readonly filteredOptions = computed(() => {
     const q = this.search().toLowerCase();
     return q ? this.options().filter(o => o.label.toLowerCase().includes(q)) : this.options();
   });
 
-  @HostListener('document:click', ['$event'])
-  onDocClick(ev: MouseEvent): void {
-    if (this.open() && !this.isInside(ev.target as Node)) this.close();
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.open()) this.close();
   }
 
   toggle(): void {
@@ -141,6 +149,7 @@ export class BaseCheckboxFilterComponent {
     this.draftSort.set(this.currentSort());
     this.search.set('');
     this.panelPos.set(computeFixedPopupPosition(this.host.nativeElement, this.align()));
+    document.addEventListener('click', this.closeOnOutsideClick, true);
     document.addEventListener('scroll', this.closeOnScrollOrResize, true);
     window.addEventListener('resize', this.closeOnScrollOrResize);
     this.open.set(true);
@@ -149,6 +158,7 @@ export class BaseCheckboxFilterComponent {
   close(): void {
     if (!this.open()) return;
     this.open.set(false);
+    document.removeEventListener('click', this.closeOnOutsideClick, true);
     document.removeEventListener('scroll', this.closeOnScrollOrResize, true);
     window.removeEventListener('resize', this.closeOnScrollOrResize);
   }
@@ -196,8 +206,12 @@ export class BaseCheckboxFilterComponent {
              [style.top.px]="panelPos().top" [style.left.px]="panelPos().left" [style.right.px]="panelPos().right">
           <div class="flex items-center justify-between mb-2">
             <span class="text-[11px] font-semibold text-ink-500">Date Filter</span>
-            <button type="button" class="text-[11px] font-semibold text-action hover:text-action-hover"
-                    (click)="clearDraft()">Clear</button>
+            <span class="flex items-center gap-2">
+              <button type="button" class="text-[11px] font-semibold text-action hover:text-action-hover"
+                      (click)="clearDraft()">Clear</button>
+              <button type="button" class="text-neutral-300 hover:text-neutral-500 text-xs leading-none"
+                      aria-label="Close filter" (click)="close()">✕</button>
+            </span>
           </div>
           <base-datepicker label="Start Date" [value]="draftStart()" [showTime]="showTime()" [clearable]="true"
                             (valueChange)="draftStart.set($event)" />
@@ -236,9 +250,14 @@ export class BaseCalendarFilterComponent {
     if (!this.isInside(ev.target as Node)) this.close();
   };
 
-  @HostListener('document:click', ['$event'])
-  onDocClick(ev: MouseEvent): void {
-    if (this.open() && !this.isInside(ev.target as Node)) this.close();
+
+  private readonly closeOnOutsideClick = (ev: MouseEvent) => {
+    if (!this.isInside(ev.target as Node)) this.close();
+  };
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.open()) this.close();
   }
 
   toggle(): void {
@@ -246,6 +265,7 @@ export class BaseCalendarFilterComponent {
     this.draftStart.set(this.start());
     this.draftEnd.set(this.end());
     this.panelPos.set(computeFixedPopupPosition(this.host.nativeElement, this.align()));
+    document.addEventListener('click', this.closeOnOutsideClick, true);
     document.addEventListener('scroll', this.closeOnScrollOrResize, true);
     window.addEventListener('resize', this.closeOnScrollOrResize);
     this.open.set(true);
@@ -254,6 +274,7 @@ export class BaseCalendarFilterComponent {
   close(): void {
     if (!this.open()) return;
     this.open.set(false);
+    document.removeEventListener('click', this.closeOnOutsideClick, true);
     document.removeEventListener('scroll', this.closeOnScrollOrResize, true);
     window.removeEventListener('resize', this.closeOnScrollOrResize);
   }
@@ -288,8 +309,12 @@ export class BaseCalendarFilterComponent {
              [style.top.px]="panelPos().top" [style.left.px]="panelPos().left" [style.right.px]="panelPos().right">
           <div class="flex items-center justify-between mb-2">
             <span class="text-[11px] font-semibold text-ink-500">Range Filter</span>
-            <button type="button" class="text-[11px] font-semibold text-action hover:text-action-hover"
-                    (click)="clearDraft()">Clear</button>
+            <span class="flex items-center gap-2">
+              <button type="button" class="text-[11px] font-semibold text-action hover:text-action-hover"
+                      (click)="clearDraft()">Clear</button>
+              <button type="button" class="text-neutral-300 hover:text-neutral-500 text-xs leading-none"
+                      aria-label="Close filter" (click)="close()">✕</button>
+            </span>
           </div>
           <div class="flex items-center gap-1.5">
             <input type="number" [value]="draftFrom() ?? ''" (input)="onFrom($event)"
@@ -334,14 +359,18 @@ export class BaseRangeFilterComponent {
     if (!this.isInside(ev.target as Node)) this.close();
   };
 
+  private readonly closeOnOutsideClick = (ev: MouseEvent) => {
+    if (!this.isInside(ev.target as Node)) this.close();
+  };
+
   protected readonly invalid = computed(() => {
     const f = this.draftFrom(), t = this.draftTo();
     return f !== null && t !== null && f > t;
   });
 
-  @HostListener('document:click', ['$event'])
-  onDocClick(ev: MouseEvent): void {
-    if (this.open() && !this.isInside(ev.target as Node)) this.close();
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.open()) this.close();
   }
 
   toggle(): void {
@@ -349,6 +378,7 @@ export class BaseRangeFilterComponent {
     this.draftFrom.set(this.from());
     this.draftTo.set(this.to());
     this.panelPos.set(computeFixedPopupPosition(this.host.nativeElement, this.align()));
+    document.addEventListener('click', this.closeOnOutsideClick, true);
     document.addEventListener('scroll', this.closeOnScrollOrResize, true);
     window.addEventListener('resize', this.closeOnScrollOrResize);
     this.open.set(true);
@@ -357,6 +387,7 @@ export class BaseRangeFilterComponent {
   close(): void {
     if (!this.open()) return;
     this.open.set(false);
+    document.removeEventListener('click', this.closeOnOutsideClick, true);
     document.removeEventListener('scroll', this.closeOnScrollOrResize, true);
     window.removeEventListener('resize', this.closeOnScrollOrResize);
   }

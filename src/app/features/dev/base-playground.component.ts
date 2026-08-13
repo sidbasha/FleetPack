@@ -1,5 +1,5 @@
 import { JsonPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, ViewChild, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ViewChild, computed, inject, signal } from '@angular/core';
 import {
   AdditionalHeaderGroup,
   BaseAccordionComponent,
@@ -56,6 +56,8 @@ import {
   BaseSplitButtonComponent,
   BaseStateHeatmapComponent,
   BaseStatBarComponent,
+  BaseStepperComponent,
+  BaseStepperStep,
   BaseTableComponent,
   BaseTabsComponent,
   BaseTagComponent,
@@ -128,6 +130,7 @@ function mockRows(n: number): ToolRow[] {
     BaseSparklineComponent,
     BaseBreadcrumbsComponent,
     BaseTabsComponent,
+    BaseStepperComponent,
     BaseButtonComponent,
     BaseTextInputComponent,
     BaseTextareaComponent,
@@ -273,6 +276,20 @@ function mockRows(n: number): ToolRow[] {
             }
             @case ('navigation') {
               <div class="space-y-5 max-w-2xl">
+                <div class="panel p-4 space-y-3">
+                  <base-stepper [steps]="stepperSteps" [(activeId)]="stepperActiveId"
+                                (stepSelect)="log('stepper stepSelect', $event.step.label)" />
+                  <div class="flex items-center gap-2">
+                    <base-button variant="secondary" [disabled]="stepperIndex() <= 0" (clicked)="stepperBack()">Back</base-button>
+                    <base-button variant="primary" [disabled]="stepperIndex() >= stepperSteps.length - 1"
+                                 (clicked)="stepperNext()">Next</base-button>
+                  </div>
+                </div>
+                <div class="panel p-4 max-w-xs">
+                  <base-stepper [steps]="qualificationSteps" [(activeId)]="qualificationActiveId" orientation="vertical"
+                                (stepSelect)="log('stepper stepSelect', $event.step.label)" />
+                </div>
+
                 <div class="flex flex-wrap items-center gap-3">
                   <base-popover>
                     <button trigger class="btn-secondary">Column options</button>
@@ -616,6 +633,30 @@ export class BasePlaygroundComponent {
     { id: 'r2', label: 'Fab-A', type: 'Fleet' },
     { id: 'r3', label: 'Alarm Explorer', type: 'Module' }
   ];
+  readonly stepperSteps: BaseStepperStep[] = [
+    { id: 'identity', label: 'Identity' },
+    { id: 'placement', label: 'Placement' },
+    { id: 'telemetry', label: 'Telemetry' },
+    { id: 'review', label: 'Review' }
+  ];
+  readonly stepperActiveId = signal('telemetry');
+  readonly stepperIndex = computed(() => this.stepperSteps.findIndex(s => s.id === this.stepperActiveId()));
+  readonly qualificationSteps: BaseStepperStep[] = [
+    { id: 'baseline', label: 'Baseline captured', description: 'Reference readings recorded' },
+    { id: 'qualification', label: 'Running qualification', description: 'Comparing against tolerance band' },
+    { id: 'signoff', label: 'Sign-off', description: 'Engineer approval pending' }
+  ];
+  readonly qualificationActiveId = signal('qualification');
+
+  stepperNext(): void {
+    const next = this.stepperSteps[this.stepperIndex() + 1];
+    if (next) this.stepperActiveId.set(next.id);
+  }
+
+  stepperBack(): void {
+    const prev = this.stepperSteps[this.stepperIndex() - 1];
+    if (prev) this.stepperActiveId.set(prev.id);
+  }
 
   // Chart & timeline demo data
   readonly trendChartData: BaseChartPoint[] = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8']

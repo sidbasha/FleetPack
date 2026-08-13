@@ -55,6 +55,7 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
   // Base Module · Navigation
   { name: 'BaseBreadcrumbsComponent', selector: 'base-breadcrumbs', group: 'Base Module · Navigation', file: 'base/components/base-nav.components.ts', description: 'Drill-down trail; current segment is always plain text.' },
   { name: 'BaseTabsComponent', selector: 'base-tabs', group: 'Base Module · Navigation', file: 'base/components/base-nav.components.ts', description: 'Headless tab strip — host switches content on [(activeId)].' },
+  { name: 'BaseStepperComponent', selector: 'base-stepper', group: 'Base Module · Navigation', file: 'base/components/base-nav.components.ts', description: 'Linear progress stepper (horizontal or vertical) — step status derives from [(activeId)]\'s position in [steps].' },
   { name: 'BaseDropdownMenuComponent', selector: 'base-dropdown-menu', group: 'Base Module · Navigation', file: 'base/components/base-nav.components.ts', description: 'Button-triggered action menu.' },
   { name: 'BaseContextMenuComponent', selector: 'base-context-menu', group: 'Base Module · Navigation', file: 'base/components/base-nav.components.ts', description: 'Right-click / overflow-triggered menu; opened imperatively via openAt(x, y).' },
   { name: 'BaseNotificationsPanelComponent', selector: 'base-notifications-panel', group: 'Base Module · Navigation', file: 'base/components/base-notification.components.ts', description: 'Header-anchored notifications overlay with unread state.' },

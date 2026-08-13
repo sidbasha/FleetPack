@@ -1,0 +1,15 @@
+<!--
+  Storybook's Angular builder renders stories into its own iframe shell — it
+  never loads src/index.html, so the Google Fonts <link> tags declared there
+  (Instrument Sans / Inter / JetBrains Mono / Material Symbols Outlined)
+  never reach the preview. Without the Material Symbols font, every
+  `.icon-outline` span (styles.css) falls back to rendering its literal text
+  content (e.g. "search") instead of the icon glyph — most visibly as the
+  search icon overlapping the Search Input's placeholder text.
+
+  Storybook auto-injects this file's contents into the preview iframe's
+  <head>, so keep this in sync with the <link> tags in src/index.html.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,400,0,0&display=swap" rel="stylesheet" />
