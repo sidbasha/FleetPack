@@ -385,34 +385,49 @@ export class BaseBannerComponent {
   }[this.kind()]));
 }
 
-/** Determinate progress bar — use `<base-loading>` for an indeterminate spinner instead. */
+/** Determinate progress bar — pass [indeterminate] instead of [value] the moment the shape of
+ *  what's coming is genuinely unknown (a bare spinner, `<base-loading>`, is the same call but
+ *  icon-only with no track — reach for whichever reads better inline with other bars). */
 @Component({
   selector: 'base-progress-bar',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: [`
+    @keyframes base-progress-indeterminate {
+      0% { left: -40%; }
+      100% { left: 100%; }
+    }
+    .indeterminate-fill { position: absolute; top: 0; bottom: 0; width: 40%; animation: base-progress-indeterminate 1.2s ease-in-out infinite; }
+  `],
   template: `
     @if (label()) {
       <div class="flex items-center justify-between mb-1">
         <span class="text-[11px] text-ink-600">{{ label() }}</span>
-        @if (showLabel()) { <span class="text-[11px] font-semibold text-ink-700 tabular-nums">{{ clamped() }}%</span> }
+        @if (showLabel()) {
+          <span class="text-[11px] font-semibold text-ink-700 tabular-nums">{{ indeterminate() ? '–' : clamped() + '%' }}</span>
+        }
       </div>
     }
     <div class="flex items-center gap-2">
-      <div class="flex-1 rounded-r-full bg-neutral-100 overflow-hidden" [style.height.px]="height()">
-        <div class="h-full rounded-r-full transition-all"
-             [style.width.%]="clamped()"
-             [class]="color() ? '' : colorClass()"
-             [style.background]="color() || null"></div>
+      <div class="relative flex-1 rounded-r-full bg-neutral-100 overflow-hidden" [style.height.px]="height()">
+        @if (indeterminate()) {
+          <div class="indeterminate-fill rounded-r-full" [class]="color() ? '' : colorClass()" [style.background]="color() || null"></div>
+        } @else {
+          <div class="h-full rounded-r-full transition-all"
+               [style.width.%]="clamped()"
+               [class]="color() ? '' : colorClass()"
+               [style.background]="color() || null"></div>
+        }
       </div>
       @if (!label() && showLabel()) {
-        <span class="text-[10px] font-semibold text-neutral-400 tabular-nums">{{ clamped() }}%</span>
+        <span class="text-[10px] font-semibold text-neutral-400 tabular-nums">{{ indeterminate() ? '–' : clamped() + '%' }}</span>
       }
     </div>
   `
 })
 export class BaseProgressBarComponent {
-  /** 0–100. */
-  readonly value = input.required<number>();
+  /** 0–100. Ignored (and not required) when [indeterminate] is set. */
+  readonly value = input<number>(0);
   /** Operation name shown above the bar, e.g. "Exporting service_activity.xlsx". */
   readonly label = input('');
   /** Semantic fill color; ignored when [color] is set. */
@@ -421,6 +436,8 @@ export class BaseProgressBarComponent {
   readonly color = input('');
   readonly height = input(6);
   readonly showLabel = input(true);
+  /** A sliding fill and an em dash instead of a percentage — the duration/end point isn't known yet. */
+  readonly indeterminate = input(false);
 
   protected readonly clamped = computed(() => Math.min(100, Math.max(0, Math.round(this.value()))));
   protected readonly colorClass = computed(() => ({
@@ -468,6 +485,96 @@ export class BaseSkeletonComponent {
   readonly width = input('100%');
   readonly height = input('14px');
   readonly shape = input<'rect' | 'circle' | 'table-row' | 'kpi-tile' | 'card' | 'chart'>('rect');
+}
+
+/** A full-panel error state (404/403/500, or [offline]) — distinct from `<base-empty-state>`:
+ *  this is for something that actually went wrong, not an invitation to act on an empty
+ *  collection. Recovery is part of the state: always offer at least one way forward, and if a
+ *  [traceId] is given it's shown in mono and is click-to-copy — it's the one thing support will
+ *  ask for, so it must never be truncated or unselectable. */
+@Component({
+  selector: 'base-error-page',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div class="flex flex-col items-center text-center gap-2 py-10 px-6 max-w-md mx-auto">
+      @if (offline()) {
+        <span class="icon-outline text-neutral-300" style="font-size:40px;" aria-hidden="true">wifi_off</span>
+      } @else {
+        <span class="font-display text-5xl font-extrabold tabular-nums" [class]="tone() === 'error' ? 'text-error' : 'text-ink-900'">
+          {{ code() }}
+        </span>
+      }
+      <p class="font-display text-display-md text-ink-900 mt-1">{{ title() }}</p>
+      @if (message()) { <p class="text-xs text-neutral-500 max-w-sm">{{ message() }}</p> }
+
+      @if (offline()) {
+        @if (actionLabel()) {
+          <button type="button" class="mt-2 text-xs font-semibold text-action hover:text-action-hover underline underline-offset-2"
+                  (click)="action.emit()">{{ actionLabel() }}</button>
+        }
+        @if (statusNote()) {
+          <span class="mt-3 text-[10px] font-bold uppercase tracking-wide text-neutral-400 bg-neutral-100 px-sp-3 py-1 rounded-r-full">
+            {{ statusNote() }}
+          </span>
+        }
+      } @else if (actionLabel() || secondaryActionLabel()) {
+        <div class="flex items-center gap-2 mt-2">
+          @if (actionLabel()) {
+            <button type="button" class="text-xs font-semibold text-neutral-0 bg-action hover:bg-action-hover rounded-r-sm px-sp-4 py-2 transition-colors"
+                    (click)="action.emit()">{{ actionLabel() }}</button>
+          }
+          @if (secondaryActionLabel()) {
+            <button type="button"
+                    class="text-xs font-semibold text-ink-700 bg-neutral-0 border border-neutral-200 hover:border-action hover:text-action
+                           rounded-r-sm px-sp-4 py-2 transition-colors"
+                    (click)="secondaryAction.emit()">{{ secondaryActionLabel() }}</button>
+          }
+        </div>
+      }
+
+      @if (traceId()) {
+        <button type="button"
+                class="mt-3 inline-flex items-center gap-1.5 font-mono text-[10px] text-neutral-400 hover:text-ink-600 transition-colors select-all"
+                (click)="copyTrace()">
+          <span class="icon-outline" style="font-size:12px;" aria-hidden="true">{{ copied() ? 'check' : 'content_copy' }}</span>
+          {{ copied() ? 'Copied' : traceId() }}
+        </button>
+      }
+    </div>
+  `
+})
+export class BaseErrorPageComponent {
+  /** e.g. '404' / '403' / '500'. Ignored when [offline] is set (a "you're offline" state uses
+   *  an icon instead — there's no HTTP status code for a dead connection). */
+  readonly code = input('');
+  /** 'error' reads the code in red — reserve for something actually broken (5xx), not a 4xx
+   *  the operator can route around. */
+  readonly tone = input<'neutral' | 'error'>('neutral');
+  readonly title = input.required<string>();
+  readonly message = input('');
+  readonly actionLabel = input('');
+  readonly secondaryActionLabel = input('');
+  /** Swaps the numeric code for a disconnect icon, drops to one centered text-link action, and
+   *  adds an optional [statusNote] pill (e.g. "Cached view · 214 tools"). */
+  readonly offline = input(false);
+  readonly statusNote = input('');
+  /** Mono, click-to-copy trace/correlation id — the one thing support will ask for. */
+  readonly traceId = input('');
+
+  readonly action = output<void>();
+  readonly secondaryAction = output<void>();
+
+  protected readonly copied = signal(false);
+
+  copyTrace(): void {
+    const id = this.traceId();
+    if (!id) return;
+    navigator.clipboard?.writeText(id).then(() => {
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 1500);
+    });
+  }
 }
 
 export interface BaseToast {

@@ -31,6 +31,7 @@ import {
   BaseDrawerComponent,
   BaseDropdownMenuComponent,
   BaseEmptyStateComponent,
+  BaseErrorPageComponent,
   BaseFileUploadComponent,
   BaseFilterEvent,
   BaseGanttRow,
@@ -186,6 +187,7 @@ function mockRows(n: number): ToolRow[] {
     BaseAccordionComponent,
     BaseDividerComponent,
     BaseEmptyStateComponent,
+    BaseErrorPageComponent,
     BaseLoadingComponent,
     BaseSplitButtonComponent,
     BaseContextMenuComponent,
@@ -304,7 +306,10 @@ function mockRows(n: number): ToolRow[] {
                               actionLabel="Restore" [actionInline]="true" (action)="log('alert action', 'restore')" />
                   <base-alert kind="warning" message="2 filters are hiding 187 rows." actionLabel="Clear filters" [compact]="true"
                               (action)="log('alert action', 'clear filters')" />
-                  <base-progress-bar [value]="72" />
+                  <base-progress-bar label="Recomputing availability" [value]="62" tone="action" />
+                  <base-progress-bar label="Qualification complete" [value]="100" tone="success" />
+                  <base-progress-bar label="Sync stalled" [value]="34" tone="warning" />
+                  <base-progress-bar label="Waiting for the telemetry service" [value]="0" tone="action" [indeterminate]="true" />
                   <div class="flex items-center gap-3">
                     <base-skeleton width="40px" height="40px" shape="circle" />
                     <div class="flex-1 space-y-2">
@@ -314,8 +319,17 @@ function mockRows(n: number): ToolRow[] {
                   </div>
                   <div class="flex items-center gap-3">
                     <base-loading message="Loading fleet snapshot…" />
+                    <base-loading [compact]="true" size="sm" message="" variant="spinner" />
+                    <base-loading [compact]="true" size="md" message="" variant="dots" />
                     <base-button variant="secondary" (clicked)="showToast()">Show toast</base-button>
                     <base-button variant="secondary" (clicked)="showUndoToast()">Show toast w/ undo</base-button>
+                  </div>
+
+                  <div class="grid grid-cols-2 xl:grid-cols-3 gap-4">
+                    <base-kpi-card label="Fleet Uptime" [value]="96.4" unit="%" [trendPct]="2.1" />
+                    <base-kpi-card label="Open Alarms" [value]="47" unit="" [trendPct]="0" />
+                    <base-kpi-card label="Predicted Downtime" value="" errorMessage="The forecast service didn't respond."
+                                   (retry)="log('kpi retry', 'Predicted Downtime')" />
                   </div>
                 </div>
 
@@ -383,8 +397,41 @@ function mockRows(n: number): ToolRow[] {
                   A Gap is any interval with no reported machine state — distinct from Standby, which is a reported state.
                 </base-accordion>
 
-                <base-empty-state kind="no-results" hint="Try widening the date range or clearing filters."
-                                  actionLabel="Clear filters" (action)="log('emptyState action', 'clear filters')" />
+                <div class="grid md:grid-cols-3 gap-4">
+                  <div class="panel">
+                    <base-empty-state kind="no-data" title="No tools registered"
+                                      hint="Register your first tool to start collecting state telemetry."
+                                      actionLabel="+ Register tool" actionVariant="primary"
+                                      (action)="log('emptyState action', 'register tool')" />
+                  </div>
+                  <div class="panel">
+                    <base-empty-state kind="no-results" title='No tools match "surfscan xr"'
+                                      hint="Check the spelling, or clear the two active filters to widen the search."
+                                      actionLabel="Clear filters" secondaryActionLabel="Clear search"
+                                      (action)="log('emptyState action', 'clear filters')"
+                                      (secondaryAction)="log('emptyState secondaryAction', 'clear search')" />
+                  </div>
+                  <div class="panel">
+                    <base-empty-state kind="out-of-range" title="No data in this window"
+                                      hint="SP7-04 reported no state changes between 06 and 17 July. Widen the window to see earlier activity."
+                                      actionLabel="Widen to 90 days" (action)="log('emptyState action', 'widen to 90 days')" />
+                  </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-4">
+                  <div class="panel">
+                    <base-error-page code="404" title="That tool isn't in this fleet"
+                                     message="Tool SP7-99 doesn't exist, or it was archived and removed from the Fab 12 inventory."
+                                     actionLabel="Back to fleet inventory" secondaryActionLabel="Search all sites"
+                                     (action)="log('errorPage action', 'back to fleet inventory')" />
+                  </div>
+                  <div class="panel">
+                    <base-error-page code="500" tone="error" title="The telemetry service isn't responding"
+                                     message="This is on our side. The last successful sync was at 08:42 UTC, so figures shown elsewhere may be stale."
+                                     actionLabel="↻ Retry" secondaryActionLabel="Status page" traceId="trc_9f2a4e1c-0842"
+                                     (action)="log('errorPage action', 'retry')" />
+                  </div>
+                </div>
               </div>
             }
             @case ('navigation') {

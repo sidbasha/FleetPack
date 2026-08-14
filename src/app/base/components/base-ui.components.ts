@@ -1,5 +1,6 @@
-import { DecimalPipe, NgClass } from '@angular/common';
+import { DecimalPipe, NgClass, NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input, model, output } from '@angular/core';
+import { BaseButtonComponent } from './base-form.components';
 
 /** Shared semantic tone vocabulary for base-badge/base-chip. Tint = default; solid is reserved
  *  for a count or a state that must dominate the row. */
@@ -332,24 +333,37 @@ const RAIL_CLASS: Record<'none' | 'success' | 'warning' | 'error' | 'info', stri
   selector: 'base-kpi-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BaseTrendComponent],
+  imports: [BaseTrendComponent, BaseButtonComponent],
   template: `
     <div class="panel px-sp-5 py-sp-4 flex flex-col justify-center gap-1 transition-all"
-         [class]="railClass() + (clickable() ? ' cursor-pointer hover:shadow-e2 hover:-translate-y-0.5 hover:border-action' : '')"
+         [class]="(errorMessage() ? 'border-error' : railClass()) + (clickable() && !errorMessage() ? ' cursor-pointer hover:shadow-e2 hover:-translate-y-0.5 hover:border-action' : '')"
          [class.ring-2]="selected()"
          [class.ring-action]="selected()"
-         (click)="clickable() && cardClick.emit()">
-      <span class="flex items-center gap-1 text-caption text-neutral-400">
+         (click)="clickable() && !errorMessage() && cardClick.emit()">
+      <span class="flex items-center gap-1 text-caption" [class]="errorMessage() ? 'text-error' : 'text-neutral-400'">
         {{ label() }}
-        @if (infoTooltip()) { <span class="text-neutral-300 cursor-help" [attr.title]="infoTooltip()" aria-hidden="true">ⓘ</span> }
+        @if (errorMessage()) {
+          <span class="icon-outline" style="font-size:12px;" aria-hidden="true">warning</span>
+        } @else if (infoTooltip()) {
+          <span class="text-neutral-300 cursor-help" [attr.title]="infoTooltip()" aria-hidden="true">ⓘ</span>
+        }
       </span>
-      <span class="font-display text-display-lg tabular-nums" [class]="accent() ? 'text-action' : 'text-ink-900'">
-        {{ value() }}<span class="text-sm font-semibold text-neutral-400 ml-0.5">{{ unit() }}</span>
-      </span>
-      <span class="flex items-center gap-2">
-        @if (trendPct() !== undefined) { <base-trend [value]="trendPct()!" [badWhenUp]="trendBadWhenUp()" /> }
-        @if (sub()) { <span class="text-[11px] text-neutral-400">{{ sub() }}</span> }
-      </span>
+
+      @if (errorMessage()) {
+        <span class="font-display text-display-lg text-ink-900">{{ unavailableLabel() }}</span>
+        <span class="flex items-center justify-between gap-2">
+          <span class="text-[11px] text-error">{{ errorMessage() }}</span>
+          <base-button variant="text" size="sm" (clicked)="retry.emit()">{{ retryLabel() }}</base-button>
+        </span>
+      } @else {
+        <span class="font-display text-display-lg tabular-nums" [class]="accent() ? 'text-action' : 'text-ink-900'">
+          {{ value() }}<span class="text-sm font-semibold text-neutral-400 ml-0.5">{{ unit() }}</span>
+        </span>
+        <span class="flex items-center gap-2">
+          @if (trendPct() !== undefined) { <base-trend [value]="trendPct()!" [badWhenUp]="trendBadWhenUp()" /> }
+          @if (sub()) { <span class="text-[11px] text-neutral-400">{{ sub() }}</span> }
+        </span>
+      }
     </div>
   `
 })
@@ -373,8 +387,17 @@ export class BaseKpiCardComponent {
   readonly selected = input(false);
   /** Optional info tooltip next to the label. */
   readonly infoTooltip = input('');
+  /** Set when this one panel's data failed to load — a page rarely fails all at once, and this
+   *  tile shouldn't take the rest of the screen with it. Swaps [value]/[trendPct]/[sub] for
+   *  [unavailableLabel] + this message + a retry link, and outlines the whole tile in red
+   *  (unlike [railTone], which only touches the left edge). */
+  readonly errorMessage = input('');
+  readonly unavailableLabel = input('Unavailable');
+  readonly retryLabel = input('Retry this panel');
 
   readonly cardClick = output<void>();
+  /** Fired when the retry link is clicked in the error state. */
+  readonly retry = output<void>();
 
   protected readonly railClass = computed(() => RAIL_CLASS[this.railTone()]);
 }
@@ -451,53 +474,111 @@ export class BaseCardComponent {
   protected readonly iconToneClass = computed(() => TONE_TINT[this.iconTone()]);
 }
 
+/** A spinner is only correct when the shape of what's coming is genuinely unknown — reach for
+ *  `<base-skeleton>` instead the moment that shape is known, so nothing reflows when data
+ *  arrives. [compact] drops the panel wrapper for inline use (a row, a card, next to a label). */
 @Component({
   selector: 'base-loading',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="panel p-sp-6 flex items-center gap-3 text-sm text-neutral-400" role="status">
-      <span class="w-4 h-4 rounded-full border-2 border-action border-t-transparent animate-spin" aria-hidden="true"></span>
-      {{ message() }}
-    </div>
-  `
+    @if (compact()) {
+      <span class="inline-flex items-center gap-2 text-neutral-400" [class]="sizeClass().text" role="status">
+        <ng-container [ngTemplateOutlet]="icon" />
+        @if (message()) { {{ message() }} }
+      </span>
+    } @else {
+      <div class="panel p-sp-6 flex items-center gap-3 text-sm text-neutral-400" role="status">
+        <ng-container [ngTemplateOutlet]="icon" />
+        {{ message() }}
+      </div>
+    }
+    <ng-template #icon>
+      @if (variant() === 'dots') {
+        <span class="inline-flex items-center gap-0.5" aria-hidden="true">
+          <span class="rounded-full bg-current animate-bounce" [class]="sizeClass().dot" style="animation-delay: 0ms"></span>
+          <span class="rounded-full bg-current animate-bounce" [class]="sizeClass().dot" style="animation-delay: 150ms"></span>
+          <span class="rounded-full bg-current animate-bounce" [class]="sizeClass().dot" style="animation-delay: 300ms"></span>
+        </span>
+      } @else {
+        <span class="rounded-full border-2 border-action border-t-transparent animate-spin shrink-0" [class]="sizeClass().spinner" aria-hidden="true"></span>
+      }
+    </ng-template>
+  `,
+  imports: [NgTemplateOutlet]
 })
 export class BaseLoadingComponent {
   readonly message = input('Loading…');
+  readonly variant = input<'spinner' | 'dots'>('spinner');
+  readonly size = input<'sm' | 'md'>('md');
+  /** Drops the bordered panel wrapper for inline use. */
+  readonly compact = input(false);
+
+  protected readonly sizeClass = computed(() => this.size() === 'sm'
+    ? { spinner: 'w-3 h-3', dot: 'w-1 h-1', text: 'text-xs' }
+    : { spinner: 'w-4 h-4', dot: 'w-1.5 h-1.5', text: 'text-sm' });
 }
 
-/** Empty-state placeholder; `kind` picks a default icon + title. */
+/** An empty state uses neutral tone and an inviting action — red is reserved for something
+ *  that actually went wrong (see `<base-error-page>` for that). `kind` picks a default icon +
+ *  title for the three situations that most often get collapsed into one generic screen: a
+ *  collection that's genuinely empty ('no-data'), a search/filter that matched nothing
+ *  ('no-results'), and a time window with nothing in it ('out-of-range'). */
 @Component({
   selector: 'base-empty-state',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [BaseButtonComponent],
   template: `
     <div class="flex flex-col items-center justify-center gap-2 py-10 text-center">
-      <span class="text-2xl" aria-hidden="true">{{ icon() || defaultIcon() }}</span>
+      <span class="icon-outline text-neutral-300" style="font-size:32px;" aria-hidden="true">{{ icon() || defaultIcon() }}</span>
       <p class="font-display text-display-md text-ink-700">{{ title() || defaultTitle() }}</p>
       @if (hint()) { <p class="text-body-sm text-neutral-400 max-w-xs">{{ hint() }}</p> }
-      @if (actionLabel()) {
-        <button class="btn-ghost mt-1" (click)="action.emit()">{{ actionLabel() }}</button>
+      @if (actionLabel() || secondaryActionLabel()) {
+        <div class="flex items-center gap-2 mt-1">
+          @if (actionLabel()) {
+            <base-button [variant]="actionVariant()" size="sm" (clicked)="action.emit()">{{ actionLabel() }}</base-button>
+          }
+          @if (secondaryActionLabel()) {
+            <base-button variant="secondary" size="sm" (clicked)="secondaryAction.emit()">{{ secondaryActionLabel() }}</base-button>
+          }
+        </div>
       }
     </div>
   `
 })
 export class BaseEmptyStateComponent {
-  readonly kind = input<'no-results' | 'no-access' | 'not-configured' | 'custom'>('no-results');
+  readonly kind = input<'no-results' | 'no-access' | 'no-data' | 'out-of-range' | 'not-configured' | 'custom'>('no-results');
   readonly icon = input('');
   readonly title = input('');
   readonly hint = input('');
-  /** Optional call-to-action button label; enables (action). */
+  /** Optional call-to-action button label; enables (action). Rendered as [actionVariant]
+   *  (default 'secondary' — a recovery action, not a primary one) — pass 'primary' for a
+   *  genuine first-time setup action like "Register tool". */
   readonly actionLabel = input('');
+  readonly actionVariant = input<'primary' | 'secondary'>('secondary');
+  /** Second, lower-emphasis action beside [actionLabel] — e.g. "Clear search" next to "Clear filters". */
+  readonly secondaryActionLabel = input('');
 
   readonly action = output<void>();
+  readonly secondaryAction = output<void>();
 
   protected readonly defaultIcon = computed(() => ({
-    'no-results': '🔍', 'no-access': '🔒', 'not-configured': '🚀', custom: '📭'
+    'no-results': 'search_off',
+    'no-access': 'lock',
+    'no-data': 'post_add',
+    'out-of-range': 'event_busy',
+    'not-configured': 'rocket_launch',
+    custom: 'inbox'
   }[this.kind()]));
 
   protected readonly defaultTitle = computed(() => ({
-    'no-results': 'No results', 'no-access': 'No access', 'not-configured': 'Not configured yet', custom: 'No data'
+    'no-results': 'No results',
+    'no-access': 'No access',
+    'no-data': 'No data yet',
+    'out-of-range': 'No data in this window',
+    'not-configured': 'Not configured yet',
+    custom: 'No data'
   }[this.kind()]));
 }
 

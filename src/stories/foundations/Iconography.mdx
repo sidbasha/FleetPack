@@ -156,9 +156,35 @@ by a Base component or a FleetPack pattern, grouped by the job it does.
       <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-neutral-100)', color: 'var(--color-ink-600)' }}>Represents the Alarm Explorer pattern specifically, distinct from generic "info"</td>
     </tr>
     <tr>
-      <td style={{ padding: '8px 10px' }}><span class="icon-outline" style={{ fontSize: '20px', color: 'var(--color-ink-700)' }}>close</span> <code>close</code></td>
-      <td style={{ padding: '8px 10px', color: 'var(--color-ink-600)' }}>Banners, chips, modals</td>
-      <td style={{ padding: '8px 10px', color: 'var(--color-ink-600)' }}>Dismiss or remove, always with an <code>aria-label</code>, never bare</td>
+      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-neutral-100)' }}><span class="icon-outline" style={{ fontSize: '20px', color: 'var(--color-ink-700)' }}>close</span> <code>close</code></td>
+      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-neutral-100)', color: 'var(--color-ink-600)' }}>Banners, chips, modals</td>
+      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-neutral-100)', color: 'var(--color-ink-600)' }}>Dismiss or remove, always with an <code>aria-label</code>, never bare</td>
+    </tr>
+    <tr>
+      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-neutral-100)' }}><span class="icon-outline" style={{ fontSize: '20px', color: 'var(--color-ink-700)' }}>content_copy</span> <code>content_copy</code></td>
+      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-neutral-100)', color: 'var(--color-ink-600)' }}>Code panels, <code>base-error-page</code> trace id</td>
+      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-neutral-100)', color: 'var(--color-ink-600)' }}>Copy to clipboard; pairs with a "Copied" confirmation state (<code>check</code>)</td>
+    </tr>
+    <tr><td colspan="3" style={{ padding: '6px 10px', fontSize: '10.5px', fontWeight: '700', letterSpacing: '.04em', color: 'var(--color-action)', textTransform: 'uppercase', background: 'var(--color-action-surface)' }}>Empty &amp; error states</td></tr>
+    <tr>
+      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-neutral-100)' }}><span class="icon-outline" style={{ fontSize: '20px', color: 'var(--color-neutral-300)' }}>search_off</span> <code>search_off</code></td>
+      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-neutral-100)', color: 'var(--color-ink-600)' }}><code>base-empty-state</code> kind="no-results"</td>
+      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-neutral-100)', color: 'var(--color-ink-600)' }}>A search or filter matched nothing — neutral tone, not an error</td>
+    </tr>
+    <tr>
+      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-neutral-100)' }}><span class="icon-outline" style={{ fontSize: '20px', color: 'var(--color-neutral-300)' }}>post_add</span> <code>post_add</code></td>
+      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-neutral-100)', color: 'var(--color-ink-600)' }}><code>base-empty-state</code> kind="no-data"</td>
+      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-neutral-100)', color: 'var(--color-ink-600)' }}>A collection that's genuinely empty — pairs with a primary "create" action</td>
+    </tr>
+    <tr>
+      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-neutral-100)' }}><span class="icon-outline" style={{ fontSize: '20px', color: 'var(--color-neutral-300)' }}>event_busy</span> <code>event_busy</code></td>
+      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-neutral-100)', color: 'var(--color-ink-600)' }}><code>base-empty-state</code> kind="out-of-range"</td>
+      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-neutral-100)', color: 'var(--color-ink-600)' }}>A time window with nothing in it — pairs with a "widen the window" action</td>
+    </tr>
+    <tr>
+      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-neutral-100)' }}><span class="icon-outline" style={{ fontSize: '20px', color: 'var(--color-neutral-300)' }}>wifi_off</span> <code>wifi_off</code></td>
+      <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-neutral-100)', color: 'var(--color-ink-600)' }}><code>base-error-page</code> [offline]</td>
+      <td style={{ padding: '8px 10px', color: 'var(--color-ink-600)' }}>No HTTP status code for a dead connection, so the icon replaces the numeric code</td>
     </tr>
   </tbody>
 </table>

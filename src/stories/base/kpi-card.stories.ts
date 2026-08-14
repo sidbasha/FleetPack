@@ -72,3 +72,23 @@ export const AccentRailRow: Story = {
       </div>`
   })
 };
+
+/** A page rarely fails all at once — one panel failing shouldn't take the rest of the screen
+ *  with it. Outlines the whole tile in red (not just the left rail) and swaps the number for a
+ *  retry link. */
+export const PartialFailure: Story = {
+  args: {
+    label: 'Predicted Downtime', value: '', errorMessage: "The forecast service didn't respond."
+  }
+};
+
+export const InlinePartialFailureRow: Story = {
+  render: () => ({
+    template: `
+      <div class="grid grid-cols-2 xl:grid-cols-3 gap-4">
+        <base-kpi-card label="Fleet Uptime" [value]="96.4" unit="%" [trendPct]="2.1" />
+        <base-kpi-card label="Open Alarms" [value]="47" unit="" [trendPct]="0" />
+        <base-kpi-card label="Predicted Downtime" value="" errorMessage="The forecast service didn't respond." />
+      </div>`
+  })
+};
