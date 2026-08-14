@@ -261,10 +261,18 @@ export interface BaseUploadFile {
         <div class="mt-sp-3 flex flex-col gap-sp-2">
           @for (f of files(); track f.name) {
             <div class="flex items-center gap-sp-3 border rounded-r-sm px-sp-3 py-sp-2"
-                 [class]="f.error ? 'border-error/30 bg-error-surface' : 'border-neutral-200'">
-              <span class="icon-outline shrink-0" [class]="f.error ? 'text-error' : 'text-neutral-400'" style="font-size:18px;" aria-hidden="true">
-                {{ f.error ? 'error' : 'description' }}
-              </span>
+                 [class]="f.error ? 'border-error/30 bg-error-surface' : 'border-neutral-200 bg-neutral-0'">
+              @if (f.error) {
+                <span class="icon-outline text-error shrink-0" style="font-size:18px;" aria-hidden="true">error</span>
+              } @else if (f.progress >= 100) {
+                <span class="shrink-0 w-7 h-7 rounded-r-sm bg-success-surface text-success inline-flex items-center justify-center">
+                  <span class="icon-outline" style="font-size:16px;" aria-hidden="true">check</span>
+                </span>
+              } @else {
+                <span class="shrink-0 w-7 h-7 rounded-r-sm bg-action-surface text-action inline-flex items-center justify-center">
+                  <span class="icon-outline" style="font-size:16px;" aria-hidden="true">description</span>
+                </span>
+              }
               <div class="flex-1 min-w-0">
                 <p class="text-xs text-ink-700 truncate">{{ f.name }} <span class="text-neutral-400 font-normal">{{ formatSize(f.size) }}</span></p>
                 @if (f.error) {

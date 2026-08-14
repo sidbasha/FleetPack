@@ -22,6 +22,12 @@ const meta: Meta<BaseModalComponent> = {
   title: 'Base/Overlays/Modal',
   component: BaseModalComponent,
   tags: ['autodocs'],
+  // Every story here defaults open, and each is `position: fixed inset-0` — inline on the Docs
+  // page (which renders every story on one scrollable page at once) that's N stacked backdrops
+  // and N competing scroll-locks/focus-traps fighting each other. `inline: false` puts each
+  // story preview in its own iframe on the Docs page instead, scoping all of that per-story.
+  // The standalone "Canvas" view for one story is unaffected either way.
+  parameters: { docs: { story: { inline: false, height: '480px' } } },
   argTypes: {
     size: { control: 'select', options: ['sm', 'md', 'lg', 'xl', 'full'] },
     iconTone: { control: 'select', options: ['action', 'accent', 'success', 'warning', 'error', 'neutral'] }

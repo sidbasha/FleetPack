@@ -12,6 +12,12 @@ const meta: Meta<BaseDrawerComponent> = {
   title: 'Base/Overlays/Drawer',
   component: BaseDrawerComponent,
   tags: ['autodocs'],
+  // Every story here defaults open, and each is `position: fixed inset-0` — inline on the Docs
+  // page (which renders every story on one scrollable page at once) that's N stacked backdrops
+  // and N competing scroll-locks/focus-traps fighting each other. `inline: false` puts each
+  // story preview in its own iframe on the Docs page instead, scoping all of that per-story.
+  // The standalone "Canvas" view for one story is unaffected either way.
+  parameters: { docs: { story: { inline: false, height: '420px' } } },
   argTypes: {
     side: { control: 'select', options: ['left', 'right', 'bottom'] }
   },
