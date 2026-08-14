@@ -40,6 +40,7 @@ import {
   BaseHandleActionEvent,
   BaseHeatmapRow,
   BaseHistogramComponent,
+  BaseHoverCardComponent,
   BaseKpiCardComponent,
   BaseListItemComponent,
   BaseLoadingComponent,
@@ -201,7 +202,8 @@ function mockRows(n: number): ToolRow[] {
     BaseScatterChartComponent,
     BaseHistogramComponent,
     BaseStateHeatmapComponent,
-    BaseGanttTimelineComponent
+    BaseGanttTimelineComponent,
+    BaseHoverCardComponent
   ],
   template: `
     <div class="space-y-5">
@@ -265,6 +267,9 @@ function mockRows(n: number): ToolRow[] {
                   <base-button variant="primary" (clicked)="openModal.set(true)">Open modal</base-button>
                   <base-button variant="destructive" (clicked)="openDeleteModal.set(true)">Delete tool</base-button>
                   <base-button variant="secondary" baseTooltip="I am a tooltip" tooltipPosition="top">Hover me</base-button>
+                  <base-button variant="secondary" [iconOnly]="true" ariaLabel="MTBF definition"
+                               baseTooltip="Total production hours divided by the number of unscheduled downtime events in the same window."
+                               tooltipTitle="Mean time between failures" tooltipPosition="bottom">ⓘ</base-button>
                   <base-button variant="tertiary">View details</base-button>
                   <base-button variant="outline">Compare</base-button>
                   <base-button variant="text">Reset filters</base-button>
@@ -469,6 +474,27 @@ function mockRows(n: number): ToolRow[] {
                       <base-checkbox label="Show chamber column" />
                     </div>
                   </base-popover>
+                  <base-hover-card>
+                    <a trigger class="text-xs font-semibold text-action hover:text-action-hover underline underline-offset-2 cursor-pointer">SP7-04</a>
+                    <div card class="w-64">
+                      <div class="flex items-center gap-2.5 mb-3">
+                        <base-avatar name="SP" size="md" />
+                        <div>
+                          <p class="text-xs font-semibold text-ink-900">SP7-04</p>
+                          <p class="text-[11px] text-neutral-400">Fab 12 · Inspection</p>
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-1.5 mb-3">
+                        <base-badge label="Production" tone="success" [dot]="true" />
+                        <base-badge label="Passed" tone="neutral" />
+                      </div>
+                      <div class="grid grid-cols-3 gap-2 pt-2 border-t border-neutral-100">
+                        <div><p class="text-xs font-semibold text-ink-900 tabular-nums">98.4%</p><p class="text-[10px] text-neutral-400">Up-time</p></div>
+                        <div><p class="text-xs font-semibold text-ink-900 tabular-nums">128 h</p><p class="text-[10px] text-neutral-400">MTBF</p></div>
+                        <div><p class="text-xs font-semibold text-ink-900 tabular-nums">1</p><p class="text-[10px] text-neutral-400">Open alarm</p></div>
+                      </div>
+                    </div>
+                  </base-hover-card>
                   <base-button variant="secondary" (clicked)="drawerOpen.set(true)">Open drawer</base-button>
                   <base-button variant="secondary" (clicked)="bulkActionsOpen.set(true)">Open bottom drawer</base-button>
                   <base-dropdown-menu label="Tool actions" [items]="toolActionsItems"

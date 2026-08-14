@@ -145,13 +145,19 @@ export class BaseModalComponent {
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
-/** Hover/focus tooltip, ~400ms show delay. Attach to any element:
- *  `<button baseTooltip="Refresh data" tooltipPosition="top">` */
+/** A tooltip labels — it must never hold anything the operator needs to click; it disappears
+ *  the moment the pointer leaves. Hover/focus, ~400ms show delay. Attach to any element:
+ *  `<button baseTooltip="Refresh data" tooltipPosition="top">`. Set [tooltipTitle] for the
+ *  "rich tooltip" shape — a heading plus a wrapping definition, still no links, still no
+ *  buttons — for a metric that needs more than one line to define; reach for `<base-popover>`
+ *  instead the moment the content needs to be clickable. */
 @Directive({ selector: '[baseTooltip]', standalone: true })
 export class BaseTooltipDirective {
-  /** Tooltip text. */
+  /** Tooltip text — the body when [tooltipTitle] is set, the whole message otherwise. */
   readonly baseTooltip = input.required<string>();
   readonly tooltipPosition = input<'top' | 'bottom' | 'left' | 'right'>('top');
+  /** Optional heading — switches to the wider, wrapping "rich tooltip" layout. */
+  readonly tooltipTitle = input('');
 
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly renderer = inject(Renderer2);
@@ -168,11 +174,27 @@ export class BaseTooltipDirective {
   private show(): void {
     this.showTimer = null;
     const tip = this.renderer.createElement('div') as HTMLElement;
-    tip.textContent = this.baseTooltip();
     tip.setAttribute('role', 'tooltip');
-    tip.style.cssText =
-      'position:fixed;z-index:60;background:var(--color-ink-900);color:#fff;font-size:11px;font-weight:600;' +
-      'padding:4px 8px;border-radius:6px;pointer-events:none;white-space:nowrap;opacity:.97';
+
+    const title = this.tooltipTitle();
+    if (title) {
+      tip.style.cssText =
+        'position:fixed;z-index:60;background:var(--color-ink-900);color:#fff;font-size:11px;' +
+        'padding:10px 12px;border-radius:8px;pointer-events:none;white-space:normal;opacity:.97;max-width:240px;line-height:1.45';
+      const heading = this.renderer.createElement('div') as HTMLElement;
+      heading.textContent = title;
+      heading.style.cssText = 'font-weight:700;margin-bottom:4px;';
+      this.renderer.appendChild(tip, heading);
+      const body = this.renderer.createElement('div') as HTMLElement;
+      body.textContent = this.baseTooltip();
+      body.style.cssText = 'font-weight:400;opacity:.85;';
+      this.renderer.appendChild(tip, body);
+    } else {
+      tip.textContent = this.baseTooltip();
+      tip.style.cssText =
+        'position:fixed;z-index:60;background:var(--color-ink-900);color:#fff;font-size:11px;font-weight:600;' +
+        'padding:4px 8px;border-radius:6px;pointer-events:none;white-space:nowrap;opacity:.97';
+    }
     this.renderer.appendChild(document.body, tip);
 
     const r = this.host.nativeElement.getBoundingClientRect();
@@ -273,6 +295,56 @@ export class BasePopoverComponent {
     const active = document.activeElement;
     if (!kev.shiftKey && active === last) { kev.preventDefault(); first.focus(); }
     else if (kev.shiftKey && active === first) { kev.preventDefault(); last.focus(); }
+  }
+}
+
+/** A preview of an entity — a tool, an operator — reachable from a dense table without leaving
+ *  it. Hover-triggered like a tooltip, but (unlike a tooltip) can hold controls, sparingly: a
+ *  link out, maybe one action. The hide delay lets the pointer travel from trigger to panel
+ *  without the card flickering shut; project the trigger into `[trigger]` and the card body
+ *  into `[card]`: `<base-hover-card><a trigger>SP7-04</a><div card>...</div></base-hover-card>` */
+@Component({
+  selector: 'base-hover-card',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <span class="relative inline-block" (mouseenter)="scheduleShow()" (mouseleave)="scheduleHide()"
+          (focusin)="scheduleShow()" (focusout)="scheduleHide()">
+      <ng-content select="[trigger]" />
+      @if (open()) {
+        <div class="absolute z-30 mt-1 bg-neutral-0 border border-neutral-200 rounded-r-md min-w-64 p-sp-4"
+             style="box-shadow: var(--shadow-e2);"
+             [class.right-0]="align() === 'right'"
+             (mouseenter)="cancelHide()" (mouseleave)="scheduleHide()">
+          <ng-content select="[card]" />
+        </div>
+      }
+    </span>
+  `
+})
+export class BaseHoverCardComponent {
+  readonly align = input<'left' | 'right'>('left');
+  /** Delay before the card appears — deliberately the same order of magnitude as a tooltip. */
+  readonly delayMs = input(400);
+
+  protected readonly open = signal(false);
+  private showTimer: ReturnType<typeof setTimeout> | null = null;
+  private hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+  scheduleShow(): void {
+    this.cancelHide();
+    if (this.open() || this.showTimer) return;
+    this.showTimer = setTimeout(() => { this.open.set(true); this.showTimer = null; }, this.delayMs());
+  }
+
+  scheduleHide(): void {
+    if (this.showTimer) { clearTimeout(this.showTimer); this.showTimer = null; }
+    if (this.hideTimer) clearTimeout(this.hideTimer);
+    this.hideTimer = setTimeout(() => this.open.set(false), 150);
+  }
+
+  cancelHide(): void {
+    if (this.hideTimer) { clearTimeout(this.hideTimer); this.hideTimer = null; }
   }
 }
 
