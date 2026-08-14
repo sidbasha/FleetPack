@@ -18,6 +18,8 @@ import {
   BaseChildCellDirective,
   BaseChipComponent,
   BaseCheckboxComponent,
+  BaseCheckboxGroupComponent,
+  BaseColorPickerComponent,
   BaseColumnDef,
   BaseComboOption,
   BaseComboboxComponent,
@@ -44,16 +46,22 @@ import {
   BaseMultiSelectChipsComponent,
   BaseNotification,
   BaseNotificationsPanelComponent,
+  BaseNumericStepperComponent,
+  BaseOtpInputComponent,
   BasePageEvent,
   BasePopoverComponent,
   BaseProgressBarComponent,
   BaseRadioGroupComponent,
+  BaseRangeSliderComponent,
+  BaseRangeValue,
   BaseRowAction,
   BaseScatterChartComponent,
   BaseScatterPoint,
   BaseSearchResult,
   BaseSegmentedControlComponent,
   BaseSelectComponent,
+  BaseSelectionCardComponent,
+  BaseSelectionCardOption,
   BaseSkeletonComponent,
   BaseSliderComponent,
   BaseSortEvent,
@@ -68,6 +76,7 @@ import {
   BaseTagComponent,
   BaseTextInputComponent,
   BaseTextareaComponent,
+  BaseTimePickerComponent,
   BaseToastHostComponent,
   BaseToastService,
   BaseToggleComponent,
@@ -158,7 +167,14 @@ function mockRows(n: number): ToolRow[] {
     BaseMultiSelectChipsComponent,
     BaseFileUploadComponent,
     BaseSliderComponent,
+    BaseRangeSliderComponent,
     BaseSegmentedControlComponent,
+    BaseSelectionCardComponent,
+    BaseNumericStepperComponent,
+    BaseOtpInputComponent,
+    BaseColorPickerComponent,
+    BaseCheckboxGroupComponent,
+    BaseTimePickerComponent,
     BaseDateRangePickerComponent,
     BaseTagComponent,
     BaseChipComponent,
@@ -210,7 +226,8 @@ function mockRows(n: number): ToolRow[] {
                                  (valueChange)="log('datepicker valueChange', $event ? $event.toDateString() : 'null')" />
                 <base-radio-group label="Shift" [options]="shiftOptions" [(value)]="shift" />
                 <div class="flex flex-col gap-2.5 pt-1">
-                  <base-checkbox label="Include engineering tools" [(checked)]="includeEng"
+                  <base-checkbox label="Email me on unscheduled downtime" [(checked)]="includeEng"
+                                 description="Sends within two minutes of the state change, to the address on your profile."
                                  (checkedChange)="log('checkbox checkedChange', '' + $event)" />
                   <base-toggle label="Auto-refresh" [(checked)]="autoRefresh"
                                (checkedChange)="log('toggle checkedChange', '' + $event)" />
@@ -220,11 +237,24 @@ function mockRows(n: number): ToolRow[] {
                 <base-combobox label="Recipe (type-ahead)" [options]="comboOptions" [(value)]="comboValue"
                                placeholder="Type to search…" hint="Accepts free text too"
                                (optionSelected)="log('combobox optionSelected', $event.label)" />
-                <base-multi-select-chips label="Fabs" [options]="multiSelectOptions" [(value)]="multiSelectValue" />
-                <base-slider label="Alert threshold" [min]="0" [max]="100" unit="%" [(value)]="sliderValue" />
+                <base-multi-select-chips label="Fabs" [options]="multiSelectOptions" [(value)]="multiSelectValue"
+                                         hint="Three of nine segments selected." />
+                <base-checkbox-group label="Machine state" [options]="machineStateOptions" [(value)]="machineStateValue" />
+                <base-slider label="Alert threshold" [min]="0" [max]="100" unit="%" [showValueBubble]="true" [(value)]="sliderValue" />
+                <base-range-slider label="Maintenance window" [min]="0" [max]="24" unit="h" [(value)]="maintWindow" />
+                <base-numeric-stepper label="Retry limit" [min]="0" [max]="20" [(value)]="retryLimit" />
+                <base-time-picker label="Shift start" [(value)]="shiftStart" />
+                <base-color-picker label="Segment colour" [(value)]="segmentColor"
+                                   hint="Free-form hex entry is deliberately absent." />
+                <base-otp-input class="md:col-span-2 xl:col-span-3" label="One-time passcode" [(value)]="otpValue"
+                                hint="Sent to the authenticator on your badge."
+                                (completed)="log('otp completed', $event)" />
+                <base-selection-cards class="md:col-span-2 xl:col-span-3" label="Selection cadence"
+                                      [options]="selectionCardOptions" [(value)]="selectionCardValue" />
                 <base-segmented-control [options]="segmentOptions" [(value)]="segment" ariaLabel="Time bucket" />
                 <base-date-range-picker [(value)]="dateRange" (applied)="log('dateRangePicker applied', $event.preset)" />
-                <base-file-upload class="md:col-span-2 xl:col-span-3" label="Attachments" accept="CSV, XLSX" [maxSizeMb]="10"
+                <base-file-upload class="md:col-span-2 xl:col-span-3" label="Recipe file" accept="JSON, XML"
+                                  [acceptTypes]="['application/json', 'text/xml', 'application/xml']" [maxSizeMb]="20"
                                   [(files)]="uploadFiles" (filesAdded)="log('fileUpload filesAdded', $event.length + ' file(s)')" />
                 <div class="flex items-end gap-2 flex-wrap">
                   <base-button variant="primary" (clicked)="openModal.set(true)">Open modal</base-button>
@@ -656,6 +686,25 @@ export class BasePlaygroundComponent {
     { label: 'Engineering', value: 'Engineering' }
   ];
   readonly sliderValue = signal(65);
+  readonly maintWindow = signal<BaseRangeValue>({ from: 6, to: 18 });
+  readonly retryLimit = signal(12);
+  readonly shiftStart = signal('06:00');
+  readonly segmentColor = signal('action');
+  readonly otpValue = signal('481');
+  readonly machineStateOptions = [
+    { label: 'Production', value: 'production' },
+    { label: 'Engineering', value: 'engineering' },
+    { label: 'Standby', value: 'standby' },
+    { label: 'Scheduled downtime', value: 'scheduled-dt' },
+    { label: 'Unscheduled downtime', value: 'unscheduled-dt' }
+  ];
+  readonly machineStateValue = signal<string[]>(['production', 'engineering']);
+  readonly selectionCardOptions: BaseSelectionCardOption<string>[] = [
+    { label: 'Rolling 30 days', value: 'rolling30', description: 'Recalculated nightly at 02:00 local time.' },
+    { label: 'Fixed window', value: 'fixed', description: 'Pick an explicit start and end date.' },
+    { label: 'Since last qual', value: 'lastqual', description: 'Anchors to the most recent qualification.' }
+  ];
+  readonly selectionCardValue = signal('rolling30');
   readonly uploadFiles = signal<BaseUploadFile[]>([]);
   readonly segment = signal<string | null>('week');
   readonly segmentOptions = [

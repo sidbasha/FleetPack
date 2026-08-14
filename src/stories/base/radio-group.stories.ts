@@ -20,6 +20,7 @@ const meta: Meta<BaseRadioGroupComponent> = {
     options: SHIFT_OPTIONS,
     value: 'day',
     direction: 'horizontal',
+    error: '',
     disabled: false
   },
   // See checkbox.stories.ts - avoids Storybook force-assigning inherited internal
@@ -27,7 +28,7 @@ const meta: Meta<BaseRadioGroupComponent> = {
   render: (args) => ({
     props: args,
     template: `<base-radio-group [label]="label" [options]="options" [value]="value"
-                                  [direction]="direction" [disabled]="disabled" />`
+                                  [direction]="direction" [error]="error" [disabled]="disabled" />`
   })
 };
 export default meta;
@@ -35,4 +36,5 @@ type Story = StoryObj<BaseRadioGroupComponent>;
 
 export const Horizontal: Story = {};
 export const Vertical: Story = { args: { direction: 'vertical' } };
+export const ErrorState: Story = { name: 'Error', args: { value: null, error: 'Pick a shift before saving.' } };
 export const Disabled: Story = { args: { disabled: true } };

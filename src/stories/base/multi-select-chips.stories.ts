@@ -7,17 +7,24 @@ const meta: Meta<BaseMultiSelectChipsComponent> = {
   component: BaseMultiSelectChipsComponent,
   tags: ['autodocs'],
   args: {
-    label: 'Fleets',
+    label: 'Fleet segments — multi-select',
     options: [
-      { label: 'Fleet A', value: 'a' },
-      { label: 'Fleet B', value: 'b' },
-      { label: 'Fleet C', value: 'c' }
+      { label: 'Inspection', value: 'inspection' },
+      { label: 'Metrology', value: 'metrology' },
+      { label: 'Review', value: 'review' },
+      { label: 'Etch', value: 'etch' },
+      { label: 'Deposition', value: 'deposition' },
+      { label: 'CMP', value: 'cmp' },
+      { label: 'Litho', value: 'litho' },
+      { label: 'Clean', value: 'clean' },
+      { label: 'Test', value: 'test' }
     ],
-    value: ['a', 'c']
+    value: ['inspection', 'metrology', 'review'],
+    hint: 'Three of nine segments selected.'
   }
 };
 export default meta;
 type Story = StoryObj<BaseMultiSelectChipsComponent>;
 
 export const Default: Story = {};
-export const Empty: Story = { args: { value: [] } };
+export const Empty: Story = { args: { value: [], hint: '' } };
