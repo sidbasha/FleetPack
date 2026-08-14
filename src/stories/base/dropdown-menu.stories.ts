@@ -8,6 +8,17 @@ const ITEMS: BaseMenuItem[] = [
   { id: 'delete', label: 'Delete', icon: '🗑', danger: true }
 ];
 
+/** "Tool actions" from the spec — icon + label + right-aligned shortcut hint; the disabled item
+ *  states why it can't run right now in its own label rather than going silently grey. */
+const TOOL_ACTIONS: BaseMenuItem[] = [
+  { id: 'deep-dive', label: 'Open deep dive', icon: '👁', shortcut: 'O' },
+  { id: 'thresholds', label: 'Edit thresholds', icon: '✎', shortcut: 'E' },
+  { id: 'copy-id', label: 'Copy tool ID', icon: '📋' },
+  { id: 'export-history', label: 'Export history', icon: '⬇', dividerBefore: true },
+  { id: 'compare', label: 'Compare — select two tools', icon: '⧉', disabled: true },
+  { id: 'archive', label: 'Archive tool', icon: '🗄', dividerBefore: true, danger: true }
+];
+
 const meta: Meta<BaseDropdownMenuComponent> = {
   title: 'Base/Navigation/Dropdown Menu',
   component: BaseDropdownMenuComponent,
@@ -41,6 +52,18 @@ export const Disabled: Story = { args: { disabled: true } };
 
 /** Click the trigger in the canvas to see items, a divider, a disabled item, and a destructive item together. */
 export const OpenExample: Story = {
+  render: (args) => ({
+    props: args,
+    template: `
+      <div class="flex justify-end pt-24 pr-4">
+        <base-dropdown-menu [label]="label" [items]="items" [align]="align" [disabled]="disabled" />
+      </div>`
+  })
+};
+
+/** Keyboard-shortcut hints, right-aligned, plus a disabled item that names the reason. */
+export const ToolActions: Story = {
+  args: { label: 'Tool actions', items: TOOL_ACTIONS },
   render: (args) => ({
     props: args,
     template: `

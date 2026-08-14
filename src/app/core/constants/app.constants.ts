@@ -14,8 +14,17 @@ export interface DemoAuthUser extends AuthUser {
 
 export interface NavItem {
   label: string;
-  path: string;
+  /** Omit when [children] is set — a parent item expands/collapses instead of navigating. */
+  path?: string;
   icon: string;
+  /** Small counter pill, e.g. an unresolved-alarm count. */
+  badge?: string | number;
+  /** Stays visible rather than disappearing, so the operator learns the shape of the product
+   *  even where their role has no access — label the reason in [label] itself (e.g. "Audit log
+   *  — restricted"), never a bare icon with no explanation. */
+  disabled?: boolean;
+  /** Nested sub-items shown when this item is expanded; hidden entirely in the collapsed rail. */
+  children?: NavItem[];
 }
 
 export interface NavGroup {
@@ -203,8 +212,10 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     heading: 'Modules · Fleet Availability',
     items: [
-      { label: 'Up+Time Analysis', path: APP_ROUTES.fleetAvailabilityAnalysis, icon: '↗' },
-      { label: 'Up+Time Availability', path: APP_ROUTES.fleetAvailabilityAvailability, icon: '▤' },
+      { label: 'Up+Time', icon: '↗', children: [
+        { label: 'Analysis', path: APP_ROUTES.fleetAvailabilityAnalysis, icon: '↗' },
+        { label: 'Availability', path: APP_ROUTES.fleetAvailabilityAvailability, icon: '▤' }
+      ] },
       { label: 'Alarm Explorer', path: APP_ROUTES.alarmExplorer, icon: '!' },
       { label: 'Fleet Configuration', path: APP_ROUTES.fleetConfiguration, icon: '⚒' },
       { label: 'Fleet Productivity', path: APP_ROUTES.fleetProductivity, icon: '▲' }

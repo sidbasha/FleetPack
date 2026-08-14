@@ -26,12 +26,17 @@ import { BasePageEvent } from '../../models/table.model';
         }
         <button class="btn-ghost" [disabled]="page() <= 1" (click)="go(1)" aria-label="First page">«</button>
         <button class="btn-ghost" [disabled]="page() <= 1" (click)="go(page() - 1)" aria-label="Previous page">‹ Prev</button>
-        @for (p of pageWindow(); track p) {
-          <button class="rounded-r-sm px-2.5 py-1 text-xs font-semibold transition-colors tabular-nums"
-                  [class]="p === page()
-                    ? 'bg-action text-neutral-0'
-                    : 'text-ink-600 hover:bg-action-surface hover:text-action'"
-                  (click)="go(p)">{{ p }}</button>
+        @for (p of pageItems(); track $index) {
+          @if (p === '…') {
+            <span class="px-1.5 text-neutral-300 select-none" aria-hidden="true">…</span>
+          } @else {
+            <button class="rounded-r-sm px-2.5 py-1 text-xs font-semibold transition-colors tabular-nums"
+                    [class]="p === page()
+                      ? 'bg-action text-neutral-0'
+                      : 'text-ink-600 hover:bg-action-surface hover:text-action'"
+                    [attr.aria-current]="p === page() ? 'page' : null"
+                    (click)="go(p)">{{ p }}</button>
+          }
         }
         <button class="btn-ghost" [disabled]="page() >= pageCount()" (click)="go(page() + 1)" aria-label="Next page">Next ›</button>
         <button class="btn-ghost" [disabled]="page() >= pageCount()" (click)="go(pageCount())" aria-label="Last page">»</button>
@@ -64,14 +69,24 @@ export class BasePaginatorComponent {
   protected readonly rangeStart = computed(() => this.total() === 0 ? 0 : (this.page() - 1) * this.pageSize() + 1);
   protected readonly rangeEnd = computed(() => Math.min(this.page() * this.pageSize(), this.total()));
 
-  protected readonly pageWindow = computed(() => {
-    const count = this.pageCount(), max = this.maxButtons();
-    let start = Math.max(1, this.page() - Math.floor(max / 2));
-    const end = Math.min(count, start + max - 1);
-    start = Math.max(1, end - max + 1);
-    const out: number[] = [];
-    for (let p = start; p <= end; p++) out.push(p);
-    return out;
+  /** Page 1 and the last page always stay visible so their distance never gets lost — with a
+   *  large page count, an ellipsis fills the gap either side of the current-page window instead
+   *  of everything sliding as one contiguous run. */
+  protected readonly pageItems = computed<(number | '…')[]>(() => {
+    const count = this.pageCount(), max = this.maxButtons(), cur = this.page();
+    if (count <= max + 2) return Array.from({ length: count }, (_, i) => i + 1);
+
+    const inner = Math.max(1, max - 2); // window width excluding the pinned 1/last
+    let start = Math.max(2, cur - Math.floor(inner / 2));
+    let end = Math.min(count - 1, start + inner - 1);
+    start = Math.max(2, end - inner + 1);
+
+    const items: (number | '…')[] = [1];
+    if (start > 2) items.push('…');
+    for (let p = start; p <= end; p++) items.push(p);
+    if (end < count - 1) items.push('…');
+    items.push(count);
+    return items;
   });
 
   go(p: number): void {

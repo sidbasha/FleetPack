@@ -33,3 +33,7 @@ export const NoPageSizeControl: Story = { args: { showPageSize: false } };
 export const NoRecords: Story = { args: { total: 0, page: 1 } };
 /** Server-side mode often only knows the page count, not the total record count. */
 export const PageCountOnly: Story = { name: 'Page-count-only (server-side)', args: { pageCountOverride: 12, page: 4 } };
+
+/** Large page counts pin page 1 and the last page, with an ellipsis filling the gap either
+ *  side of the current-page window — "Showing 101–125 of 1,072" from the spec. */
+export const LargePageCount: Story = { args: { page: 5, pageSize: 25, total: 1072 } };

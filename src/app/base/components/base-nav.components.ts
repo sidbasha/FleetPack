@@ -8,7 +8,8 @@ import {
   input,
   model,
   output,
-  signal
+  signal,
+  viewChild
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { BaseTeleportDirective } from './base-overlay.components';
@@ -66,49 +67,81 @@ export class BaseBreadcrumbsComponent {
 export interface BaseTabItem {
   id: string;
   label: string;
+  /** Optional leading icon glyph/emoji — mainly for the 'vertical' variant. */
+  icon?: string;
   /** Small counter badge. */
   badge?: string | number;
   disabled?: boolean;
 }
 
-/** Headless tab strip — host switches content with @if/@switch on [(activeId)]. */
+/** Headless tab strip — host switches content with @if/@switch on [(activeId)]. Three
+ *  treatments: 'underline' (default, horizontal content sections), 'pills' (a filter/status
+ *  switcher, not page sections), and 'vertical' (a settings-style side list with icons). */
 @Component({
   selector: 'base-tabs',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div role="tablist"
-         class="flex items-center gap-1"
-         [class]="variant() === 'pills' ? '' : 'border-b border-neutral-200'"
-         (keydown.arrowright)="moveFocus(1)" (keydown.arrowleft)="moveFocus(-1)">
-      @for (t of tabs(); track t.id) {
-        <button type="button" role="tab" [id]="'tab-' + t.id"
-                [attr.aria-selected]="t.id === activeId()"
-                [attr.tabindex]="t.id === activeId() ? 0 : -1"
-                class="inline-flex items-center gap-1.5 text-xs font-semibold px-sp-4 py-sp-2 transition-colors outline-none
-                       focus-visible:ring-2 focus-visible:ring-action
-                       disabled:opacity-40 disabled:cursor-not-allowed"
-                [class]="tabClass(t)"
-                [disabled]="t.disabled"
-                (click)="select(t)">
-          {{ t.label }}
-          @if (t.badge !== undefined) {
-            <span class="text-[10px] font-bold rounded-r-full px-1.5 py-0.5"
-                  [class]="t.id === activeId() ? 'bg-action-surface text-action' : 'bg-neutral-100 text-neutral-400'">
-              {{ t.badge }}
-            </span>
-          }
-        </button>
-      }
-    </div>
+    @if (variant() === 'vertical') {
+      <div role="tablist" class="flex flex-col" [attr.aria-label]="ariaLabel() || null"
+           (keydown.arrowdown)="moveFocus(1)" (keydown.arrowup)="moveFocus(-1)">
+        @for (t of tabs(); track t.id) {
+          <button type="button" role="tab" [id]="'tab-' + t.id"
+                  [attr.aria-selected]="t.id === activeId()"
+                  [attr.tabindex]="t.id === activeId() ? 0 : -1"
+                  class="flex items-center gap-2 text-xs font-semibold px-sp-3 py-sp-2 border-l-2 transition-colors text-left outline-none
+                         focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-inset
+                         disabled:opacity-40 disabled:cursor-not-allowed"
+                  [class]="t.id === activeId() ? 'border-action text-action bg-action-surface' : 'border-transparent text-neutral-500 hover:text-ink-700 hover:bg-neutral-50'"
+                  [disabled]="t.disabled"
+                  (click)="select(t)">
+            @if (t.icon) { <span aria-hidden="true">{{ t.icon }}</span> }
+            <span class="flex-1">{{ t.label }}</span>
+            @if (t.badge !== undefined) {
+              <span class="text-[10px] font-bold rounded-r-full px-1.5 py-0.5"
+                    [class]="t.id === activeId() ? 'bg-action text-neutral-0' : 'bg-neutral-100 text-neutral-400'">
+                {{ t.badge }}
+              </span>
+            }
+          </button>
+        }
+      </div>
+    } @else {
+      <div role="tablist"
+           class="flex items-center gap-1"
+           [class]="variant() === 'pills' ? '' : 'border-b border-neutral-200'"
+           (keydown.arrowright)="moveFocus(1)" (keydown.arrowleft)="moveFocus(-1)">
+        @for (t of tabs(); track t.id) {
+          <button type="button" role="tab" [id]="'tab-' + t.id"
+                  [attr.aria-selected]="t.id === activeId()"
+                  [attr.tabindex]="t.id === activeId() ? 0 : -1"
+                  class="inline-flex items-center gap-1.5 text-xs font-semibold px-sp-4 py-sp-2 transition-colors outline-none
+                         focus-visible:ring-2 focus-visible:ring-action
+                         disabled:opacity-40 disabled:cursor-not-allowed"
+                  [class]="tabClass(t)"
+                  [disabled]="t.disabled"
+                  (click)="select(t)">
+            @if (t.icon) { <span aria-hidden="true">{{ t.icon }}</span> }
+            {{ t.label }}
+            @if (t.badge !== undefined) {
+              <span class="text-[10px] font-bold rounded-r-full px-1.5 py-0.5"
+                    [class]="t.id === activeId() ? 'bg-action-surface text-action' : 'bg-neutral-100 text-neutral-400'">
+                {{ t.badge }}
+              </span>
+            }
+          </button>
+        }
+      </div>
+    }
   `
 })
 export class BaseTabsComponent {
   readonly tabs = input.required<BaseTabItem[]>();
   /** Two-way bound active tab id: [(activeId)]. Emits (activeIdChange). */
   readonly activeId = model('');
-  /** 'underline' (default) or 'pills'. */
-  readonly variant = input<'underline' | 'pills'>('underline');
+  /** 'underline' (default, page sections) · 'pills' (a filter/status switcher) · 'vertical' (a settings-style side list). */
+  readonly variant = input<'underline' | 'pills' | 'vertical'>('underline');
+  readonly ariaLabel = input('');
 
   /** Fired with the full tab object on selection. */
   readonly tabSelect = output<BaseTabItem>();
@@ -119,8 +152,8 @@ export class BaseTabsComponent {
     const active = t.id === this.activeId();
     if (this.variant() === 'pills') {
       return active
-        ? 'bg-action text-neutral-0 rounded-r-sm'
-        : 'text-neutral-400 hover:text-action hover:bg-action-surface rounded-r-sm';
+        ? 'bg-ink-900 text-neutral-0 rounded-r-sm'
+        : 'text-neutral-400 hover:text-ink-700 hover:bg-neutral-100 rounded-r-sm';
     }
     return active
       ? 'text-action border-b-2 border-action -mb-px'
@@ -275,20 +308,28 @@ export interface BaseMenuItem {
   id: string;
   label: string;
   icon?: string;
-  /** Renders in red (destructive actions). */
+  /** Right-aligned keyboard-shortcut hint, e.g. 'E' or '⌘C' — display only, doesn't bind the key. */
+  shortcut?: string;
+  /** Renders in red (destructive actions) — keep these last, separated by [dividerBefore], and
+   *  never adjacent to a frequently-used action. */
   danger?: boolean;
+  /** An item that can't run right now should say why in [label] itself (e.g. "Compare — select
+   *  two tools"), not just go quietly grey with no explanation. */
   disabled?: boolean;
   /** Draws a divider line above this item. */
   dividerBefore?: boolean;
 }
 
+/** Opens on click, not hover — a hover menu on a dense grid fires constantly while the operator
+ *  is trying to reach something else. Esc closes and returns focus to this trigger, never to
+ *  the top of the page. */
 @Component({
   selector: 'base-dropdown-menu',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="relative inline-block">
-      <button type="button"
+      <button #trigger type="button"
               class="inline-flex items-center gap-1 text-xs font-semibold text-ink-600 border border-neutral-200
                      rounded-r-sm px-sp-3 py-1.5 bg-neutral-0 hover:border-action hover:text-action transition-colors
                      outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-1
@@ -310,7 +351,9 @@ export interface BaseMenuItem {
                     [class]="m.danger ? 'text-error hover:bg-error-surface' : 'text-ink-600 hover:bg-neutral-50'"
                     [disabled]="m.disabled"
                     (click)="pick(m)">
-              @if (m.icon) { <span>{{ m.icon }}</span> } {{ m.label }}
+              @if (m.icon) { <span>{{ m.icon }}</span> }
+              <span class="flex-1">{{ m.label }}</span>
+              @if (m.shortcut) { <span class="text-[10px] text-neutral-300 tabular-nums">{{ m.shortcut }}</span> }
             </button>
           }
         </div>
@@ -329,10 +372,18 @@ export class BaseDropdownMenuComponent {
 
   protected readonly open = signal(false);
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly trigger = viewChild<ElementRef<HTMLButtonElement>>('trigger');
 
   @HostListener('document:click', ['$event'])
   onDocClick(ev: MouseEvent): void {
     if (this.open() && !this.host.nativeElement.contains(ev.target as Node)) this.open.set(false);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (!this.open()) return;
+    this.open.set(false);
+    this.trigger()?.nativeElement.focus();
   }
 
   toggle(): void { this.open.update(o => !o); }
@@ -346,7 +397,8 @@ export class BaseDropdownMenuComponent {
 
 /** Right-click/overflow-triggered menu with no trigger button of its own —
  *  call `openAt(x, y)` from a host's (contextmenu) handler:
- *  `menu.openAt($event.clientX, $event.clientY)`. */
+ *  `menu.openAt($event.clientX, $event.clientY)`. Esc closes and returns focus to whatever was
+ *  focused when the menu opened, never to the top of the page. */
 @Component({
   selector: 'base-context-menu',
   standalone: true,
@@ -364,7 +416,9 @@ export class BaseDropdownMenuComponent {
                   [class]="m.danger ? 'text-error hover:bg-error-surface' : 'text-ink-600 hover:bg-neutral-50'"
                   [disabled]="m.disabled"
                   (click)="pick(m)">
-            @if (m.icon) { <span>{{ m.icon }}</span> } {{ m.label }}
+            @if (m.icon) { <span>{{ m.icon }}</span> }
+            <span class="flex-1">{{ m.label }}</span>
+            @if (m.shortcut) { <span class="text-[10px] text-neutral-300 tabular-nums">{{ m.shortcut }}</span> }
           </button>
         }
       </div>
@@ -377,14 +431,19 @@ export class BaseContextMenuComponent {
 
   protected readonly open = signal(false);
   protected readonly pos = signal({ x: 0, y: 0 });
+  private openedFrom: HTMLElement | null = null;
 
   /** Opens the menu at a fixed viewport coordinate. */
   openAt(x: number, y: number): void {
+    this.openedFrom = document.activeElement as HTMLElement | null;
     this.pos.set({ x, y });
     this.open.set(true);
   }
 
-  close(): void { this.open.set(false); }
+  close(): void {
+    if (!this.open()) return;
+    this.open.set(false);
+  }
 
   pick(m: BaseMenuItem): void {
     if (m.disabled) return;
@@ -396,5 +455,9 @@ export class BaseContextMenuComponent {
   onDocClick(): void { if (this.open()) this.close(); }
 
   @HostListener('document:keydown.escape')
-  onEscape(): void { if (this.open()) this.close(); }
+  onEscape(): void {
+    if (!this.open()) return;
+    this.close();
+    this.openedFrom?.focus();
+  }
 }

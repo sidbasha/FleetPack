@@ -1,4 +1,4 @@
-﻿import type { Meta, StoryObj } from '@storybook/angular';
+import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseTabsComponent, BaseTabItem } from '../../app/base';
 
 const TABS: BaseTabItem[] = [
@@ -14,12 +14,27 @@ const TABS_WITH_BADGES: BaseTabItem[] = [
   { id: 'abnormal', label: 'Abnormal', badge: 4 }
 ];
 
+const STATUS_TABS: BaseTabItem[] = [
+  { id: 'all', label: 'All' },
+  { id: 'open', label: 'Open' },
+  { id: 'acknowledged', label: 'Acknowledged' },
+  { id: 'resolved', label: 'Resolved' }
+];
+
+const SETTINGS_TABS: BaseTabItem[] = [
+  { id: 'profile', label: 'Profile', icon: '👤' },
+  { id: 'notifications', label: 'Notifications', icon: '🔔' },
+  { id: 'security', label: 'Security', icon: '🛡' }
+];
+
+/** Three treatments: 'underline' for page sections (the default), 'pills' for a filter/status
+ *  switcher, and 'vertical' for a settings-style side list with icons. */
 const meta: Meta<BaseTabsComponent> = {
   title: 'Base/Navigation/Tabs',
   component: BaseTabsComponent,
   tags: ['autodocs'],
   argTypes: {
-    variant: { control: 'select', options: ['underline', 'pills'] }
+    variant: { control: 'select', options: ['underline', 'pills', 'vertical'] }
   },
   args: {
     tabs: TABS,
@@ -31,6 +46,7 @@ export default meta;
 type Story = StoryObj<BaseTabsComponent>;
 
 export const Underline: Story = {};
-export const Pills: Story = { args: { variant: 'pills' } };
+export const Pills: Story = { args: { tabs: STATUS_TABS, activeId: 'all', variant: 'pills' } };
+export const Vertical: Story = { args: { tabs: SETTINGS_TABS, activeId: 'profile', variant: 'vertical' } };
 export const WithCountBadges: Story = { args: { tabs: TABS_WITH_BADGES, activeId: 'urgent' } };
 export const WithDisabledTab: Story = { args: { activeId: 'locked' } };

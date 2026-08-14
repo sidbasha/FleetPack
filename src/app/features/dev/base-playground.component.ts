@@ -73,6 +73,7 @@ import {
   BaseStepperComponent,
   BaseStepperStep,
   BaseTableComponent,
+  BaseTabItem,
   BaseTabsComponent,
   BaseTagComponent,
   BaseTextInputComponent,
@@ -388,6 +389,16 @@ function mockRows(n: number): ToolRow[] {
             }
             @case ('navigation') {
               <div class="space-y-5 max-w-2xl">
+                <div class="panel p-4 space-y-2">
+                  <span class="panel-title">Tabs — underline, pills, vertical</span>
+                  <base-tabs [tabs]="alarmStatusTabs" [(activeId)]="alarmStatusActiveId" variant="pills"
+                             (tabSelect)="log('tabs tabSelect', $event.label)" />
+                  <div class="panel p-2 max-w-[180px]">
+                    <base-tabs [tabs]="settingsTabs" [(activeId)]="settingsTabActiveId" variant="vertical"
+                               (tabSelect)="log('tabs tabSelect', $event.label)" />
+                  </div>
+                </div>
+
                 <div class="panel p-4 space-y-3">
                   <base-stepper [steps]="stepperSteps" [(activeId)]="stepperActiveId"
                                 (stepSelect)="log('stepper stepSelect', $event.step.label)" />
@@ -411,6 +422,8 @@ function mockRows(n: number): ToolRow[] {
                     </div>
                   </base-popover>
                   <base-button variant="secondary" (clicked)="drawerOpen.set(true)">Open drawer</base-button>
+                  <base-dropdown-menu label="Tool actions" [items]="toolActionsItems"
+                                      (itemSelect)="log('dropdownMenu itemSelect', $event.label)" />
                 </div>
 
                 <div class="border border-dashed border-neutral-200 rounded-r-md px-sp-4 py-sp-6 text-center text-xs text-neutral-400"
@@ -820,10 +833,32 @@ export class BasePlaygroundComponent {
   @ViewChild('contextMenu') contextMenuRef?: BaseContextMenuComponent;
   readonly drawerOpen = signal(false);
   readonly contextMenuItems: BaseMenuItem[] = [
-    { id: 'view', label: 'View details', icon: '👁' },
-    { id: 'flag', label: 'Flag for review', icon: '🚩' },
-    { id: 'remove', label: 'Remove', icon: '🗑', dividerBefore: true, danger: true }
+    { id: 'filter', label: 'Filter by this value', icon: '▽' },
+    { id: 'hide', label: 'Hide this column', icon: '⊞' },
+    { id: 'group', label: 'Group by site', icon: '⊟' },
+    { id: 'copy', label: 'Copy cell', icon: '📋', shortcut: '⌘C', dividerBefore: true }
   ];
+  readonly toolActionsItems: BaseMenuItem[] = [
+    { id: 'deep-dive', label: 'Open deep dive', icon: '👁', shortcut: 'O' },
+    { id: 'thresholds', label: 'Edit thresholds', icon: '✎', shortcut: 'E' },
+    { id: 'copy-id', label: 'Copy tool ID', icon: '📋' },
+    { id: 'export-history', label: 'Export history', icon: '⬇', dividerBefore: true },
+    { id: 'compare', label: 'Compare — select two tools', icon: '⧉', disabled: true },
+    { id: 'archive', label: 'Archive tool', icon: '🗄', dividerBefore: true, danger: true }
+  ];
+  readonly settingsTabs: BaseTabItem[] = [
+    { id: 'profile', label: 'Profile', icon: '👤' },
+    { id: 'notifications', label: 'Notifications', icon: '🔔' },
+    { id: 'security', label: 'Security', icon: '🛡' }
+  ];
+  readonly settingsTabActiveId = signal('profile');
+  readonly alarmStatusTabs: BaseTabItem[] = [
+    { id: 'all', label: 'All' },
+    { id: 'open', label: 'Open' },
+    { id: 'acknowledged', label: 'Acknowledged' },
+    { id: 'resolved', label: 'Resolved' }
+  ];
+  readonly alarmStatusActiveId = signal('all');
   readonly notifications: BaseNotification[] = [
     { id: 'n1', icon: 'warning', title: 'Fab-B uptime dipped below 90%', time: '4m ago', read: false },
     { id: 'n2', icon: 'check_circle', title: 'Weekly export completed', message: 'service_activity.xlsx', time: '1h ago', read: false },
