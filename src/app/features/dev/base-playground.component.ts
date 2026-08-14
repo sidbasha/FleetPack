@@ -263,6 +263,7 @@ function mockRows(n: number): ToolRow[] {
                                   [(files)]="uploadFiles" (filesAdded)="log('fileUpload filesAdded', $event.length + ' file(s)')" />
                 <div class="flex items-end gap-2 flex-wrap">
                   <base-button variant="primary" (clicked)="openModal.set(true)">Open modal</base-button>
+                  <base-button variant="destructive" (clicked)="openDeleteModal.set(true)">Delete tool</base-button>
                   <base-button variant="secondary" baseTooltip="I am a tooltip" tooltipPosition="top">Hover me</base-button>
                   <base-button variant="tertiary">View details</base-button>
                   <base-button variant="outline">Compare</base-button>
@@ -469,6 +470,7 @@ function mockRows(n: number): ToolRow[] {
                     </div>
                   </base-popover>
                   <base-button variant="secondary" (clicked)="drawerOpen.set(true)">Open drawer</base-button>
+                  <base-button variant="secondary" (clicked)="bulkActionsOpen.set(true)">Open bottom drawer</base-button>
                   <base-dropdown-menu label="Tool actions" [items]="toolActionsItems"
                                       (itemSelect)="log('dropdownMenu itemSelect', $event.label)" />
                 </div>
@@ -519,7 +521,7 @@ function mockRows(n: number): ToolRow[] {
         </div>
       </div>
 
-      <base-modal [(open)]="openModal" title="Edit tool" size="md" (closed)="log('modal closed', $event)">
+      <base-modal [(open)]="openModal" title="Edit tool" icon="edit" size="md" (closed)="log('modal closed', $event)">
         <div class="space-y-3">
           <base-text-input label="Tool ID" [(value)]="toolId" />
           <base-datepicker label="Next maintenance" [(value)]="maintDate" />
@@ -530,7 +532,26 @@ function mockRows(n: number): ToolRow[] {
         </div>
       </base-modal>
 
-      <base-drawer [(open)]="drawerOpen" title="Tool inspector" side="right" width="380px"
+      <!-- Destructive is deliberate: names the object, quantifies the loss, requires a typed confirmation. -->
+      <base-modal [(open)]="openDeleteModal" title="Delete {{ toolId() }}?" subtitle="This cannot be undone."
+                  icon="delete" iconTone="error" size="sm" [destructive]="true"
+                  (closed)="deleteConfirmText.set(''); log('modal closed', $event)">
+        <div class="space-y-3">
+          <p>
+            Deleting this tool removes <b class="text-ink-900">14 months of state history</b>, 38 downtime events
+            and its qualification record. Availability figures will be recalculated without it.
+          </p>
+          <base-alert kind="warning" message="Two open alarms are attached to this tool." [compact]="true" />
+          <base-text-input [label]="'Type ' + toolId() + ' to confirm'" [(value)]="deleteConfirmText" [placeholder]="toolId()" />
+        </div>
+        <div footer class="flex gap-2">
+          <base-button variant="secondary" (clicked)="openDeleteModal.set(false)">Cancel</base-button>
+          <base-button variant="destructive" [disabled]="deleteConfirmText() !== toolId()"
+                       (clicked)="openDeleteModal.set(false); removeRow(toolId()); deleteConfirmText.set('')">Delete tool</base-button>
+        </div>
+      </base-modal>
+
+      <base-drawer [(open)]="drawerOpen" title="Tool inspector" icon="settings" side="right" width="400px"
                    (closed)="log('drawer closed', $event)">
         <div class="px-sp-5 py-sp-4 space-y-2 text-xs text-ink-600">
           <p><b class="text-ink-900">Tool ID:</b> {{ toolId() }}</p>
@@ -538,6 +559,34 @@ function mockRows(n: number): ToolRow[] {
         </div>
         <div footer class="flex gap-2">
           <base-button variant="secondary" (clicked)="drawerOpen.set(false)">Close</base-button>
+        </div>
+      </base-drawer>
+
+      <!-- Bottom drawer — action sheet at the compact breakpoint, where a side drawer would leave nothing visible. -->
+      <base-drawer [(open)]="bulkActionsOpen" title="Bulk actions · {{ selectedCount() }} tools" side="bottom"
+                   (closed)="log('drawer closed', $event)">
+        <div class="py-2 text-xs text-ink-600">
+          <button type="button" class="w-full text-left px-sp-5 py-sp-3 flex items-center gap-2.5 hover:bg-neutral-50 transition-colors"
+                  (click)="bulkActionsOpen.set(false); log('bulkAction', 'assign to fleet segment')">
+            <span class="icon-outline text-neutral-400" style="font-size:18px;" aria-hidden="true">bookmark_add</span>
+            Assign to a fleet segment
+          </button>
+          <button type="button" class="w-full text-left px-sp-5 py-sp-3 flex items-center gap-2.5 hover:bg-neutral-50 transition-colors"
+                  (click)="bulkActionsOpen.set(false); log('bulkAction', 'set availability threshold')">
+            <span class="icon-outline text-neutral-400" style="font-size:18px;" aria-hidden="true">tune</span>
+            Set availability threshold
+          </button>
+          <button type="button" class="w-full text-left px-sp-5 py-sp-3 flex items-center gap-2.5 hover:bg-neutral-50 transition-colors"
+                  (click)="bulkActionsOpen.set(false); log('bulkAction', 'export selection')">
+            <span class="icon-outline text-neutral-400" style="font-size:18px;" aria-hidden="true">file_download</span>
+            Export selection
+          </button>
+          <div class="border-t border-neutral-100 my-1"></div>
+          <button type="button" class="w-full text-left px-sp-5 py-sp-3 flex items-center gap-2.5 text-error hover:bg-error-surface transition-colors"
+                  (click)="bulkActionsOpen.set(false); log('bulkAction', 'archive')">
+            <span class="icon-outline" style="font-size:18px;" aria-hidden="true">archive</span>
+            Archive {{ selectedCount() }} tools
+          </button>
         </div>
       </base-drawer>
 
@@ -780,6 +829,8 @@ export class BasePlaygroundComponent {
   readonly minDate = new Date(2026, 0, 1);
   readonly noWeekends = (d: Date) => d.getDay() === 0 || d.getDay() === 6;
   readonly openModal = signal(false);
+  readonly openDeleteModal = signal(false);
+  readonly deleteConfirmText = signal('');
   readonly saving = signal(false);
   /** Drives [highlightKey] — set to a row's toolId to highlight + auto-scroll to it. */
   readonly highlightedToolId = signal<string | null>(null);
@@ -879,6 +930,7 @@ export class BasePlaygroundComponent {
   // Navigation & overlay demo state
   @ViewChild('contextMenu') contextMenuRef?: BaseContextMenuComponent;
   readonly drawerOpen = signal(false);
+  readonly bulkActionsOpen = signal(false);
   readonly contextMenuItems: BaseMenuItem[] = [
     { id: 'filter', label: 'Filter by this value', icon: '▽' },
     { id: 'hide', label: 'Hide this column', icon: '⊞' },

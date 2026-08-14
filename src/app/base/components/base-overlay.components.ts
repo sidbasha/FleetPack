@@ -8,16 +8,37 @@ import {
   OnInit,
   Renderer2,
   computed,
+  effect,
   inject,
   input,
   model,
   output,
-  signal
+  signal,
+  viewChild
 } from '@angular/core';
+import { focusDialogOpen, lockBodyScroll, trapTabKey, unlockBodyScroll } from '../utils/dialog-a11y.util';
 
-/** Content-projected dialog; use `<base-drawer>` instead when the task doesn't
- *  need to leave the view. Footer buttons go in a `<div footer>` block:
- *  `<base-modal [(open)]="show" title="Edit tool"><div footer>...</div></base-modal>` */
+const ICON_TONE_CLASS: Record<'action' | 'accent' | 'success' | 'warning' | 'error' | 'neutral', string> = {
+  action: 'bg-action-surface text-action',
+  accent: 'bg-accent-surface text-accent',
+  success: 'bg-success-surface text-success',
+  warning: 'bg-warning-surface text-warning',
+  error: 'bg-error-surface text-error',
+  neutral: 'bg-neutral-100 text-neutral-500'
+};
+
+/** Interrupts and blocks until the operator resolves it — reach for `<base-drawer>` instead the
+ *  moment the task doesn't need to leave the view; interruption is expensive on a monitoring
+ *  surface, so use the smallest size that does the job. Footer buttons go in a `<div footer>`
+ *  block: `<base-modal [(open)]="show" title="Edit tool"><div footer>...</div></base-modal>` —
+ *  for a split footer (a link on the left, the button group on the right), give that div its
+ *  own `class="w-full flex items-center justify-between"`.
+ *
+ *  Focus enters and is trapped inside the dialog (Tab cycles here only), returns to whatever
+ *  opened it on close, and the background scroll-locks — `aria-modal="true"` already tells
+ *  assistive tech everything outside is inert to browse-mode navigation. A [destructive] modal
+ *  focuses the heading instead of the first control, so the danger button is never the default
+ *  focus. */
 @Component({
   selector: 'base-modal',
   standalone: true,
@@ -26,15 +47,29 @@ import {
     @if (open()) {
       <div class="fixed inset-0 z-40 flex items-center justify-center p-sp-6">
         <div class="absolute inset-0 bg-ink-900/40" (click)="effectiveCloseOnBackdrop() && close('backdrop')"></div>
-        <div class="relative bg-neutral-0 rounded-r-lg w-full flex flex-col max-h-[88vh]" style="box-shadow: var(--shadow-e4);"
-             [class]="sizeClass()" role="dialog" aria-modal="true" [attr.aria-label]="title()">
-          <div class="flex items-center justify-between px-sp-5 py-sp-4 border-b border-neutral-100">
-            <span class="font-display text-display-md text-ink-900">{{ title() }}</span>
-            @if (showClose()) {
-              <button type="button" class="text-neutral-300 hover:text-neutral-500 text-sm" (click)="close('button')"
-                      aria-label="Close dialog" [disabled]="processing()">✕</button>
-            }
-          </div>
+        <div #dialogRoot class="relative bg-neutral-0 rounded-r-lg w-full flex flex-col max-h-[88vh] outline-none"
+             style="box-shadow: var(--shadow-e4);"
+             [class]="sizeClass()" role="dialog" aria-modal="true" tabindex="-1" [attr.aria-label]="title()"
+             (keydown.tab)="onTabKey($event)">
+          @if (title() || icon() || showClose()) {
+            <div class="flex items-start justify-between gap-3 px-sp-5 py-sp-4 border-b border-neutral-100">
+              <span class="flex items-center gap-3 min-w-0">
+                @if (icon()) {
+                  <span class="shrink-0 w-9 h-9 rounded-r-sm inline-flex items-center justify-center" [class]="ICON_TONE_CLASS[iconTone()]">
+                    <span class="icon-outline" style="font-size:18px;" aria-hidden="true">{{ icon() }}</span>
+                  </span>
+                }
+                <span class="min-w-0">
+                  <span class="font-display text-display-md text-ink-900 block truncate">{{ title() }}</span>
+                  @if (subtitle()) { <span class="block text-[11px] text-neutral-400 mt-0.5">{{ subtitle() }}</span> }
+                </span>
+              </span>
+              @if (showClose()) {
+                <button type="button" class="shrink-0 text-neutral-300 hover:text-neutral-500 text-sm" (click)="close('button')"
+                        aria-label="Close dialog" [disabled]="processing()">✕</button>
+              }
+            </div>
+          }
           <div class="px-sp-5 py-sp-4 overflow-y-auto text-xs text-ink-600">
             <ng-content />
           </div>
@@ -50,10 +85,16 @@ export class BaseModalComponent {
   /** Two-way bound visibility: [(open)]. Emits (openChange). */
   readonly open = model(false);
   readonly title = input('');
-  readonly size = input<'sm' | 'md' | 'lg' | 'xl'>('md');
+  /** Second line under the title, e.g. "Step 2 of 4 · Placement". */
+  readonly subtitle = input('');
+  /** Material Symbols name shown in a small tinted square before the title. */
+  readonly icon = input('');
+  readonly iconTone = input<'action' | 'accent' | 'success' | 'warning' | 'error' | 'neutral'>('action');
+  readonly size = input<'sm' | 'md' | 'lg' | 'xl' | 'full'>('md');
   readonly closeOnBackdrop = input(true);
   readonly showClose = input(true);
-  /** Forces backdrop-dismiss off regardless of [closeOnBackdrop], for destructive confirmations. */
+  /** Forces backdrop-dismiss off regardless of [closeOnBackdrop], and focuses the heading
+   *  instead of the first control on open, for destructive confirmations. */
   readonly destructive = input(false);
   /** Disables Escape while a submit is in flight; the backdrop is unaffected. */
   readonly processing = input(false);
@@ -61,15 +102,39 @@ export class BaseModalComponent {
   /** Fired when the modal closes; reason = 'button' | 'backdrop' | 'escape'. */
   readonly closed = output<string>();
 
+  protected readonly ICON_TONE_CLASS = ICON_TONE_CLASS;
   protected readonly sizeClass = computed(() => ({
-    sm: 'max-w-[360px]', md: 'max-w-[440px]', lg: 'max-w-[640px]', xl: 'max-w-4xl'
+    sm: 'max-w-[360px]', md: 'max-w-[440px]', lg: 'max-w-[640px]', xl: 'max-w-[880px]', full: 'max-w-full h-[88vh]'
   }[this.size()]));
 
   protected readonly effectiveCloseOnBackdrop = computed(() => !this.destructive() && this.closeOnBackdrop());
 
+  private readonly dialogRoot = viewChild<ElementRef<HTMLElement>>('dialogRoot');
+  private openerEl: HTMLElement | null = null;
+
+  constructor() {
+    effect(() => {
+      if (this.open()) {
+        this.openerEl = document.activeElement as HTMLElement | null;
+        lockBodyScroll();
+        const root = this.dialogRoot()?.nativeElement;
+        if (root) focusDialogOpen(root, this.destructive());
+      } else {
+        unlockBodyScroll();
+        this.openerEl?.focus();
+        this.openerEl = null;
+      }
+    });
+  }
+
   @HostListener('document:keydown.escape')
   onEscape(): void {
     if (this.open() && !this.processing()) this.close('escape');
+  }
+
+  onTabKey(ev: Event): void {
+    const root = this.dialogRoot()?.nativeElement;
+    if (root) trapTabKey(root, ev as KeyboardEvent);
   }
 
   close(reason: string): void {

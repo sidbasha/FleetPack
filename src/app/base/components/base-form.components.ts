@@ -348,7 +348,7 @@ export interface BaseSelectOption<V = unknown> {
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => BaseSelectComponent), multi: true }],
   template: `
     <div class="${FIELD_WRAP} relative">
-      @if (label()) { <span class="${LABEL_CLS}">{{ label() }}</span> }
+      @if (label()) { <span class="${LABEL_CLS}">{{ label() }}@if (required()) {<span class="text-error"> *</span>}</span> }
       <button type="button"
               class="${INPUT_CLS} flex items-center justify-between text-left"
               [class.border-error]="!!error()"
@@ -394,6 +394,7 @@ export class BaseSelectComponent<V = unknown> extends BaseControl<V | null> {
   readonly hint = input('');
   readonly error = input('');
   readonly disabled = input(false);
+  readonly required = input(false);
   /** Adds a filter box inside the dropdown. */
   readonly searchable = input(false);
   /** Hides the ▲/▼ chevron, e.g. to look like a plain input box. */
