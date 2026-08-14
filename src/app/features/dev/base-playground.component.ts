@@ -13,6 +13,7 @@ import {
   BaseBreadcrumbsComponent,
   BaseButtonComponent,
   BaseButtonGroupComponent,
+  BaseCardComponent,
   BaseCellDirective,
   BaseChartPoint,
   BaseChildCellDirective,
@@ -150,6 +151,7 @@ function mockRows(n: number): ToolRow[] {
     BaseStepperComponent,
     BaseButtonComponent,
     BaseButtonGroupComponent,
+    BaseCardComponent,
     BaseTextInputComponent,
     BaseTextareaComponent,
     BaseSelectComponent,
@@ -357,12 +359,25 @@ function mockRows(n: number): ToolRow[] {
                 <base-stat-bar [stats]="statBarSample" />
 
                 <div class="panel divide-y divide-neutral-100">
-                  <base-list-item label="Fab-A / CH-1" icon="⚙" meta="3 alarms" [clickable]="true"
-                                  (itemClick)="log('listItem itemClick', 'Fab-A / CH-1')" />
-                  <base-list-item label="Fab-B / CH-2" icon="⚙" meta="0 alarms" [clickable]="true"
-                                  (itemClick)="log('listItem itemClick', 'Fab-B / CH-2')" />
+                  <base-list-item label="ARC-07 · Chamber Interlock" subLabel="Fab 8 · Dresden · 4h 12m" icon="⚠"
+                                  (itemClick)="log('listItem itemClick', 'ARC-07')">
+                    <base-badge status label="Unscheduled" tone="error" />
+                  </base-list-item>
+                  <base-list-item label="EDR-11 · Preventive Maintenance" subLabel="Fab 21 · Chandler · 6h 00m" icon="🔧"
+                                  (itemClick)="log('listItem itemClick', 'EDR-11')">
+                    <base-badge status label="Scheduled" tone="warning" />
+                  </base-list-item>
+                  <base-list-item label="SP7-04 · Recipe Calibration" subLabel="Fab 12 · Hillsboro · 1h 45m" icon="📋"
+                                  (itemClick)="log('listItem itemClick', 'SP7-04')">
+                    <base-badge status label="Engineering" tone="action" />
+                  </base-list-item>
                 </div>
 
+                <base-accordion title="Chamber A" icon="⚙" [open]="true">
+                  <base-badge status label="Passing" tone="success" [dot]="true" />
+                  Pressure, temperature and flow all inside control limits for the last 14 days.
+                  Next qualification due 2026-08-11.
+                </base-accordion>
                 <base-accordion title="What counts as a Gap?">
                   A Gap is any interval with no reported machine state — distinct from Standby, which is a reported state.
                 </base-accordion>
@@ -470,10 +485,44 @@ function mockRows(n: number): ToolRow[] {
 
       <div class="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <base-kpi-card label="Fleet Uptime" [value]="94.2" unit="%" [trendPct]="1.8" [accent]="true" />
-        <base-kpi-card label="Active Alarms" [value]="128" [trendPct]="-6.4" [trendBadWhenUp]="true" />
-        <base-kpi-card label="Tools In Production" [value]="42" sub="of 60 tools" />
+        <base-kpi-card label="Active Alarms" [value]="128" unit="" [trendPct]="0" sub="12 equipment safety" />
+        <base-kpi-card label="Tools In Qual" [value]="12" unit="" [trendPct]="3" sub="of 214 monitored" />
         <base-kpi-card label="MTTR" [value]="3.4" unit="h" [trendPct]="null" [clickable]="true"
                        (cardClick)="log('kpi cardClick', 'MTTR')" />
+      </div>
+
+      <!-- accent rail — colored left border encodes threshold state without a second colour on the number -->
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <base-kpi-card label="Fab 12 · Hillsboro" [value]="98.2" unit="%" railTone="success" sub="Above 95% target" />
+        <base-kpi-card label="Fab 21 · Chandler" [value]="92.7" unit="%" railTone="warning" sub="Below 95% target" />
+        <base-kpi-card label="Fab 8 · Dresden" [value]="76.9" unit="%" railTone="error" sub="Breach — 3 tools down" />
+        <base-kpi-card label="Fab 3 · Leuven" value="—" railTone="info" sub="No telemetry since 04:12" />
+      </div>
+
+      <!-- base-card: icon+title header, projected body, footer row (link + status) -->
+      <div class="grid md:grid-cols-3 gap-4">
+        <base-card title="Availability model" icon="show_chart" iconTone="action">
+          How production, engineering and standby time roll up into a single up-time figure.
+          <div footer>
+            <base-button variant="text" (clicked)="log('card action', 'read the method')">Read the method</base-button>
+          </div>
+        </base-card>
+        <base-card title="Chamber A" icon="settings" [clickable]="true" (cardClick)="log('card cardClick', 'Chamber A')">
+          <span actions class="text-neutral-300">⋮</span>
+          Rolling 30-day availability with the current qualification window highlighted.
+          <div footer>
+            <base-button variant="text">Open deep dive</base-button>
+            <base-badge label="Production" tone="success" [dot]="true" />
+          </div>
+        </base-card>
+        <base-card title="This week">
+          <span actions class="text-[10px] font-bold uppercase tracking-wide text-action bg-action-surface px-sp-2 py-0.5 rounded-r-full">Summary</span>
+          <div class="flex flex-col gap-1.5">
+            <div class="flex justify-between"><span>Downtime events</span><span class="font-semibold text-ink-900">31</span></div>
+            <div class="flex justify-between"><span>Mean time to repair</span><span class="font-semibold text-ink-900">2.4 h</span></div>
+            <div class="flex justify-between"><span>Quals passed</span><span class="font-semibold text-success">9 / 11</span></div>
+          </div>
+        </base-card>
       </div>
 
       <!-- toolbar demoing dynamic columns + new spec features -->

@@ -275,7 +275,8 @@ export class BaseAvatarGroupComponent {
   protected readonly sizeClass = computed(() => avatarSizeClass(this.size()));
 }
 
-/** ▲ / ▼ percentage pill. */
+/** ▲ / ▼ percentage pill. Up isn't automatically good — [badWhenUp] declares which direction is
+ *  favourable, and the arrow is colored from that, not from the sign alone. */
 @Component({
   selector: 'base-trend',
   standalone: true,
@@ -284,6 +285,10 @@ export class BaseAvatarGroupComponent {
   template: `
     @if (value() === null || value() === undefined) {
       <span class="text-[11px] text-neutral-300 font-medium">—</span>
+    } @else if (value() === 0) {
+      <span class="inline-flex items-center gap-0.5 text-[11px] font-semibold rounded-r-full px-sp-2 py-0.5 bg-neutral-100 text-neutral-400">
+        → {{ zeroLabel() }}
+      </span>
     } @else {
       <span class="inline-flex items-center gap-0.5 text-[11px] font-semibold rounded-r-full px-sp-2 py-0.5"
             [ngClass]="positive()
@@ -295,12 +300,15 @@ export class BaseAvatarGroupComponent {
   `
 })
 export class BaseTrendComponent {
-  /** Percent change. null/undefined renders an em dash. */
+  /** Percent change. null/undefined renders an em dash; exactly 0 renders [zeroLabel] neutrally
+   *  instead of a false ▼ (0 is not "down"). */
   readonly value = input.required<number | null | undefined>();
   /** Colors an increase red instead of green, e.g. for alarm counts. */
   readonly badWhenUp = input(false);
   /** Angular number-pipe digits info. */
   readonly digits = input('1.1-1');
+  /** Label shown for an exact 0 change. */
+  readonly zeroLabel = input('No change');
 
   protected readonly positive = computed(() => {
     const v = this.value() ?? 0;
@@ -308,16 +316,26 @@ export class BaseTrendComponent {
   });
 }
 
-/** KPI tile: label, value, optional trend and click target. */
+const RAIL_CLASS: Record<'none' | 'success' | 'warning' | 'error' | 'info', string> = {
+  none: '',
+  success: 'border-l-4 border-l-success',
+  warning: 'border-l-4 border-l-warning',
+  error: 'border-l-4 border-l-error',
+  info: 'border-l-4 border-l-info'
+};
+
+/** KPI tile: the atom of every dashboard — one number, one direction, one comparison window.
+ *  A second number that matters equally is a second tile, never a smaller figure squeezed
+ *  underneath. A missing metric is [value]="'—'" with a [sub] reason, never a bare 0 — 0 is a
+ *  measurement, missing is not. */
 @Component({
   selector: 'base-kpi-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [BaseTrendComponent],
   template: `
-    <div class="panel px-sp-5 py-sp-4 flex flex-col justify-center gap-1 transition-colors"
-         [class.cursor-pointer]="clickable()"
-         [class.hover:border-action]="clickable()"
+    <div class="panel px-sp-5 py-sp-4 flex flex-col justify-center gap-1 transition-all"
+         [class]="railClass() + (clickable() ? ' cursor-pointer hover:shadow-e2 hover:-translate-y-0.5 hover:border-action' : '')"
          [class.ring-2]="selected()"
          [class.ring-action]="selected()"
          (click)="clickable() && cardClick.emit()">
@@ -340,12 +358,16 @@ export class BaseKpiCardComponent {
   readonly value = input.required<string | number>();
   readonly unit = input('');
   readonly sub = input('');
-  /** Highlight the value in the accent color. */
+  /** Highlight the value itself in the accent color — a single hero tile, not a threshold signal. */
   readonly accent = input(false);
-  /** Optional trend pill. Pass null for '—'; omit to hide. */
+  /** Colored left rail encoding a threshold state without touching the number's own color — a
+   *  fleet of tiles reads at a glance without every number turning into a traffic light. */
+  readonly railTone = input<'none' | 'success' | 'warning' | 'error' | 'info'>('none');
+  /** Optional trend pill. Pass null for '—'; omit to hide; pass 0 for a neutral "no change". */
   readonly trendPct = input<number | null | undefined>(undefined);
   readonly trendBadWhenUp = input(false);
-  /** Makes the card clickable and enables (cardClick). */
+  /** Makes the card clickable and enables (cardClick) — cards sit at e1 and only lift to e2 on
+   *  hover when they're actually interactive; a static tile never moves. */
   readonly clickable = input(false);
   /** Selection state (border + implied checkbox) for bulk-select grids. */
   readonly selected = input(false);
@@ -353,6 +375,8 @@ export class BaseKpiCardComponent {
   readonly infoTooltip = input('');
 
   readonly cardClick = output<void>();
+
+  protected readonly railClass = computed(() => RAIL_CLASS[this.railTone()]);
 }
 
 /** Borderless horizontal row of metrics, lighter than a KPI grid. */
@@ -373,6 +397,58 @@ export class BaseKpiCardComponent {
 })
 export class BaseStatBarComponent {
   readonly stats = input.required<{ value: string | number; label: string }[]>();
+}
+
+/** Generic container that groups content belonging together — an icon+title header, projected
+ *  body, and an optional footer row (typically a link on the left, a status badge on the right;
+ *  just place both as children, the row is a flex justify-between). Project header-trailing
+ *  content (an overflow menu, a "Summary" badge) into `[actions]`.
+ *
+ *  A card is only [clickable] if the *whole* card leads to one destination — two links inside a
+ *  clickable card hides one of them from keyboard users, so don't mix (click) on the card with
+ *  focusable links in the body. Cards sit at elevation e1 and only lift to e2 + 2px on hover
+ *  when they're actually interactive; a static card never moves. */
+@Component({
+  selector: 'base-card',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div class="panel flex flex-col transition-all"
+         [class]="clickable() ? 'cursor-pointer hover:shadow-e2 hover:-translate-y-0.5 hover:border-action' : ''"
+         (click)="clickable() && cardClick.emit()">
+      @if (title() || icon()) {
+        <div class="flex items-center justify-between gap-2 px-sp-4 pt-sp-4 pb-sp-2">
+          <span class="flex items-center gap-2 min-w-0">
+            @if (icon()) {
+              <span class="shrink-0 w-7 h-7 rounded-r-sm inline-flex items-center justify-center" [class]="iconToneClass()">
+                <span class="icon-outline" style="font-size:16px;" aria-hidden="true">{{ icon() }}</span>
+              </span>
+            }
+            <span class="font-semibold text-ink-900 text-xs truncate">{{ title() }}</span>
+          </span>
+          <ng-content select="[actions]" />
+        </div>
+      }
+      <div class="px-sp-4 pb-sp-3 text-xs text-ink-600 leading-relaxed empty:hidden">
+        <ng-content />
+      </div>
+      <div class="px-sp-4 pb-sp-4 flex items-center justify-between gap-2 empty:hidden">
+        <ng-content select="[footer]" />
+      </div>
+    </div>
+  `
+})
+export class BaseCardComponent {
+  readonly title = input('');
+  /** Material Symbols name, e.g. 'show_chart' — shown in a small tinted square before the title. */
+  readonly icon = input('');
+  readonly iconTone = input<BaseTone>('action');
+  /** Makes the whole card one click target and enables (cardClick). */
+  readonly clickable = input(false);
+
+  readonly cardClick = output<void>();
+
+  protected readonly iconToneClass = computed(() => TONE_TINT[this.iconTone()]);
 }
 
 @Component({
@@ -482,7 +558,9 @@ export class BaseSparklineComponent {
   });
 }
 
-/** Single-line row with a hairline divider; use a table for multi-column rows. */
+/** Row with a hairline divider; use a table for multi-column rows. [subLabel] stacks a second
+ *  line under [label] (e.g. "Fab 8 · Dresden · 4h 12m"); project a trailing status pill into
+ *  `[status]` — typically a `<base-badge>`. */
 @Component({
   selector: 'base-list-item',
   standalone: true,
@@ -493,14 +571,20 @@ export class BaseSparklineComponent {
          [class.hover:bg-neutral-50]="clickable()"
          (click)="clickable() && itemClick.emit()">
       @if (icon()) { <span class="text-action shrink-0" aria-hidden="true">{{ icon() }}</span> }
-      <span class="mono-data flex-1 truncate text-ink-700">{{ label() }}</span>
+      <span class="flex-1 min-w-0">
+        <span class="mono-data block truncate text-ink-700">{{ label() }}</span>
+        @if (subLabel()) { <span class="block truncate text-[11px] text-neutral-400 mt-0.5">{{ subLabel() }}</span> }
+      </span>
       @if (meta()) { <span class="text-[11px] text-neutral-400 shrink-0">{{ meta() }}</span> }
+      <ng-content select="[status]" />
       @if (clickable()) { <span class="text-neutral-300 shrink-0" aria-hidden="true">›</span> }
     </div>
   `
 })
 export class BaseListItemComponent {
   readonly label = input.required<string>();
+  /** Second line under [label] — a row becomes two-line the moment this is set. */
+  readonly subLabel = input('');
   readonly icon = input('');
   readonly meta = input('');
   readonly clickable = input(false);
@@ -508,7 +592,8 @@ export class BaseListItemComponent {
   readonly itemClick = output<void>();
 }
 
-/** Collapsible section; siblings are independent, not single-open-only. */
+/** Collapsible section; siblings are independent, not single-open-only. Project a trailing
+ *  status pill into `[status]` — typically a `<base-badge>` — it renders before the chevron. */
 @Component({
   selector: 'base-accordion',
   standalone: true,
@@ -516,10 +601,16 @@ export class BaseListItemComponent {
   template: `
     <div class="border border-neutral-200 rounded-r-md overflow-hidden">
       <button type="button" [attr.aria-expanded]="open()"
-              class="w-full flex items-center justify-between px-sp-4 py-sp-3 text-left bg-neutral-0 hover:bg-neutral-50 transition-colors"
+              class="w-full flex items-center justify-between gap-2 px-sp-4 py-sp-3 text-left bg-neutral-0 hover:bg-neutral-50 transition-colors"
               (click)="toggle()">
-        <span class="text-xs font-semibold text-ink-700">{{ title() }}</span>
-        <span class="text-neutral-400 transition-transform" style="transition-duration: var(--mo-slow);" [style.transform]="open() ? 'rotate(180deg)' : 'rotate(0deg)'" aria-hidden="true">▾</span>
+        <span class="flex items-center gap-2 min-w-0">
+          @if (icon()) { <span class="text-neutral-400 shrink-0" aria-hidden="true">{{ icon() }}</span> }
+          <span class="text-xs font-semibold text-ink-700 truncate">{{ title() }}</span>
+        </span>
+        <span class="flex items-center gap-2 shrink-0">
+          <ng-content select="[status]" />
+          <span class="text-neutral-400 transition-transform" style="transition-duration: var(--mo-slow);" [style.transform]="open() ? 'rotate(180deg)' : 'rotate(0deg)'" aria-hidden="true">▾</span>
+        </span>
       </button>
       @if (open()) {
         <div class="px-sp-4 py-sp-3 text-xs text-ink-600 border-t border-neutral-100">
@@ -531,6 +622,7 @@ export class BaseListItemComponent {
 })
 export class BaseAccordionComponent {
   readonly title = input.required<string>();
+  readonly icon = input('');
   /** Two-way bound expanded state: [(open)]. */
   readonly open = model(false);
 

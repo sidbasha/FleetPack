@@ -1,16 +1,18 @@
+import { moduleMetadata } from '@storybook/angular';
 import type { Meta, StoryObj } from '@storybook/angular';
-import { BaseAccordionComponent } from '../../app/base';
+import { BaseAccordionComponent, BaseBadgeComponent } from '../../app/base';
 
-/** Collapsible section; siblings are independent, not single-open-only. */
+/** Collapsible section; siblings are independent, not single-open-only. Project a trailing
+ *  status pill into `[status]` — typically a `<base-badge>` — it renders before the chevron. */
 const meta: Meta<BaseAccordionComponent> = {
   title: 'Base/Data Display/Accordion',
   component: BaseAccordionComponent,
   tags: ['autodocs'],
-  args: { title: 'Advanced settings', open: false },
+  args: { title: 'Advanced settings', icon: '', open: false },
   render: (args) => ({
     props: args,
     template: `
-      <base-accordion [title]="title" [open]="open">
+      <base-accordion [title]="title" [icon]="icon" [open]="open">
         Retention window, export defaults, and notification thresholds live here,
         collapsed by default since most reviewers never need to change them.
       </base-accordion>`
@@ -21,3 +23,24 @@ type Story = StoryObj<BaseAccordionComponent>;
 
 export const Collapsed: Story = {};
 export const Open: Story = { args: { open: true } };
+
+/** Icon + status pill, as in the "Chamber A/B/C" pattern from the spec. */
+export const WithIconAndStatus: Story = {
+  decorators: [moduleMetadata({ imports: [BaseBadgeComponent] })],
+  render: () => ({
+    template: `
+      <div class="flex flex-col gap-2 max-w-md">
+        <base-accordion title="Chamber A" icon="⚙" [open]="true">
+          <base-badge status label="Passing" tone="success" [dot]="true" />
+          Pressure, temperature and flow all inside control limits for the last 14 days.
+          Next qualification due 2026-08-11.
+        </base-accordion>
+        <base-accordion title="Chamber B" icon="⚙">
+          <base-badge status label="Drifting" tone="warning" [dot]="true" />
+        </base-accordion>
+        <base-accordion title="Chamber C" icon="⚙">
+          <base-badge status label="Offline" tone="neutral" [dot]="true" />
+        </base-accordion>
+      </div>`
+  })
+};
