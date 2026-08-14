@@ -32,7 +32,8 @@ const rows: BaseGanttRow[] = [
   }
 ];
 
-/** 24h per-row state segments — the detail view a heatmap cell expands into. */
+/** 24h per-row state segments — the detail view a heatmap cell expands into. Hover a segment
+ *  for its label and duration. */
 const meta: Meta<BaseGanttTimelineComponent> = {
   title: 'Base/Charts & Visualization/Gantt Timeline',
   component: BaseGanttTimelineComponent,
@@ -43,3 +44,45 @@ export default meta;
 type Story = StoryObj<BaseGanttTimelineComponent>;
 
 export const Default: Story = {};
+
+/** A custom [label] on a segment — e.g. an alarm/event name — shows in the hover tooltip
+ *  instead of the bare state label: "Chamber interlock · 9h". */
+export const WithSegmentLabels: Story = {
+  args: {
+    rows: [
+      {
+        label: 'ARC-07', badge: '76.9%',
+        segments: [
+          { startHour: 0, endHour: 9, state: 'production' },
+          { startHour: 9, endHour: 18, state: 'unscheduled-dt', label: 'Chamber interlock' },
+          { startHour: 18, endHour: 24, state: 'production' }
+        ]
+      }
+    ]
+  }
+};
+
+/** No telemetry for the window at all — a different fact than a Gap segment (which means no
+ *  state *change* inside a window where telemetry still arrived). */
+export const WithNoTelemetryRow: Story = {
+  args: {
+    rows: [
+      { label: 'SP7-04', badge: '98.2%', segments: [
+        { startHour: 0, endHour: 13, state: 'production' },
+        { startHour: 13, endHour: 15, state: 'engineering' },
+        { startHour: 15, endHour: 24, state: 'production' }
+      ] },
+      { label: 'CAN-02', badge: '94.1%', segments: [{ startHour: 0, endHour: 24, state: 'production' }] },
+      { label: 'EDR-11', badge: '91.2%', segments: [
+        { startHour: 0, endHour: 8, state: 'standby' },
+        { startHour: 8, endHour: 24, state: 'production' }
+      ] },
+      { label: 'ARC-07', badge: '76.9%', segments: [
+        { startHour: 0, endHour: 9, state: 'production' },
+        { startHour: 9, endHour: 18, state: 'unscheduled-dt', label: 'Chamber interlock' },
+        { startHour: 18, endHour: 24, state: 'production' }
+      ] },
+      { label: 'VOY-19', segments: [], noData: true }
+    ]
+  }
+};

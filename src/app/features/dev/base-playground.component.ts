@@ -15,6 +15,7 @@ import {
   BaseButtonGroupComponent,
   BaseCardComponent,
   BaseCellDirective,
+  BaseChartFrameComponent,
   BaseChartPoint,
   BaseChildCellDirective,
   BaseChipComponent,
@@ -63,6 +64,7 @@ import {
   BaseSearchResult,
   BaseSegmentedControlComponent,
   BaseSelectComponent,
+  SERIES_COLOR_ORDER,
   BaseSelectionCardComponent,
   BaseSelectionCardOption,
   BaseSkeletonComponent,
@@ -107,6 +109,9 @@ interface ToolRow {
 
 const STATUSES: ToolRow['status'][] = ['PRODUCTION', 'ENGINEERING', 'STANDBY', 'DOWN'];
 const FABS = ['Fab-A', 'Fab-B', 'Fab-C'];
+const SERIES_LABEL: Record<(typeof SERIES_COLOR_ORDER)[number], string> = {
+  action: 'Action', accent: 'Accent', info: 'Info', success: 'Success', warning: 'Warning', error: 'Error'
+};
 
 function mockRows(n: number): ToolRow[] {
   return Array.from({ length: n }, (_, i) => {
@@ -199,6 +204,7 @@ function mockRows(n: number): ToolRow[] {
     BaseToastHostComponent,
     BaseTrendChartComponent,
     BaseBarChartComponent,
+    BaseChartFrameComponent,
     BaseScatterChartComponent,
     BaseHistogramComponent,
     BaseStateHeatmapComponent,
@@ -522,10 +528,6 @@ function mockRows(n: number): ToolRow[] {
                   <base-trend-chart [data]="trendChartData" [target]="95" seriesLabel="Uptime %" />
                 </div>
                 <div class="panel p-4">
-                  <p class="panel-title mb-2">Bar chart</p>
-                  <base-bar-chart [data]="barChartData" />
-                </div>
-                <div class="panel p-4">
                   <p class="panel-title mb-2">Scatter chart</p>
                   <base-scatter-chart [data]="scatterChartData" />
                 </div>
@@ -533,14 +535,66 @@ function mockRows(n: number): ToolRow[] {
                   <p class="panel-title mb-2">Histogram</p>
                   <base-histogram [bins]="histogramBins" />
                 </div>
-                <div class="panel p-4 md:col-span-2">
-                  <p class="panel-title mb-2">State heatmap</p>
-                  <base-state-heatmap [rows]="heatmapRows" [columns]="heatmapColumns" />
+                <div class="panel p-4">
+                  <p class="panel-title mb-2">Series order</p>
+                  <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-ink-600">
+                    @for (s of seriesOrderLegend; track s.label; let i = $index) {
+                      <span class="flex items-center gap-1.5"><i class="inline-block w-2.5 h-2.5 rounded-r-xs" [style.background]="s.colorVar"></i>{{ i + 1 }} · {{ s.label }}</span>
+                    }
+                  </div>
+                  <p class="text-[11px] text-neutral-400 mt-2">A seventh series wraps back to the first color — the signal a chart is doing too much.</p>
                 </div>
-                <div class="panel p-4 md:col-span-2">
-                  <p class="panel-title mb-2">Gantt timeline</p>
-                  <base-gantt-timeline [rows]="ganttRows" />
-                </div>
+
+                <base-chart-frame title="Downtime events" subtitle="Per month · fleet total" class="md:col-span-2">
+                  <div chart>
+                    <base-bar-chart [data]="barChartData" />
+                    <div class="flex items-center gap-4 mt-2 text-[11px] text-ink-600">
+                      <span class="flex items-center gap-1.5"><i class="inline-block w-2.5 h-2.5 rounded-r-xs bg-error"></i>Worst month</span>
+                      <span class="flex items-center gap-1.5"><i class="inline-block w-2.5 h-2.5 rounded-r-xs bg-success"></i>Best month</span>
+                    </div>
+                  </div>
+                  <table table class="w-full text-xs text-left">
+                    <thead><tr class="text-neutral-400 text-[10px] uppercase tracking-wide"><th class="pb-1">Month</th><th class="pb-1 text-right">Events</th></tr></thead>
+                    <tbody>
+                      @for (d of barChartData; track d.x) {
+                        <tr [class]="d.tone === 'error' ? 'text-error font-semibold' : d.tone === 'success' ? 'text-success font-semibold' : ''">
+                          <td class="py-0.5">{{ d.x }}</td><td class="text-right tabular-nums">{{ d.y }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </base-chart-frame>
+
+                <base-chart-frame title="Downtime by root cause" subtitle="Hours · last 30 days"
+                                  caption="106 hours total · 62% attributable to chamber and handling" class="md:col-span-2">
+                  <div chart>
+                    <base-bar-chart orientation="horizontal" valueSuffix=" h" [data]="downtimeByCauseData" />
+                  </div>
+                  <table table class="w-full text-xs text-left">
+                    <thead><tr class="text-neutral-400 text-[10px] uppercase tracking-wide"><th class="pb-1">Cause</th><th class="pb-1 text-right">Hours</th></tr></thead>
+                    <tbody>
+                      @for (d of downtimeByCauseData; track d.x) {
+                        <tr><td class="py-0.5">{{ d.x }}</td><td class="text-right tabular-nums">{{ d.y }} h</td></tr>
+                      }
+                    </tbody>
+                  </table>
+                </base-chart-frame>
+
+                <base-chart-frame title="State heatmap · SP7-04" subtitle="Two-hour blocks · last 7 days"
+                                  exportLabel="Export" [showTableToggle]="false" class="md:col-span-2"
+                                  (exportClick)="log('chartFrame export', 'state heatmap')">
+                  <div chart>
+                    <base-state-heatmap [rows]="heatmapRows" [columns]="heatmapColumns" />
+                  </div>
+                </base-chart-frame>
+
+                <base-chart-frame title="Activity gantt" subtitle="Five tools · 24 hours · Fab 12"
+                                  exportLabel="Export" [showTableToggle]="false" class="md:col-span-2"
+                                  (exportClick)="log('chartFrame export', 'activity gantt')">
+                  <div chart>
+                    <base-gantt-timeline [rows]="ganttRows" />
+                  </div>
+                </base-chart-frame>
               </div>
             }
           }
@@ -1022,7 +1076,20 @@ export class BasePlaygroundComponent {
   // Chart & timeline demo data
   readonly trendChartData: BaseChartPoint[] = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8']
     .map((x, i) => ({ x, y: 90 + Math.round(Math.sin(i) * 4 + i * 0.3) }));
-  readonly barChartData: BaseChartPoint[] = FABS.map(f => ({ x: f, y: 10 + Math.round(Math.random() * 30) }));
+  /** Series order — the six fixed categorical colors, in order, so two charts on one dashboard
+   *  never assign different meanings to the same hue. */
+  readonly seriesOrderLegend = SERIES_COLOR_ORDER.map(tone => ({ label: SERIES_LABEL[tone], colorVar: `var(--color-${tone})` }));
+  readonly barChartData: BaseChartPoint[] = [
+    { x: 'Dec', y: 14 }, { x: 'Jan', y: 16 }, { x: 'Feb', y: 27, tone: 'error' }, { x: 'Mar', y: 15 },
+    { x: 'Apr', y: 11 }, { x: 'May', y: 10 }, { x: 'Jun', y: 8 }, { x: 'Jul', y: 6, tone: 'success' }
+  ];
+  readonly downtimeByCauseData: BaseChartPoint[] = [
+    { x: 'Chamber', y: 42, tone: 'error' },
+    { x: 'Handling', y: 28, tone: 'warning' },
+    { x: 'Optics', y: 19, tone: 'accent' },
+    { x: 'Software', y: 11, tone: 'action' },
+    { x: 'Facilities', y: 6, tone: 'info' }
+  ];
   readonly scatterChartData: BaseScatterPoint[] = Array.from({ length: 18 }, () => ({
     x: 10 + Math.round(Math.random() * 80),
     y: 60 + Math.round(Math.random() * 40)
@@ -1043,16 +1110,22 @@ export class BasePlaygroundComponent {
     }))
   }));
   readonly ganttRows: BaseGanttRow[] = [
-    { label: 'System', badge: '96.2%', segments: [
-      { startHour: 0, endHour: 6, state: 'standby' },
-      { startHour: 6, endHour: 18, state: 'production' },
-      { startHour: 18, endHour: 24, state: 'engineering' }
+    { label: 'SP7-04', badge: '98.2%', segments: [
+      { startHour: 0, endHour: 13, state: 'production' },
+      { startHour: 13, endHour: 15, state: 'engineering' },
+      { startHour: 15, endHour: 24, state: 'production' }
     ] },
-    { label: 'Tool', badge: '91.7%', segments: [
-      { startHour: 0, endHour: 8, state: 'production' },
-      { startHour: 8, endHour: 9, state: 'unscheduled-dt' },
-      { startHour: 9, endHour: 24, state: 'production' }
-    ] }
+    { label: 'CAN-02', badge: '94.1%', segments: [{ startHour: 0, endHour: 24, state: 'production' }] },
+    { label: 'EDR-11', badge: '91.2%', segments: [
+      { startHour: 0, endHour: 8, state: 'standby' },
+      { startHour: 8, endHour: 24, state: 'production' }
+    ] },
+    { label: 'ARC-07', badge: '76.9%', segments: [
+      { startHour: 0, endHour: 9, state: 'production' },
+      { startHour: 9, endHour: 18, state: 'unscheduled-dt', label: 'Chamber interlock' },
+      { startHour: 18, endHour: 24, state: 'production' }
+    ] },
+    { label: 'VOY-19', segments: [], noData: true }
   ];
 
   fakeSave(): void {

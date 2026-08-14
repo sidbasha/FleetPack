@@ -1,7 +1,39 @@
 import { DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, model, output, signal } from '@angular/core';
 
-export interface BaseChartPoint { x: string; y: number; }
+/** Categorical series take these six in this exact order, so two charts on one dashboard never
+ *  assign different meanings to the same hue. A seventh series wraps back to the first color
+ *  rather than inventing a new one — that collision is deliberate: it's the signal that the
+ *  chart is doing too much and should split, or move to a table. */
+export const SERIES_COLOR_ORDER = ['action', 'accent', 'info', 'success', 'warning', 'error'] as const;
+export type SeriesTone = typeof SERIES_COLOR_ORDER[number];
+
+const SERIES_COLOR_VAR: Record<SeriesTone, string> = {
+  action: 'var(--color-action)',
+  accent: 'var(--color-accent)',
+  info: 'var(--color-info)',
+  success: 'var(--color-success)',
+  warning: 'var(--color-warning)',
+  error: 'var(--color-error)'
+};
+
+/** The fixed-order series color for the Nth (0-based) categorical series. */
+export function seriesColor(index: number): string {
+  return SERIES_COLOR_VAR[SERIES_COLOR_ORDER[index % SERIES_COLOR_ORDER.length]];
+}
+
+export interface BaseChartPoint {
+  x: string;
+  /** Ignored when [segments] is set. */
+  y: number;
+  /** Overrides the default series color for this one bar/point — e.g. flagging a single
+   *  "worst month" red among otherwise uniform bars. */
+  tone?: SeriesTone;
+  /** Turns this bar into a stacked bar: ordered segments summing to the bar's total. Each
+   *  segment is drawn with a 1px stroke in the surface color, so two similar hues never merge
+   *  into one block. */
+  segments?: { value: number; tone: SeriesTone; label?: string }[];
+}
 
 const CHART_FONT = 'font-family:var(--font-mono);font-variant-numeric:tabular-nums;';
 
@@ -133,44 +165,87 @@ export class BaseTrendChartComponent {
   }
 }
 
-/** Category comparison bar chart, e.g. alarms by module. */
+/** Category comparison bar chart, e.g. alarms by module — or [orientation]="'horizontal'" for a
+ *  ranked breakdown like downtime by root cause. Each bar takes [defaultTone] (the first fixed
+ *  series color) unless a point sets its own [tone] — e.g. flagging one "worst month" bar red
+ *  among otherwise uniform ones. Give a point [segments] to stack it instead of [y]; each
+ *  segment gets a 1px surface-color separator so two similar hues never merge into one block. */
 @Component({
   selector: 'base-bar-chart',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="relative">
-      <svg [attr.viewBox]="'0 0 ' + w + ' ' + h" width="100%" [attr.height]="height()" (mouseleave)="hoverIndex.set(null)" role="img" [attr.aria-label]="'Bar chart'">
-        @for (gy of gridLines(); track gy) {
-          <line x1="0" [attr.x2]="w" [attr.y1]="gy" [attr.y2]="gy" stroke="var(--color-neutral-200)" stroke-width="1" />
-        }
+    @if (orientation() === 'horizontal') {
+      <div class="flex flex-col gap-sp-2.5">
         @for (d of data(); track d.x; let i = $index) {
-          <rect [attr.x]="xAt(i)" [attr.y]="yAt(d.y)" [attr.width]="barWidth()" [attr.height]="h - padB - yAt(d.y)"
-                [attr.fill]="i === hoverIndex() ? 'var(--color-action-hover)' : 'var(--color-action)'" rx="2"
-                (mouseenter)="hoverIndex.set(i)" />
+          <div class="flex items-center gap-sp-2">
+            <span class="w-24 shrink-0 text-[11px] text-ink-600 text-right truncate">{{ d.x }}</span>
+            <div class="relative flex-1 h-5 rounded-r-xs overflow-hidden bg-neutral-100">
+              @if (d.segments?.length) {
+                @for (seg of d.segments; track $index; let si = $index) {
+                  <span class="absolute top-0 h-full" [style.left.%]="hSegStart(d, si)" [style.width.%]="hSegWidth(d, si)"
+                        [style.background]="SERIES_COLOR_VAR[seg.tone]"
+                        [style.border-left]="si > 0 ? '1px solid var(--color-neutral-0)' : 'none'"
+                        [attr.title]="(seg.label || d.x) + ' · ' + seg.value"></span>
+                }
+              } @else {
+                <span class="absolute top-0 left-0 h-full rounded-r-xs transition-colors" [style.width.%]="hWidth(d)"
+                      [style.background]="toneVar(d)"></span>
+              }
+            </div>
+            <span class="w-12 shrink-0 text-[11px] font-semibold text-ink-900 tabular-nums" style="font-family:var(--font-mono);">
+              {{ total(d) }}{{ valueSuffix() }}
+            </span>
+          </div>
         }
-      </svg>
-      @if (hoverIndex(); as i) {
-        <div class="absolute pointer-events-none bg-ink-900 text-neutral-0 text-[11px] font-semibold rounded-r-xs px-sp-2 py-1 mono-data"
-             [style.left.px]="xAt(i) + barWidth() / 2" [style.top.px]="yAt(data()[i].y) - 26" style="transform: translateX(-50%);">
-          {{ data()[i].y }}
-        </div>
-      }
-      <div class="flex mt-1 text-[9px] text-ink-500" [style]="fontStyle">
-        @for (d of data(); track d.x) { <span class="flex-1 text-center truncate">{{ d.x }}</span> }
       </div>
-    </div>
+    } @else {
+      <div class="relative">
+        <svg [attr.viewBox]="'0 0 ' + w + ' ' + h" width="100%" [attr.height]="height()" (mouseleave)="hoverIndex.set(null)" role="img" [attr.aria-label]="'Bar chart'">
+          @for (gy of gridLines(); track gy) {
+            <line x1="0" [attr.x2]="w" [attr.y1]="gy" [attr.y2]="gy" stroke="var(--color-neutral-200)" stroke-width="1" />
+          }
+          @for (d of data(); track d.x; let i = $index) {
+            @if (d.segments?.length) {
+              @for (seg of d.segments; track $index; let si = $index) {
+                <rect [attr.x]="xAt(i)" [attr.y]="vSegY(d, si)" [attr.width]="barWidth()" [attr.height]="vSegHeight(d, si)"
+                      [attr.fill]="SERIES_COLOR_VAR[seg.tone]" stroke="var(--color-neutral-0)" stroke-width="1" />
+              }
+            } @else {
+              <rect [attr.x]="xAt(i)" [attr.y]="yAt(d.y)" [attr.width]="barWidth()" [attr.height]="h - padB - yAt(d.y)"
+                    [attr.fill]="i === hoverIndex() ? 'var(--color-action-hover)' : toneVar(d)" rx="2"
+                    (mouseenter)="hoverIndex.set(i)" />
+            }
+          }
+        </svg>
+        @if (hoverIndex(); as i) {
+          <div class="absolute pointer-events-none bg-ink-900 text-neutral-0 text-[11px] font-semibold rounded-r-xs px-sp-2 py-1 mono-data"
+               [style.left.px]="xAt(i) + barWidth() / 2" [style.top.px]="yAt(data()[i].y) - 26" style="transform: translateX(-50%);">
+            {{ data()[i].y }}
+          </div>
+        }
+        <div class="flex mt-1 text-[9px] text-ink-500" [style]="fontStyle">
+          @for (d of data(); track d.x) { <span class="flex-1 text-center truncate">{{ d.x }}</span> }
+        </div>
+      </div>
+    }
   `
 })
 export class BaseBarChartComponent {
   readonly data = input.required<BaseChartPoint[]>();
   readonly height = input(160);
+  readonly orientation = input<'vertical' | 'horizontal'>('vertical');
+  /** Series color for bars that don't set their own [tone] — the first fixed-order series by default. */
+  readonly defaultTone = input<SeriesTone>('action');
+  /** Unit suffix appended to horizontal bars' value labels, e.g. ' h'. */
+  readonly valueSuffix = input('');
 
+  protected readonly SERIES_COLOR_VAR = SERIES_COLOR_VAR;
   protected readonly fontStyle = CHART_FONT;
   protected readonly w = 320; protected readonly h = 160; protected readonly padB = 4; protected readonly padT = 8;
   protected readonly hoverIndex = signal<number | null>(null);
 
-  private readonly max = computed(() => Math.max(1, ...this.data().map(d => d.y)));
+  private readonly max = computed(() => Math.max(1, ...this.data().map(d => this.total(d))));
   protected readonly gridLines = computed(() => Array.from({ length: 4 }, (_, i) => this.padT + (i * (this.h - this.padT - this.padB)) / 3));
 
   protected barWidth = computed(() => {
@@ -187,6 +262,32 @@ export class BaseBarChartComponent {
   protected yAt(v: number): number {
     return this.h - this.padB - (v / this.max()) * (this.h - this.padT - this.padB);
   }
+
+  /** Sum of a point's stacked segments, or its plain value. */
+  protected total(d: BaseChartPoint): number {
+    return d.segments?.length ? d.segments.reduce((sum, s) => sum + s.value, 0) : d.y;
+  }
+
+  protected toneVar(d: BaseChartPoint): string {
+    return SERIES_COLOR_VAR[d.tone ?? this.defaultTone()];
+  }
+
+  private cumulative(d: BaseChartPoint, uptoExclusive: number): number {
+    return d.segments!.slice(0, uptoExclusive).reduce((s, x) => s + x.value, 0);
+  }
+
+  /** Vertical stacking: segments stack bottom-up, so the rect's top (attr y) is the cumulative
+   *  sum *including* this segment. */
+  protected vSegY(d: BaseChartPoint, si: number): number {
+    return this.yAt(this.cumulative(d, si) + d.segments![si].value);
+  }
+  protected vSegHeight(d: BaseChartPoint, si: number): number {
+    return this.yAt(this.cumulative(d, si)) - this.yAt(this.cumulative(d, si) + d.segments![si].value);
+  }
+
+  protected hWidth(d: BaseChartPoint): number { return (this.total(d) / this.max()) * 100; }
+  protected hSegStart(d: BaseChartPoint, si: number): number { return (this.cumulative(d, si) / this.max()) * 100; }
+  protected hSegWidth(d: BaseChartPoint, si: number): number { return (d.segments![si].value / this.max()) * 100; }
 }
 
 export interface BaseScatterPoint { x: number; y: number; label?: string; }
@@ -277,4 +378,68 @@ export class BaseHistogramComponent {
   protected binWidth = computed(() => this.w / (this.bins().length || 1));
   protected xAt(i: number): number { return i * this.binWidth(); }
   protected yAt(v: number): number { return this.h - 4 - (v / this.max()) * (this.h - 8); }
+}
+
+/** The standard panel shell every chart sits in: a title/subtitle header, an optional export
+ *  action, and — the one thing every chart must offer — a "view as table" toggle. The table is
+ *  the accessible source of truth; the chart is the fast read. Project the chart into `[chart]`
+ *  and its tabular equivalent (typically a `<base-table>`) into `[table]`:
+ *  `<base-chart-frame title="Downtime events" subtitle="Per month · fleet total">
+ *     <div chart>...</div><div table>...</div>
+ *   </base-chart-frame>` */
+@Component({
+  selector: 'base-chart-frame',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div class="panel">
+      @if (title() || subtitle() || showTableToggle() || exportLabel()) {
+        <div class="flex items-start justify-between gap-3 px-sp-4 pt-sp-4 pb-sp-2">
+          <span class="min-w-0">
+            @if (title()) { <span class="text-xs font-semibold text-ink-900">{{ title() }}</span> }
+            @if (subtitle()) { <span class="ml-1.5 text-[11px] text-neutral-400">{{ subtitle() }}</span> }
+          </span>
+          <span class="flex items-center gap-2 shrink-0">
+            @if (showTableToggle()) {
+              <button type="button"
+                      class="text-[11px] font-semibold text-ink-600 border border-neutral-200 rounded-r-sm px-sp-2 py-1
+                             hover:border-action hover:text-action transition-colors inline-flex items-center gap-1"
+                      [attr.aria-pressed]="tableView()" (click)="tableView.set(!tableView())">
+                <span class="icon-outline" style="font-size:14px;" aria-hidden="true">{{ tableView() ? 'bar_chart' : 'table_view' }}</span>
+                {{ tableView() ? 'View as chart' : 'View as table' }}
+              </button>
+            }
+            @if (exportLabel()) {
+              <button type="button"
+                      class="text-[11px] font-semibold text-ink-600 border border-neutral-200 rounded-r-sm px-sp-2 py-1
+                             hover:border-action hover:text-action transition-colors inline-flex items-center gap-1"
+                      (click)="exportClick.emit()">
+                <span class="icon-outline" style="font-size:14px;" aria-hidden="true">file_download</span>
+                {{ exportLabel() }}
+              </button>
+            }
+          </span>
+        </div>
+      }
+      <div class="px-sp-4 pb-sp-4">
+        @if (tableView()) { <ng-content select="[table]" /> } @else { <ng-content select="[chart]" /> }
+      </div>
+      @if (caption()) {
+        <div class="px-sp-4 pb-sp-3 pt-sp-2 border-t border-neutral-100 text-[11px] text-neutral-400">{{ caption() }}</div>
+      }
+    </div>
+  `
+})
+export class BaseChartFrameComponent {
+  readonly title = input('');
+  readonly subtitle = input('');
+  /** Footer annotation, e.g. "106 hours total · 62% attributable to chamber and handling". */
+  readonly caption = input('');
+  /** Set to show an export button and enable (exportClick); empty hides it. */
+  readonly exportLabel = input('');
+  readonly showTableToggle = input(true);
+  /** Two-way bound: [(tableView)]. true shows `[table]`, false (default) shows `[chart]`. */
+  readonly tableView = model(false);
+
+  readonly exportClick = output<void>();
 }
