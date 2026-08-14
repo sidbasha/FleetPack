@@ -8,6 +8,7 @@ import {
   BaseBarChartComponent,
   BaseBreadcrumbsComponent,
   BaseButtonComponent,
+  BaseButtonGroupComponent,
   BaseCellDirective,
   BaseChartPoint,
   BaseChildCellDirective,
@@ -132,6 +133,7 @@ function mockRows(n: number): ToolRow[] {
     BaseTabsComponent,
     BaseStepperComponent,
     BaseButtonComponent,
+    BaseButtonGroupComponent,
     BaseTextInputComponent,
     BaseTextareaComponent,
     BaseSelectComponent,
@@ -217,12 +219,23 @@ function mockRows(n: number): ToolRow[] {
                 <base-date-range-picker [(value)]="dateRange" (applied)="log('dateRangePicker applied', $event.preset)" />
                 <base-file-upload class="md:col-span-2 xl:col-span-3" label="Attachments" accept="CSV, XLSX" [maxSizeMb]="10"
                                   [(files)]="uploadFiles" (filesAdded)="log('fileUpload filesAdded', $event.length + ' file(s)')" />
-                <div class="flex items-end gap-2">
+                <div class="flex items-end gap-2 flex-wrap">
                   <base-button variant="primary" (clicked)="openModal.set(true)">Open modal</base-button>
                   <base-button variant="secondary" baseTooltip="I am a tooltip" tooltipPosition="top">Hover me</base-button>
+                  <base-button variant="tertiary">View details</base-button>
+                  <base-button variant="outline">Compare</base-button>
+                  <base-button variant="text">Reset filters</base-button>
+                  <base-button variant="success" (clicked)="log('button', 'approve qual')">Approve qual</base-button>
+                  <base-button variant="warning" (clicked)="log('button', 'force sync')">Force sync</base-button>
                   <base-button variant="danger" [loading]="saving()" (clicked)="fakeSave()">Save</base-button>
                   <base-split-button [items]="splitButtonItems" (clicked)="log('splitButton clicked', 'primary')"
                                      (itemSelect)="log('splitButton itemSelect', $event.label)">More actions</base-split-button>
+                  <base-split-button variant="secondary" [items]="splitButtonItems" (clicked)="log('splitButton clicked', 'primary')"
+                                     (itemSelect)="log('splitButton itemSelect', $event.label)">Assign</base-split-button>
+                  <base-button-group [items]="viewGroupItems" [activeId]="viewGroupActiveId()"
+                                     (itemClick)="viewGroupActiveId.set($event.id); log('buttonGroup itemClick', $event.label)" />
+                  <base-button variant="primary" shape="pill" [iconOnly]="true" ariaLabel="Add tool"
+                               (clicked)="log('fab', 'add tool')">+</base-button>
                 </div>
               </div>
             }
@@ -602,6 +615,13 @@ export class BasePlaygroundComponent {
     { id: 'duplicate', label: 'Duplicate', icon: '⧉' },
     { id: 'archive', label: 'Archive', icon: '🗄', dividerBefore: true, danger: true }
   ];
+  /** base-button-group: related actions that share a border but fire independently. */
+  readonly viewGroupItems = [
+    { id: 'trend', label: 'Trend', icon: '📈' },
+    { id: 'table', label: 'Table', icon: '▤' },
+    { id: 'gantt', label: 'Gantt', icon: '▥' }
+  ];
+  readonly viewGroupActiveId = signal('table');
 
   // Feedback / data display demo state
   private readonly toastSvc = inject(BaseToastService);

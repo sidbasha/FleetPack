@@ -41,7 +41,9 @@ const INPUT_CLS = `w-full h-9 border rounded-r-sm px-sp-3 text-xs text-ink-700 b
 const HINT_CLS = `mt-1 text-caption normal-case font-normal text-neutral-400`;
 const ERROR_CLS = `mt-1 text-caption normal-case font-normal text-error`;
 
-/** Primary command surface — one primary action per view, the rest secondary/tertiary/ghost. */
+/** Primary command surface — one primary action per view, the rest secondary/tertiary/ghost.
+ *  Triggers one immediate action (save, run, export, delete); never navigates (that's a link)
+ *  and never discloses (that's an expander). See stories/base/button.stories.ts for the full matrix. */
 @Component({
   selector: 'base-button',
   standalone: true,
@@ -49,10 +51,10 @@ const ERROR_CLS = `mt-1 text-caption normal-case font-normal text-error`;
   template: `
     <button [type]="type()" [disabled]="disabled() || loading()"
             [attr.aria-label]="iconOnly() ? ariaLabel() : null"
-            class="inline-flex items-center justify-center font-semibold rounded-r-sm transition-colors
+            class="inline-flex items-center justify-center font-semibold transition-colors
                    outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2
-                   disabled:opacity-50 disabled:cursor-not-allowed"
-            [class]="variantClass() + ' ' + sizeClass() + (fullWidth() ? ' w-full' : '')"
+                   disabled:opacity-[0.42] disabled:cursor-not-allowed"
+            [class]="variantClass() + ' ' + sizeClass() + ' ' + radiusClass() + (fullWidth() ? ' w-full' : '')"
             (click)="clicked.emit($event)">
       @if (loading()) {
         <span class="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" aria-hidden="true"></span>
@@ -63,7 +65,9 @@ const ERROR_CLS = `mt-1 text-caption normal-case font-normal text-error`;
 })
 export class BaseButtonComponent {
   /** Visual style. 'danger' is a back-compat alias for 'destructive'. */
-  readonly variant = input<'primary' | 'secondary' | 'tertiary' | 'ghost' | 'destructive' | 'danger'>('primary');
+  readonly variant = input<
+    'primary' | 'secondary' | 'tertiary' | 'ghost' | 'outline' | 'text' | 'destructive' | 'danger' | 'success' | 'warning'
+  >('primary');
   readonly size = input<'sm' | 'md' | 'lg'>('md');
   readonly type = input<'button' | 'submit' | 'reset'>('button');
   readonly disabled = input(false);
@@ -74,6 +78,9 @@ export class BaseButtonComponent {
   /** Square, label-hidden sizing for a single icon; pair with [ariaLabel]. */
   readonly iconOnly = input(false);
   readonly ariaLabel = input('');
+  /** 'pill' fully rounds the corners + adds elevation — the FAB shape. Pair with variant="primary"
+   *  and [iconOnly] (or a short label) for the single persistent action on a toolbar-free surface. */
+  readonly shape = input<'default' | 'pill'>('default');
 
   /** Fired on click (not fired while disabled/loading). */
   readonly clicked = output<MouseEvent>();
@@ -81,20 +88,30 @@ export class BaseButtonComponent {
   protected readonly variantClass = computed(() => ({
     primary: 'bg-action text-neutral-0 hover:bg-action-hover active:bg-action-active',
     secondary: 'bg-neutral-0 text-ink-700 border border-neutral-200 hover:border-action hover:text-action',
-    tertiary: 'bg-transparent text-ink-600 hover:text-action hover:bg-action-surface',
-    ghost: 'bg-transparent text-current hover:bg-white/10',
+    tertiary: 'bg-transparent text-action hover:text-action-hover hover:bg-action-surface',
+    outline: 'bg-transparent text-ink-700 border border-neutral-300 hover:border-action hover:text-action hover:bg-action-surface',
+    ghost: 'bg-transparent text-ink-700 hover:bg-neutral-100 hover:text-ink-900 active:bg-neutral-200',
+    text: 'bg-transparent text-action hover:text-action-hover hover:underline underline-offset-2',
     destructive: 'bg-error text-neutral-0 hover:bg-error-hover',
-    danger: 'bg-error text-neutral-0 hover:bg-error-hover'
+    danger: 'bg-error text-neutral-0 hover:bg-error-hover',
+    success: 'bg-success text-neutral-0 hover:bg-success-hover',
+    warning: 'bg-warning text-neutral-0 hover:bg-warning-hover'
   }[this.variant()]));
 
+  /** 'text' is chrome-free by spec — no fixed height/box, just label + hover underline. */
   protected readonly sizeClass = computed(() => {
     const icon = this.iconOnly();
+    if (this.variant() === 'text' && !icon) {
+      return { sm: 'h-auto text-[11px] gap-1', md: 'h-auto text-xs gap-1.5', lg: 'h-auto text-sm gap-2' }[this.size()];
+    }
     return {
       sm: icon ? 'w-7 h-7 text-[11px] gap-1' : 'h-7 px-sp-2 text-[11px] gap-1',
       md: icon ? 'w-9 h-9 text-xs gap-1.5' : 'h-9 px-sp-3 text-xs gap-1.5',
       lg: icon ? 'w-11 h-11 text-sm gap-2' : 'h-11 px-sp-5 text-sm gap-2'
     }[this.size()];
   });
+
+  protected readonly radiusClass = computed(() => this.shape() === 'pill' ? 'rounded-full shadow-e2 hover:shadow-e3' : 'rounded-r-sm');
 }
 
 /** 2–4 mutually exclusive view options; changes what's shown without navigating anywhere. */
@@ -485,18 +502,18 @@ export class BaseToggleComponent extends BaseControl<boolean> {
   template: `
     <div class="relative inline-flex">
       <button type="button" [disabled]="disabled()"
-              class="inline-flex items-center h-9 px-sp-3 text-xs font-semibold rounded-l-sm border-r border-action-active
-                     bg-action text-neutral-0 hover:bg-action-hover transition-colors outline-none
+              class="inline-flex items-center h-9 px-sp-3 text-xs font-semibold rounded-l-sm transition-colors outline-none
                      focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2
-                     disabled:opacity-50 disabled:cursor-not-allowed"
+                     disabled:opacity-[0.42] disabled:cursor-not-allowed"
+              [class]="leftClass()"
               (click)="clicked.emit($event)">
         <ng-content />
       </button>
       <button type="button" [disabled]="disabled()" aria-label="More options" aria-haspopup="menu"
-              class="inline-flex items-center justify-center w-8 h-9 rounded-r-sm bg-action text-neutral-0
-                     hover:bg-action-hover transition-colors outline-none
+              class="inline-flex items-center justify-center w-8 h-9 rounded-r-sm transition-colors outline-none
                      focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2
-                     disabled:opacity-50 disabled:cursor-not-allowed"
+                     disabled:opacity-[0.42] disabled:cursor-not-allowed"
+              [class]="rightClass()"
               (click)="toggle()">
         <span class="text-[9px]">▼</span>
       </button>
@@ -522,6 +539,9 @@ export class BaseToggleComponent extends BaseControl<boolean> {
 export class BaseSplitButtonComponent {
   readonly items = input.required<BaseMenuItem[]>();
   readonly disabled = input(false);
+  /** 'secondary' renders a bordered/white split button — a default action plus related
+   *  variants where a solid primary would out-rank the view's actual primary action. */
+  readonly variant = input<'primary' | 'secondary'>('primary');
 
   /** Fired when the primary (left) segment is clicked. */
   readonly clicked = output<MouseEvent>();
@@ -530,6 +550,14 @@ export class BaseSplitButtonComponent {
 
   protected readonly open = signal(false);
   private readonly host = inject(ElementRef<HTMLElement>);
+
+  protected readonly leftClass = computed(() => this.variant() === 'secondary'
+    ? 'bg-neutral-0 text-ink-700 border border-r-0 border-neutral-200 hover:border-action hover:text-action'
+    : 'bg-action text-neutral-0 hover:bg-action-hover border-r border-action-active');
+
+  protected readonly rightClass = computed(() => this.variant() === 'secondary'
+    ? 'bg-neutral-0 text-ink-700 border border-neutral-200 hover:border-action hover:text-action'
+    : 'bg-action text-neutral-0 hover:bg-action-hover');
 
   @HostListener('document:click', ['$event'])
   onDocClick(ev: MouseEvent): void {
@@ -541,5 +569,54 @@ export class BaseSplitButtonComponent {
   pick(m: BaseMenuItem): void {
     this.itemSelect.emit(m);
     this.open.set(false);
+  }
+}
+
+/** 2–4 related actions that share one bordered silhouette but fire independently — each press is
+ *  its own action (unlike base-segmented-control, which manages a single mutually-exclusive value). */
+export interface BaseButtonGroupItem {
+  id: string;
+  label: string;
+  icon?: string;
+  disabled?: boolean;
+}
+
+@Component({
+  selector: 'base-button-group',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div role="group" [attr.aria-label]="ariaLabel() || null"
+         class="inline-flex items-stretch border border-neutral-200 rounded-r-sm overflow-hidden bg-neutral-0">
+      @for (o of items(); track o.id; let first = $first) {
+        <button type="button" [disabled]="o.disabled"
+                [attr.aria-label]="iconOnly() ? o.label : null"
+                [attr.aria-current]="o.id === activeId() ? 'true' : null"
+                class="inline-flex items-center justify-center gap-1.5 h-9 px-sp-3 text-xs font-semibold transition-colors
+                       outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-inset
+                       disabled:opacity-[0.42] disabled:cursor-not-allowed"
+                [class]="(o.id === activeId() ? 'bg-action-surface text-action' : 'text-ink-600 hover:bg-neutral-50 hover:text-ink-900') + (first ? '' : ' border-l border-neutral-200')"
+                (click)="pick(o)">
+          @if (o.icon) { <span aria-hidden="true">{{ o.icon }}</span> }
+          @if (!iconOnly()) { {{ o.label }} }
+        </button>
+      }
+    </div>
+  `
+})
+export class BaseButtonGroupComponent {
+  readonly items = input.required<BaseButtonGroupItem[]>();
+  /** Optional visual "current" highlight — purely cosmetic. The group does not manage
+   *  selection state itself; every press still emits (itemClick). */
+  readonly activeId = input<string | null>(null);
+  /** Hide labels, show icons only (pair with icons on every item). */
+  readonly iconOnly = input(false);
+  readonly ariaLabel = input('');
+
+  readonly itemClick = output<BaseButtonGroupItem>();
+
+  pick(o: BaseButtonGroupItem): void {
+    if (o.disabled) return;
+    this.itemClick.emit(o);
   }
 }
