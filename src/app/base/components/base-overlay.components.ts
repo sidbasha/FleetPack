@@ -226,58 +226,162 @@ export class BaseTeleportDirective implements OnInit {
   }
 }
 
-/** Persistent, page/section-scoped banner — toasts (BaseToastService) are
- *  transient and global instead. */
+/** Sits next to what it describes; stays until the condition clears. Use `<base-banner>`
+ *  instead when the condition affects the whole page, or `BaseToastService` when it's a
+ *  transient confirmation of something the operator just did. */
 @Component({
   selector: 'base-alert',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="flex items-start gap-sp-3 rounded-r-md border px-sp-4 py-sp-3 text-xs" [class]="kindClass()" role="alert">
-      <span class="icon-outline shrink-0 mt-0.5" style="font-size:18px;" aria-hidden="true">{{ icon() }}</span>
-      <div class="flex-1">
-        @if (title()) { <p class="font-semibold mb-0.5">{{ title() }}</p> }
-        <p class="opacity-90"><ng-content />{{ message() }}</p>
+    @if (compact()) {
+      <div class="flex items-center gap-sp-2 rounded-r-sm border px-sp-3 py-sp-1.5 text-[11px]" [class]="kindClass()" role="status">
+        <span class="icon-outline shrink-0" style="font-size:14px;" aria-hidden="true">{{ icon() }}</span>
+        <span class="flex-1 min-w-0 truncate opacity-90"><ng-content />{{ message() }}</span>
         @if (actionLabel()) {
-          <button type="button" class="mt-sp-2 text-[11px] font-semibold text-neutral-0 rounded-r-sm px-sp-3 py-1.5 transition-colors"
-                  [class]="actionClass()" (click)="action.emit()">{{ actionLabel() }}</button>
+          <button type="button" class="shrink-0 font-semibold text-action hover:text-action-hover underline underline-offset-2"
+                  (click)="action.emit()">{{ actionLabel() }}</button>
+        }
+        @if (dismissible()) {
+          <button type="button" class="shrink-0 opacity-50 hover:opacity-100" (click)="dismissed.emit()"
+                  aria-label="Dismiss">✕</button>
         }
       </div>
-      @if (dismissible()) {
-        <button type="button" class="opacity-50 hover:opacity-100 text-xs" (click)="dismissed.emit()"
-                aria-label="Dismiss">✕</button>
-      }
-    </div>
+    } @else {
+      <div class="flex items-start gap-sp-3 rounded-r-md border px-sp-4 py-sp-3 text-xs" [class]="kindClass()" role="alert">
+        <span class="icon-outline shrink-0 mt-0.5" style="font-size:18px;" aria-hidden="true">{{ icon() }}</span>
+        <div class="flex-1">
+          @if (title()) { <p class="font-semibold mb-0.5">{{ title() }}</p> }
+          <p class="opacity-90"><ng-content />{{ message() }}</p>
+          @if ((actionLabel() && !actionInline()) || secondaryActionLabel()) {
+            <div class="mt-sp-2 flex gap-sp-2">
+              @if (actionLabel() && !actionInline()) {
+                <button type="button" class="text-[11px] font-semibold text-neutral-0 rounded-r-sm px-sp-3 py-1.5 transition-colors"
+                        [class]="actionClass()" (click)="action.emit()">{{ actionLabel() }}</button>
+              }
+              @if (secondaryActionLabel()) {
+                <button type="button"
+                        class="text-[11px] font-semibold bg-neutral-0 border border-neutral-200 text-ink-700 rounded-r-sm px-sp-3 py-1.5
+                               hover:border-action hover:text-action transition-colors"
+                        (click)="secondaryAction.emit()">{{ secondaryActionLabel() }}</button>
+              }
+            </div>
+          }
+        </div>
+        @if (actionLabel() && actionInline()) {
+          <button type="button"
+                  class="self-center shrink-0 text-[11px] font-semibold bg-neutral-0 border border-neutral-200 text-ink-700
+                         rounded-r-sm px-sp-3 py-1.5 hover:border-action hover:text-action transition-colors"
+                  (click)="action.emit()">{{ actionLabel() }}</button>
+        }
+        @if (dismissible()) {
+          <button type="button" class="opacity-50 hover:opacity-100 text-xs" (click)="dismissed.emit()"
+                  aria-label="Dismiss">✕</button>
+        }
+      </div>
+    }
   `
 })
 export class BaseAlertComponent {
-  readonly kind = input<'info' | 'success' | 'warning' | 'error'>('info');
+  readonly kind = input<'info' | 'success' | 'warning' | 'error' | 'neutral'>('info');
   readonly title = input('');
   /** Message text (or project content instead). */
   readonly message = input('');
   readonly dismissible = input(false);
-  /** Optional call-to-action button, e.g. "Resolve now" on a critical banner. */
+  /** Optional call-to-action button, e.g. "Resolve now" on a critical alert. */
   readonly actionLabel = input('');
+  /** Second, lower-emphasis button beside [actionLabel] — e.g. "Discard my change" next to "Reload and compare". */
+  readonly secondaryActionLabel = input('');
+  /** Renders [actionLabel] as a single bordered button vertically centered at the trailing edge
+   *  instead of stacked under the message — the "This tool is archived → Restore" shape. */
+  readonly actionInline = input(false);
+  /** Denser, single-line layout for table toolbars / card footers — no title, no stacked
+   *  buttons; [actionLabel] renders as an inline text link instead. */
+  readonly compact = input(false);
 
   /** Fired when the ✕ is clicked — host removes the alert. */
   readonly dismissed = output<void>();
-  /** Fired when the action button is clicked. */
+  /** Fired when the primary action button (or, in compact mode, the link) is clicked. */
   readonly action = output<void>();
+  /** Fired when the secondary action button is clicked. */
+  readonly secondaryAction = output<void>();
 
   protected readonly kindClass = computed(() => ({
     info: 'bg-info-surface border-info/30 text-info',
     success: 'bg-success-surface border-success/30 text-success',
     warning: 'bg-warning-surface border-warning/30 text-warning',
-    error: 'bg-error-surface border-error/30 text-error-text'
+    error: 'bg-error-surface border-error/30 text-error-text',
+    neutral: 'bg-neutral-100 border-neutral-200 text-ink-600'
   }[this.kind()]));
 
   protected readonly actionClass = computed(() => ({
     info: 'bg-info hover:bg-info-hover', success: 'bg-success hover:bg-success-hover',
-    warning: 'bg-warning hover:bg-warning-hover', error: 'bg-error hover:bg-error-hover'
+    warning: 'bg-warning hover:bg-warning-hover', error: 'bg-error hover:bg-error-hover',
+    neutral: 'bg-ink-600 hover:bg-ink-700'
   }[this.kind()]));
 
   protected readonly icon = computed(() => ({
-    info: 'info', success: 'check_circle', warning: 'warning', error: 'error'
+    info: 'info', success: 'check_circle', warning: 'warning', error: 'error', neutral: 'inventory_2'
+  }[this.kind()]));
+}
+
+/** Spans the page — the condition affects the whole product, not one region: a maintenance
+ *  window, a degraded feed, a session expiring. Mount at the top of the page/shell, edge to
+ *  edge. A persistent banner (no [dismissible]) should only disappear once the condition itself
+ *  resolves; a dismissible one must always offer [actionLabel] as a way to reach the detail
+ *  first. Use `<base-alert>` instead when the message concerns one region, not the whole page. */
+@Component({
+  selector: 'base-banner',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div class="flex items-center gap-sp-3 px-sp-5 py-sp-3 text-xs" [class]="kindClass()" role="status">
+      <span class="icon-outline shrink-0" style="font-size:18px;" aria-hidden="true">{{ icon() }}</span>
+      <div class="flex-1 min-w-0">
+        @if (title()) { <span class="font-semibold">{{ title() }}</span> }
+        <span [class]="title() ? 'ml-1 opacity-90' : 'opacity-90'"><ng-content />{{ message() }}</span>
+      </div>
+      @if (actionLabel()) {
+        <button type="button" class="shrink-0" [class]="actionClass()" (click)="action.emit()">{{ actionLabel() }}</button>
+      }
+      @if (dismissible()) {
+        <button type="button" class="shrink-0 opacity-70 hover:opacity-100 text-xs" (click)="dismissed.emit()"
+                aria-label="Dismiss">✕</button>
+      }
+    </div>
+  `
+})
+export class BaseBannerComponent {
+  readonly kind = input<'info' | 'warning' | 'critical' | 'accent'>('info');
+  readonly title = input('');
+  /** Message text (or project content instead). */
+  readonly message = input('');
+  readonly actionLabel = input('');
+  readonly dismissible = input(false);
+
+  /** Fired when the ✕ is clicked — host removes the banner. */
+  readonly dismissed = output<void>();
+  /** Fired when the action button/link is clicked. */
+  readonly action = output<void>();
+
+  protected readonly kindClass = computed(() => ({
+    info: 'bg-info-surface text-ink-900',
+    warning: 'bg-warning-surface text-ink-900',
+    critical: 'bg-error text-neutral-0',
+    accent: 'bg-accent text-neutral-0'
+  }[this.kind()]));
+
+  /** Light kinds get a plain text link; dark (solid-fill) kinds get a small white button so the
+   *  action still pops against the fill. */
+  protected readonly actionClass = computed(() => ({
+    info: 'text-info font-semibold underline underline-offset-2 hover:no-underline',
+    warning: 'text-[11px] font-semibold bg-neutral-0 border border-neutral-200 text-ink-700 rounded-r-sm px-sp-3 py-1.5 hover:border-warning hover:text-warning transition-colors',
+    critical: 'text-[11px] font-semibold bg-neutral-0 text-error rounded-r-sm px-sp-3 py-1.5 hover:bg-neutral-100 transition-colors',
+    accent: 'text-[11px] font-semibold bg-neutral-0 text-accent rounded-r-sm px-sp-3 py-1.5 hover:bg-neutral-100 transition-colors'
+  }[this.kind()]));
+
+  protected readonly icon = computed(() => ({
+    info: 'info', warning: 'warning', critical: 'error', accent: 'campaign'
   }[this.kind()]));
 }
 
@@ -371,15 +475,26 @@ export interface BaseToast {
   kind: 'info' | 'success' | 'warning' | 'error';
   title: string;
   message?: string;
+  /** Inline action link, e.g. "Undo" — pairs with `onAction`. */
   actionLabel?: string;
+  /** Invoked when [actionLabel] is clicked, before the toast dismisses. */
+  onAction?: () => void;
 }
 
-const TOAST_DURATION_MS = 3500;
+/** Options for the third argument of info/success/warning/error(). */
+export interface BaseToastOptions {
+  actionLabel?: string;
+  onAction?: () => void;
+}
+
+const TOAST_DURATION_MS = 4000;
 const TOAST_MAX_VISIBLE = 3;
 
-/** Transient, global toasts — auto-dismiss after 3.5s except errors, which
- *  require explicit dismissal. Stacks bottom-right (max 3 visible, rest
- *  queue); mount `<base-toast-host />` once near the app root. */
+/** Confirms an action the operator just took, succeeded or failed — never for something they
+ *  did not initiate, and never for an error that still needs action (that belongs in
+ *  `<base-alert>` or `<base-banner>`, which stay until the condition is resolved). Auto-dismiss
+ *  after 4s except errors, which require explicit dismissal. Stacks bottom-right (max 3
+ *  visible, rest queue); mount `<base-toast-host />` once near the app root. */
 @Injectable({ providedIn: 'root' })
 export class BaseToastService {
   private readonly _toasts = signal<BaseToast[]>([]);
@@ -391,11 +506,11 @@ export class BaseToastService {
 
   readonly toasts = this._toasts.asReadonly();
 
-  info(title: string, message?: string): number { return this.push({ kind: 'info', title, message }); }
-  success(title: string, message?: string): number { return this.push({ kind: 'success', title, message }); }
-  warning(title: string, message?: string): number { return this.push({ kind: 'warning', title, message }); }
+  info(title: string, message?: string, opts?: BaseToastOptions): number { return this.push({ kind: 'info', title, message, ...opts }); }
+  success(title: string, message?: string, opts?: BaseToastOptions): number { return this.push({ kind: 'success', title, message, ...opts }); }
+  warning(title: string, message?: string, opts?: BaseToastOptions): number { return this.push({ kind: 'warning', title, message, ...opts }); }
   /** Never auto-dismisses; the caller (or the user) must call dismiss(). */
-  error(title: string, message?: string): number { return this.push({ kind: 'error', title, message }); }
+  error(title: string, message?: string, opts?: BaseToastOptions): number { return this.push({ kind: 'error', title, message, ...opts }); }
 
   push(t: Omit<BaseToast, 'id'>): number {
     const id = ++this.seq;
@@ -417,6 +532,13 @@ export class BaseToastService {
       this._toasts.update(list => [...list, next]);
       this.schedule(next);
     }
+  }
+
+  /** Clears the whole stack immediately — visible and queued alike. Wired to Esc. */
+  dismissAll(): void {
+    this._toasts().forEach(t => this.clearTimer(t.id));
+    this._toasts.set([]);
+    this.queue.length = 0;
   }
 
   /** Hover-in: freeze the remaining time. */
@@ -441,6 +563,11 @@ export class BaseToastService {
     this.timers.set(id, setTimeout(() => this.dismiss(id), ms));
   }
 
+  /** Pauses every visible toast at once — used while focus sits anywhere inside the stack. */
+  pauseAll(): void { this._toasts().forEach(t => this.pause(t.id)); }
+  /** Resumes every visible toast at once. */
+  resumeAll(): void { this._toasts().forEach(t => this.resume(t.id)); }
+
   private schedule(t: BaseToast): void {
     if (t.kind === 'error') return; // explicit dismissal only
     this.remaining.set(t.id, TOAST_DURATION_MS);
@@ -464,17 +591,22 @@ export class BaseToastService {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="fixed bottom-sp-6 right-sp-6 z-50 flex flex-col-reverse gap-sp-2 w-80 max-w-[calc(100vw-3rem)]" aria-live="polite">
+    <div class="fixed bottom-sp-6 right-sp-6 z-50 flex flex-col-reverse gap-sp-2 w-80 max-w-[calc(100vw-3rem)]"
+         aria-live="polite" (focusin)="svc.pauseAll()" (focusout)="svc.resumeAll()">
       @for (t of svc.toasts(); track t.id) {
-        <div class="rounded-r-md border px-sp-4 py-sp-3 flex items-start gap-sp-3 bg-neutral-0" [class]="kindClass(t.kind)"
+        <div class="rounded-r-md px-sp-4 py-sp-3 flex items-start gap-sp-3 bg-surface-inverse text-neutral-0"
              style="box-shadow: var(--shadow-e3);"
              (mouseenter)="svc.pause(t.id)" (mouseleave)="svc.resume(t.id)">
-          <span class="icon-outline shrink-0 mt-0.5" style="font-size:18px;" aria-hidden="true">{{ iconFor(t.kind) }}</span>
-          <div class="flex-1">
-            <p class="text-xs font-semibold text-ink-900">{{ t.title }}</p>
-            @if (t.message) { <p class="text-[11px] text-ink-600 mt-0.5">{{ t.message }}</p> }
+          <span class="icon-outline shrink-0 mt-0.5" style="font-size:18px;" [style.color]="iconColor(t.kind)" aria-hidden="true">{{ iconFor(t.kind) }}</span>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-semibold">{{ t.title }}</p>
+            @if (t.message) { <p class="text-[11px] text-neutral-0/70 mt-0.5">{{ t.message }}</p> }
+            @if (t.actionLabel) {
+              <button type="button" class="mt-1 text-[11px] font-semibold text-interactive hover:underline"
+                      (click)="runAction(t)">{{ t.actionLabel }}</button>
+            }
           </div>
-          <button type="button" class="text-neutral-300 hover:text-neutral-500 text-xs" (click)="svc.dismiss(t.id)"
+          <button type="button" class="text-neutral-0/50 hover:text-neutral-0 text-xs shrink-0" (click)="svc.dismiss(t.id)"
                   aria-label="Dismiss notification">✕</button>
         </div>
       }
@@ -484,11 +616,25 @@ export class BaseToastService {
 export class BaseToastHostComponent {
   protected readonly svc = inject(BaseToastService);
 
-  protected kindClass(kind: BaseToast['kind']): string {
-    return { info: 'border-info/30', success: 'border-success/30', warning: 'border-warning/30', error: 'border-error/30' }[kind];
+  /** Esc clears the whole stack while any toast is visible. */
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.svc.toasts().length) this.svc.dismissAll();
+  }
+
+  runAction(t: BaseToast): void {
+    t.onAction?.();
+    this.svc.dismiss(t.id);
   }
 
   protected iconFor(kind: BaseToast['kind']): string {
     return { info: 'info', success: 'check_circle', warning: 'warning', error: 'error' }[kind];
+  }
+
+  /** Semantic colors are tuned for light surfaces; mixed toward white here so they stay
+   *  legible on the toast's dark (surface-inverse) background. */
+  protected iconColor(kind: BaseToast['kind']): string {
+    const token = { info: 'var(--color-info)', success: 'var(--color-success)', warning: 'var(--color-warning)', error: 'var(--color-error)' }[kind];
+    return `color-mix(in srgb, ${token} 55%, white)`;
   }
 }

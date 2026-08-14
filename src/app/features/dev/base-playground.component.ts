@@ -5,6 +5,7 @@ import {
   BaseAccordionComponent,
   BaseAlertComponent,
   BaseBadgeComponent,
+  BaseBannerComponent,
   BaseBarChartComponent,
   BaseBreadcrumbsComponent,
   BaseButtonComponent,
@@ -127,6 +128,7 @@ function mockRows(n: number): ToolRow[] {
     BaseChildCellDirective,
     BaseKpiCardComponent,
     BaseBadgeComponent,
+    BaseBannerComponent,
     BaseTrendComponent,
     BaseSparklineComponent,
     BaseBreadcrumbsComponent,
@@ -241,12 +243,29 @@ function mockRows(n: number): ToolRow[] {
             }
             @case ('feedback') {
               <div class="space-y-5 max-w-2xl">
+                <div class="space-y-2">
+                  <base-banner kind="info" title="Scheduled maintenance Saturday 09 August, 02:00–06:00 UTC."
+                               message="FleetPack will be read-only for the duration." actionLabel="Details" [dismissible]="true"
+                               (action)="log('banner action', 'details')" (dismissed)="log('banner dismissed', 'info')" />
+                  <base-banner kind="warning" title="Telemetry from Fab 3 · Leuven has been unavailable since 04:12."
+                               message="Availability figures for that site are stale." actionLabel="Check feed status"
+                               (action)="log('banner action', 'check feed status')" />
+                </div>
+
                 <div class="space-y-3">
                   <base-alert kind="info" title="Heads up" message="CDC sync runs every 5 minutes." [dismissible]="true"
                               (dismissed)="log('alert dismissed', 'info')" />
                   <base-alert kind="success" message="Fleet snapshot exported." />
-                  <base-alert kind="warning" message="3 tools have stale telemetry." />
+                  <base-alert kind="warning" title="Three tools are drifting toward their control limits"
+                              message="Chamber pressure has trended upward for six consecutive days." [dismissible]="true"
+                              actionLabel="Review drift" secondaryActionLabel="Snooze 24 h"
+                              (action)="log('alert action', 'review drift')" (secondaryAction)="log('alert secondaryAction', 'snooze 24h')" />
                   <base-alert kind="error" title="Connection lost" message="Retrying ClickHouse…" />
+                  <base-alert kind="neutral" title="This tool is archived"
+                              message="Historical data is read-only. Restore the tool to resume telemetry collection."
+                              actionLabel="Restore" [actionInline]="true" (action)="log('alert action', 'restore')" />
+                  <base-alert kind="warning" message="2 filters are hiding 187 rows." actionLabel="Clear filters" [compact]="true"
+                              (action)="log('alert action', 'clear filters')" />
                   <base-progress-bar [value]="72" />
                   <div class="flex items-center gap-3">
                     <base-skeleton width="40px" height="40px" shape="circle" />
@@ -258,6 +277,7 @@ function mockRows(n: number): ToolRow[] {
                   <div class="flex items-center gap-3">
                     <base-loading message="Loading fleet snapshot…" />
                     <base-button variant="secondary" (clicked)="showToast()">Show toast</base-button>
+                    <base-button variant="secondary" (clicked)="showUndoToast()">Show toast w/ undo</base-button>
                   </div>
                 </div>
 
@@ -633,6 +653,15 @@ export class BasePlaygroundComponent {
 
   showToast(): void {
     this.toastSvc.success('Export complete', 'service_activity.xlsx is ready to download.');
+  }
+
+  /** Undo beats confirm — reversible bulk actions act immediately and offer undo in the toast
+   *  itself rather than a confirmation dialog. */
+  showUndoToast(): void {
+    this.toastSvc.info('3 tools reassigned to Inspection', undefined, {
+      actionLabel: 'Undo',
+      onAction: () => { this.toastSvc.success('Reassignment undone'); this.log('toast', 'undo'); }
+    });
   }
 
   // Navigation & overlay demo state
