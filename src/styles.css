@@ -118,6 +118,8 @@
 
   /* Color — semantic roles, the only tier components should reference */
   --color-brand: var(--p-indigo);
+  --color-brand-hover: color-mix(in srgb, var(--p-indigo) 85%, black);
+  --color-brand-surface: color-mix(in srgb, var(--p-indigo) 8%, white);
   --color-interactive: var(--p-blue);
 
   --color-action: var(--p-cobalt);

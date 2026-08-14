@@ -1,25 +1,34 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseTagComponent } from '../../app/base';
 
+/** Records a label a *person* applied — square-cornered on purpose, so at a glance it's obvious
+ *  whether a label came from the system (`<base-badge>`, pill-shaped) or from a person. Not
+ *  clickable; [removable] only withdraws the applied label. */
 const meta: Meta<BaseTagComponent> = {
   title: 'Base/Data Display/Tag',
   component: BaseTagComponent,
   tags: ['autodocs'],
-  args: { label: 'Fleet A', icon: '' }
+  args: { label: 'Fleet A', icon: '', dot: false, disabled: false, removable: false }
 };
 export default meta;
 type Story = StoryObj<BaseTagComponent>;
 
 export const Default: Story = {};
 export const WithIcon: Story = { args: { label: 'Fleet A', icon: '🚛' } };
+export const WithDot: Story = { args: { label: 'Metrology', dot: true } };
+export const Removable: Story = { args: { label: 'Night shift', removable: true } };
+export const Disabled: Story = { args: { label: 'Archived', disabled: true } };
 
 export const StaticClassification: Story = {
   render: () => ({
     template: `
-      <div class="flex flex-wrap gap-2">
-        <base-tag label="Fleet A" />
-        <base-tag label="MOD-A-001" />
-        <base-tag label="v2.26.1" />
+      <div class="flex flex-wrap items-center gap-2">
+        <base-tag label="Inspection" />
+        <base-tag label="Metrology" [dot]="true" />
+        <base-tag label="Review" [dot]="true" />
+        <base-tag label="M. Okonkwo" icon="👤" [removable]="true" />
+        <base-tag label="Night shift" [removable]="true" />
+        <base-tag label="Archived" [disabled]="true" />
       </div>`
   })
 };

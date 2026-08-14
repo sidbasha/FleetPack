@@ -4,6 +4,9 @@ import {
   AdditionalHeaderGroup,
   BaseAccordionComponent,
   BaseAlertComponent,
+  BaseAvatarComponent,
+  BaseAvatarGroupComponent,
+  BaseAvatarItem,
   BaseBadgeComponent,
   BaseBannerComponent,
   BaseBarChartComponent,
@@ -129,6 +132,8 @@ function mockRows(n: number): ToolRow[] {
     BaseKpiCardComponent,
     BaseBadgeComponent,
     BaseBannerComponent,
+    BaseAvatarComponent,
+    BaseAvatarGroupComponent,
     BaseTrendComponent,
     BaseSparklineComponent,
     BaseBreadcrumbsComponent,
@@ -284,10 +289,39 @@ function mockRows(n: number): ToolRow[] {
                 <base-divider label="Data display" />
 
                 <div class="flex flex-wrap items-center gap-2">
+                  <base-badge label="Production" tone="success" [dot]="true" />
+                  <base-badge label="Passing" tone="success" [solid]="true" />
+                  <base-badge label="Square" tone="action" shape="square" />
+                  <base-badge label="Large" tone="warning" size="lg" />
+                  <base-badge [count]="47" tone="action" />
+                  <base-badge [count]="140" tone="error" />
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
                   <base-tag label="Fleet A" icon="🏷" />
                   <base-tag label="Q3 Review" />
+                  <base-tag label="Metrology" [dot]="true" />
+                  <base-tag label="M. Okonkwo" icon="👤" [removable]="true" (removed)="log('tag removed', 'M. Okonkwo')" />
+                  <base-tag label="Archived" [disabled]="true" />
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
                   <base-chip label="Status: Active" (removed)="log('chip removed', 'Status: Active')" />
                   <base-chip label="Locked" [removable]="false" />
+                  @for (o of filterChipOptions; track o) {
+                    <base-chip [label]="o" [removable]="false" [selectable]="true" [selected]="activeFilterChips().has(o)"
+                               (clicked)="toggleFilterChip(o)" />
+                  }
+                  @for (o of choiceChipOptions; track o) {
+                    <base-chip [label]="o" [removable]="false" [selectable]="true" [selected]="choiceChipValue() === o"
+                               (clicked)="choiceChipValue.set(o)" />
+                  }
+                </div>
+
+                <div class="flex items-center gap-4">
+                  <base-avatar name="Maria Okonkwo" />
+                  <base-avatar name="Jamie Reyes" size="lg" />
+                  <base-avatar-group [items]="avatarGroupItems" [max]="4" />
                 </div>
 
                 <base-stat-bar [stats]="statBarSample" />
@@ -649,6 +683,26 @@ export class BasePlaygroundComponent {
     { value: '94.2%', label: 'Uptime' },
     { value: 128, label: 'Active alarms' },
     { value: '3.4h', label: 'MTTR' }
+  ];
+
+  /** base-chip [selectable]: filter chips — multi-select, each independent. */
+  readonly filterChipOptions = ['Unscheduled DT', 'Scheduled DT', 'Engineering', 'Standby'];
+  readonly activeFilterChips = signal(new Set(['Unscheduled DT']));
+  toggleFilterChip(o: string): void {
+    this.activeFilterChips.update(s => {
+      const next = new Set(s);
+      next.has(o) ? next.delete(o) : next.add(o);
+      return next;
+    });
+    this.log('filterChip toggle', o);
+  }
+
+  /** base-chip [selectable]: choice chips — one of N, mutually exclusive. */
+  readonly choiceChipOptions = ['24 hours', '7 days', '30 days', 'Quarter'];
+  readonly choiceChipValue = signal('7 days');
+
+  readonly avatarGroupItems: BaseAvatarItem[] = [
+    { name: 'Maria Okonkwo' }, { name: 'Jamie Reyes' }, { name: 'Tom Sena' }, { name: 'Priya Nair' }, { name: 'Chen Wei' }
   ];
 
   showToast(): void {
