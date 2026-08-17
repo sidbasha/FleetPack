@@ -267,6 +267,8 @@ const meta: Meta<BaseTableComponent<ToolRow>> = {
     columns: BASIC_COLUMNS,
     rows: ROWS,
     trackKey: 'toolId',
+    tableTitle: '',
+    tableIcon: '',
     showSearch: true,
     showFilterRow: false,
     stickyHeader: false,
@@ -297,6 +299,7 @@ const meta: Meta<BaseTableComponent<ToolRow>> = {
     props: args,
     template: `<base-table class="panel block overflow-hidden"
       [columns]="columns" [rows]="rows" [trackKey]="trackKey"
+      [tableTitle]="tableTitle" [tableIcon]="tableIcon"
       [showSearch]="showSearch" [showFilterRow]="showFilterRow" [stickyHeader]="stickyHeader"
       [selectable]="selectable" [isDisableSelectAll]="isDisableSelectAll"
       [striped]="striped" [readOnly]="readOnly" [paginate]="paginate" [initialPageSize]="initialPageSize"
@@ -351,7 +354,10 @@ export const RangeFilter: Story = {
 };
 
 export const ManageColumns: Story = {
-  args: { columns: STICKY_COLUMNS, manageColumns: true, minWidth: '900px', showSearch: false }
+  args: {
+    columns: STICKY_COLUMNS, manageColumns: true, minWidth: '900px', showSearch: false,
+    tableTitle: 'Software version matrix', tableIcon: 'view_column'
+  }
 };
 
 export const AdditionalHeaderRow: Story = {

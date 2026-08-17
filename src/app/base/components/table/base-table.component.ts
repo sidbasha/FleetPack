@@ -80,13 +80,15 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
  *  pagination/filter/sort, per-column custom cell templates
  *  (`<ng-template baseCell="key">`) or built-in cell kinds, sticky
  *  header/columns (both axes at once, unfreezing the right group under
- *  720px), drag reorder + show/hide via Manage Columns, typed row
- *  actions (max [maxVisibleActions] inline + overflow), merged header rows
- *  (one hue per group), row highlight/auto-scroll, infinite scroll (top or
- *  bottom trigger, with an end-of-list state), loading/error/empty states,
- *  a column summary footer, and opt-in inline cell editing that blocks
- *  sort/filter/page while rows are dirty. In server-side mode
- *  ([serverSide]="true") the table only emits
+ *  720px), drag reorder + show/hide via Manage Columns (its "Columns" trigger
+ *  lives in the table's own toolbar — see [tableTitle]/[tableIcon] below to
+ *  give that toolbar a label, which also surfaces a live "X of Y columns"
+ *  count next to it), typed row actions (max [maxVisibleActions] inline +
+ *  overflow), merged header rows (one hue per group), row highlight/
+ *  auto-scroll, infinite scroll (top or bottom trigger, with an end-of-list
+ *  state), loading/error/empty states, a column summary footer, and opt-in
+ *  inline cell editing that blocks sort/filter/page while rows are dirty. In
+ *  server-side mode ([serverSide]="true") the table only emits
  *  (filterChange)/(sortChange)/(pageChange) — the host fetches and passes
  *  back the current page. See src/app/base/README.md for the full feature list. */
 @Component({
@@ -123,15 +125,37 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
     .bt-head-sticky { position: sticky; top: 0; z-index: 10; }
   `],
   template: `
-    @if (showSearch()) {
+    @if (tableTitle() || showSearch() || (manageColumns() && !readOnly())) {
       <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-neutral-100">
-        <base-search-input [placeholder]="searchPlaceholder()" (search)="onQuickSearch($event)" />
+        @if (tableTitle()) {
+          <span class="flex items-center gap-2 min-w-0">
+            @if (tableIcon()) {
+              <span class="icon-outline text-neutral-400 shrink-0" style="font-size:16px;" aria-hidden="true">{{ tableIcon() }}</span>
+            }
+            <b class="text-[13px] text-ink-900 truncate">{{ tableTitle() }}</b>
+            @if (manageColumns() && !readOnly()) {
+              <span class="text-[11px] font-medium text-neutral-400 bg-neutral-100 rounded-full px-2.5 py-0.5 shrink-0 whitespace-nowrap">
+                {{ manageVisibleKeys().length }} of {{ columns().length }} columns
+              </span>
+            }
+          </span>
+        } @else if (showSearch()) {
+          <base-search-input [placeholder]="searchPlaceholder()" (search)="onQuickSearch($event)" />
+        } @else {
+          <span></span>
+        }
         <span class="flex items-center gap-3">
-          @if (hasActiveFilters() && !readOnly() && !showFilterChips()) {
+          @if (showSearch() && hasActiveFilters() && !readOnly() && !showFilterChips()) {
             <button type="button" class="text-[11px] font-semibold text-action hover:text-action-hover"
                     (click)="clearAllFilters()">Clear All Filters</button>
           }
-          <span class="text-[11px] text-neutral-400">{{ filteredTotal() }} record(s)</span>
+          @if (showSearch()) {
+            <span class="text-[11px] text-neutral-400">{{ filteredTotal() }} record(s)</span>
+          }
+          @if (manageColumns() && !readOnly()) {
+            <base-manage-columns [items]="manageColumnItems()" [visibleKeys]="manageVisibleKeys()"
+                                  align="right" (apply)="onManageColumns($event)" />
+          }
         </span>
       </div>
     }
@@ -204,7 +228,7 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
                        (change)="toggleAll($event)" aria-label="Select all rows" />
               </th>
             }
-            @for (c of visibleColumns(); track c.key; let first = $first; let last = $last) {
+            @for (c of visibleColumns(); track c.key; let last = $last) {
               <th class="table-th select-none"
                   [class.text-right]="c.align === 'right'"
                   [class.text-center]="c.align === 'center'"
@@ -218,10 +242,6 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
                   [style.right]="stickyMeta()[c.key]?.right ?? null"
                   (click)="c.sortable && !readOnly() && toggleSort(c.key)">
                 <span class="inline-flex items-center gap-1.5">
-                  @if (manageColumns() && first && !readOnly()) {
-                    <base-manage-columns [items]="manageColumnItems()" [visibleKeys]="manageVisibleKeys()"
-                                          (apply)="onManageColumns($event)" (click)="$event.stopPropagation()" />
-                  }
                   @if (headerTemplateFor(c.key); as ht) {
                     <ng-container *ngTemplateOutlet="ht; context: { column: c }" />
                   } @else if (c.tooltip) {
@@ -499,6 +519,9 @@ export class BaseTableComponent<T = BaseRow> {
   private readonly densityService = inject(BaseDensityService);
   protected readonly effectiveDensity = computed(() => this.density() ?? this.densityService.current());
   protected readonly densityPad = computed(() => ({ compact: 3, standard: 8, comfortable: 14 }[this.effectiveDensity()]));
+
+  readonly tableTitle = input('');
+  readonly tableIcon = input('');
 
   readonly showSearch = input(true);
   readonly searchPlaceholder = input('Search…');

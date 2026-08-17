@@ -296,6 +296,12 @@ rowActions: BaseRowAction<Tool>[] = [
             (manageColumn)="visibleKeys = $event" (handleAction)="onAction($event)" />
 ```
 
+`[manageColumns]="true"` puts a labeled "Columns" button (with a live X-of-Y visible count) in
+the table's own toolbar — not inside a column header. Give that toolbar a label with
+`[tableTitle]`/`[tableIcon]` (an `icon-outline` name); once set, a "X of Y columns" count pill
+renders next to the title too. `[tableTitle]` takes over the toolbar's search slot, so it's
+meant for tables that lead with a title rather than a search box.
+
 17 built-in row-action types (`RowActionType`) auto-resolve an icon from `type`; more than
 `[maxVisibleActions]` (default 2) collapse into a "⋯" overflow menu. `[readOnly]="true"`
 **removes** mutating action types (add/edit/delete/reset/revert/apply/disable/enable/cancel/

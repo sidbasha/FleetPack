@@ -26,9 +26,7 @@ export interface ManageColumnItem {
   locked: boolean;
 }
 
-/** Gear-icon panel for `<base-table>`'s column manager: search, Select All,
- *  per-column visibility, drag-to-reorder for non-frozen columns. Frozen
- *  columns lock at the top; a guard blocks unchecking the last visible column. */
+
 @Component({
   selector: 'base-manage-columns',
   standalone: true,
@@ -37,40 +35,51 @@ export interface ManageColumnItem {
   template: `
     <div class="relative inline-block normal-case font-normal">
       <button type="button"
-              class="inline-flex items-center justify-center w-5 h-5 rounded-r-xs hover:bg-neutral-100
-                     text-neutral-400 hover:text-action transition-colors"
-              aria-label="Manage columns" (click)="toggle()">⚙</button>
+              class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-ink-600 border border-neutral-200 rounded-r-sm px-2.5 py-1.5
+                     hover:border-action hover:text-action transition-colors"
+              aria-label="Manage columns" (click)="toggle()">
+        <span class="icon-outline" style="font-size:14px;" aria-hidden="true">view_column</span>
+        Columns
+      </button>
 
       @if (open()) {
-        <div baseTeleport #panel class="fixed z-30 w-56 bg-neutral-0 border border-neutral-200 rounded-r-lg shadow-lg p-3 text-left"
+        <div baseTeleport #panel class="fixed z-30 w-72 bg-neutral-0 border border-neutral-200 rounded-r-lg shadow-lg p-3 text-left"
              [style.top.px]="panelPos().top" [style.left.px]="panelPos().left" [style.right.px]="panelPos().right">
-          <input type="text" [value]="search()" (input)="onSearch($event)" placeholder="Search columns"
-                 class="w-full border border-neutral-200 rounded-r-sm px-2 py-1 text-[11px] mb-2
-                        focus:outline-none focus:ring-1 focus:ring-action-surface" />
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <span class="text-[12px] font-bold text-ink-900">Columns · {{ selectedCount() }} of {{ totalCount() }}</span>
+            <button type="button" class="text-[11px] font-semibold text-action hover:text-action-hover" (click)="resetToDefault()">Reset</button>
+          </div>
 
-          <label class="flex items-center gap-1.5 py-1 text-[11px] font-semibold text-ink-600 cursor-pointer
+          <div class="relative mb-2">
+            <span class="icon-outline absolute left-2 top-1/2 -translate-y-1/2 text-neutral-300" style="font-size:14px;" aria-hidden="true">search</span>
+            <input type="text" [value]="search()" (input)="onSearch($event)" placeholder="Search columns"
+                   class="w-full border border-neutral-200 rounded-r-sm pl-7 pr-2 py-1.5 text-[11px]
+                          focus:outline-none focus:ring-1 focus:ring-action-surface" />
+          </div>
+
+          <label class="flex items-center gap-1.5 py-1.5 text-[11px] font-semibold text-ink-600 cursor-pointer
                          border-b border-neutral-100 mb-1">
-            <input type="checkbox" class="cb" [checked]="allSelected()" (change)="toggleSelectAll()" /> Select All
+            <input type="checkbox" class="cb" [checked]="allSelected()" [indeterminate]="someSelected()" (change)="toggleSelectAll()" /> All columns
           </label>
 
           <div class="max-h-52 overflow-y-auto flex flex-col">
             @for (i of visibleLockedItems(); track i.key) {
-              <div class="flex items-center gap-1.5 py-1 text-[11px] text-ink-500 border-b border-neutral-50">
-                <span class="w-3 text-center text-neutral-300">🔒</span>
-                <label class="flex items-center gap-1.5 flex-1 cursor-not-allowed">
-                  <input type="checkbox" class="cb" checked disabled /> {{ i.header }}
-                </label>
+              <div class="flex items-center gap-1.5 py-1.5 text-[11px] text-neutral-400 border-b border-neutral-50">
+                <span class="w-3.5 shrink-0"></span>
+                <input type="checkbox" class="cb shrink-0" checked disabled />
+                <span class="icon-outline text-neutral-300 shrink-0" style="font-size:13px;" aria-hidden="true">lock</span>
+                <span class="flex-1 truncate cursor-not-allowed">{{ i.header }}</span>
               </div>
             }
 
             <div cdkDropList (cdkDropListDropped)="drop($event)" class="flex flex-col">
               @for (key of visibleDraggableKeys(); track key) {
-                <div cdkDrag class="flex items-center gap-1.5 py-1 text-[11px] text-ink-600 border-b border-neutral-50 bg-neutral-0">
-                  <span cdkDragHandle class="w-3 text-center text-neutral-300 cursor-grab">⠿</span>
-                  <label class="flex items-center gap-1.5 flex-1 cursor-pointer">
-                    <input type="checkbox" class="cb" [checked]="draftVisible().has(key)"
+                <div cdkDrag class="flex items-center gap-1.5 py-1.5 text-[11px] text-ink-600 border-b border-neutral-50 bg-neutral-0">
+                  <span cdkDragHandle class="icon-outline shrink-0 text-neutral-300 cursor-grab" style="font-size:14px;" aria-hidden="true">drag_indicator</span>
+                  <label class="flex items-center gap-1.5 flex-1 min-w-0 cursor-pointer">
+                    <input type="checkbox" class="cb shrink-0" [checked]="draftVisible().has(key)"
                            (change)="toggleVisible(key)" />
-                    {{ headerOf(key) }}
+                    <span class="truncate">{{ headerOf(key) }}</span>
                   </label>
                 </div>
               }
@@ -131,6 +140,15 @@ export class BaseManageColumnsComponent {
     return all.length > 0 && all.every(i => this.draftVisible().has(i.key));
   });
 
+  protected readonly someSelected = computed(() => {
+    const all = this.nonLockedItems();
+    const n = all.filter(i => this.draftVisible().has(i.key)).length;
+    return n > 0 && n < all.length;
+  });
+
+  protected readonly totalCount = computed(() => this.items().length);
+  protected readonly selectedCount = computed(() => this.lockedItems().length + this.draftVisible().size);
+
   @HostListener('document:click', ['$event'])
   onDocClick(ev: MouseEvent): void {
     if (this.open() && !this.isInside(ev.target as Node)) this.close();
@@ -187,6 +205,13 @@ export class BaseManageColumnsComponent {
     } else {
       this.draftVisible.set(new Set(all));
     }
+  }
+
+  resetToDefault(): void {
+    const all = this.nonLockedItems().map(i => i.key);
+    this.draftVisible.set(new Set(all));
+    this.draftOrder.set(all);
+    this.search.set('');
   }
 
   drop(ev: CdkDragDrop<string[]>): void {
