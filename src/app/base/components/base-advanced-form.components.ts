@@ -29,8 +29,6 @@ export interface BaseComboOption {
   disabled?: boolean;
 }
 
-/** Type-ahead field where the typed text is a real value, not just a filter —
- *  options narrow as you type; arrow keys / Enter pick a suggestion. */
 @Component({
   selector: 'base-combobox',
   standalone: true,
@@ -140,7 +138,6 @@ export class BaseComboboxComponent extends BaseControl<string> {
   writeValue(v: string): void { this.value.set(v ?? ''); }
 }
 
-/** Multi-select field; selected values render as removable chips inline. */
 @Component({
   selector: 'base-multi-select-chips',
   standalone: true,
@@ -225,8 +222,6 @@ export interface BaseUploadFile {
   error?: string;
 }
 
-/** Drag-and-drop upload zone; each file gets its own row with a progress bar
- *  and a remove control until upload completes. */
 @Component({
   selector: 'base-file-upload',
   standalone: true,
@@ -372,9 +367,6 @@ export class BaseFileUploadComponent {
   }
 }
 
-/** Bounded numeric range slider with a visible current value. Arrow keys step by 1, Page
- *  Up/Down step by 10. Reach for `<base-range-slider>` instead for a from/to pair, or
- *  `<base-numeric-stepper>` once clicking beats dragging (a range too narrow to aim inside). */
 @Component({
   selector: 'base-slider',
   standalone: true,
@@ -432,10 +424,6 @@ export interface BaseRangeValue {
   to: number;
 }
 
-/** Two bounded handles over one track — a from/to pair (a maintenance window, a shift). The
- *  two `<input type="range">` overlays only accept pointer input on their own thumb (see the
- *  `[&::-webkit-slider-thumb]`/`[&::-moz-range-thumb]` overrides below), so either handle stays
- *  independently grabbable even when they're side by side. */
 @Component({
   selector: 'base-range-slider',
   standalone: true,

@@ -27,9 +27,6 @@ const sameDay = (a: Date | null, b: Date | null) =>
   !!a && !!b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
-/** Dependency-free popup calendar. Two-way [(value)], min/max bounds, a
- *  custom disabled-date rule, and an optional [showTime] that adds HH:MM
- *  boxes and keeps the panel open after a date pick. */
 @Component({
   selector: 'base-datepicker',
   standalone: true,

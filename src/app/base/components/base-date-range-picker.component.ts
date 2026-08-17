@@ -49,9 +49,6 @@ const PRESETS: { id: DateRangePreset; label: string }[] = [
   { id: 'custom', label: 'Custom range' }
 ];
 
-/** Dependency-free dropdown: quick-range presets + dual month calendars with
- *  per-side HH:MM boxes. Two-way [(value)] only commits on Apply — Cancel
- *  reverts. Future dates are disabled unless [disableFuture]="false". */
 @Component({
   selector: 'base-date-range-picker',
   standalone: true,
@@ -73,7 +70,6 @@ const PRESETS: { id: DateRangePreset; label: string }[] = [
         <div class="absolute z-30 mt-1 flex bg-neutral-0 border border-neutral-200 rounded-r-lg shadow-lg overflow-hidden w-[600px] max-w-[calc(100vw-1.5rem)]"
              [class.right-0]="align() === 'right'"
              [class.left-0]="align() === 'left'">
-          <!-- quick-range sidebar -->
           <div class="w-32 shrink-0 border-r border-neutral-100 py-3 px-2 flex flex-col gap-1">
             @for (p of presets; track p.id) {
               <button type="button"
@@ -85,10 +81,8 @@ const PRESETS: { id: DateRangePreset; label: string }[] = [
             }
           </div>
 
-          <!-- calendars -->
           <div class="flex-1 p-3">
             <div class="flex items-start gap-4">
-              <!-- left month -->
               <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between mb-2">
                   <button type="button" class="btn-ghost px-1.5" (click)="shiftMonths(-1)" aria-label="Previous month">‹</button>
@@ -130,7 +124,6 @@ const PRESETS: { id: DateRangePreset; label: string }[] = [
                 </div>
               </div>
 
-              <!-- right month -->
               <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between mb-2">
                   <span class="w-4"></span>

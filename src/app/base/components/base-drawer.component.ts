@@ -11,12 +11,6 @@ import {
 } from '@angular/core';
 import { focusDialogOpen, lockBodyScroll, trapTabKey, unlockBodyScroll } from '../utils/dialog-a11y.util';
 
-/** Holds detail beside the work rather than on top of it — the list/page underneath stays
- *  visible and selectable. Reach for `<base-modal>` instead the moment the task truly needs to
- *  block the operator. `side="bottom"` is the compact-breakpoint equivalent of a side drawer —
- *  a picker or action sheet at a width where a side panel would leave nothing else visible.
- *  Same focus-trap / focus-return / scroll-lock contract as `<base-modal>` — see its doc comment.
- *  `<base-drawer [(open)]="show" title="Alarm Info"><div footer>...</div></base-drawer>` */
 @Component({
   selector: 'base-drawer',
   standalone: true,

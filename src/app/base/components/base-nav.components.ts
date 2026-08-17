@@ -20,7 +20,6 @@ export interface BaseBreadcrumbItem {
   icon?: string;
 }
 
-/** Drill-down trail; the current (last) segment is always plain text, never a link. */
 @Component({
   selector: 'base-breadcrumbs',
   standalone: true,
@@ -68,9 +67,6 @@ export interface BaseTabItem {
   disabled?: boolean;
 }
 
-/** Headless tab strip — host switches content with @if/@switch on [(activeId)]. Three
- *  treatments: 'underline' (default, horizontal content sections), 'pills' (a filter/status
- *  switcher, not page sections), and 'vertical' (a settings-style side list with icons). */
 @Component({
   selector: 'base-tabs',
   standalone: true,
@@ -176,10 +172,6 @@ export interface BaseStepperStep {
 
 export type BaseStepperStepStatus = 'completed' | 'active' | 'upcoming';
 
-/** Linear progress stepper — horizontal or vertical. Status per step (done /
- *  current / not-yet) is derived purely from where `[(activeId)]` sits in
- *  `[steps]`, so advancing the wizard is just moving `activeId` forward; no
- *  per-step "completed" bookkeeping needed. */
 @Component({
   selector: 'base-stepper',
   standalone: true,
@@ -297,9 +289,6 @@ export interface BaseMenuItem {
   dividerBefore?: boolean;
 }
 
-/** Opens on click, not hover — a hover menu on a dense grid fires constantly while the operator
- *  is trying to reach something else. Esc closes and returns focus to this trigger, never to
- *  the top of the page. */
 @Component({
   selector: 'base-dropdown-menu',
   standalone: true,
@@ -371,10 +360,6 @@ export class BaseDropdownMenuComponent {
   }
 }
 
-/** Right-click/overflow-triggered menu with no trigger button of its own —
- *  call `openAt(x, y)` from a host's (contextmenu) handler:
- *  `menu.openAt($event.clientX, $event.clientY)`. Esc closes and returns focus to whatever was
- *  focused when the menu opened, never to the top of the page. */
 @Component({
   selector: 'base-context-menu',
   standalone: true,

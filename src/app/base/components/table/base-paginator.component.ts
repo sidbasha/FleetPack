@@ -109,7 +109,6 @@ export class BasePaginatorComponent {
   }
 }
 
-/** Debounced text input for quick filtering. */
 @Component({
   selector: 'base-search-input',
   standalone: true,

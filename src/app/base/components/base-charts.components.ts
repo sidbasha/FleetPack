@@ -26,7 +26,6 @@ export interface BaseChartPoint {
 
 const CHART_FONT = 'font-family:var(--font-mono);font-variant-numeric:tabular-nums;';
 
-/** Rolling-average line chart with optional target band and area fill. */
 @Component({
   selector: 'base-trend-chart',
   standalone: true,
@@ -153,11 +152,6 @@ export class BaseTrendChartComponent {
   }
 }
 
-/** Category comparison bar chart, e.g. alarms by module — or [orientation]="'horizontal'" for a
- *  ranked breakdown like downtime by root cause. Each bar takes [defaultTone] (the first fixed
- *  series color) unless a point sets its own [tone] — e.g. flagging one "worst month" bar red
- *  among otherwise uniform ones. Give a point [segments] to stack it instead of [y]; each
- *  segment gets a 1px surface-color separator so two similar hues never merge into one block. */
 @Component({
   selector: 'base-bar-chart',
   standalone: true,
@@ -275,7 +269,6 @@ export class BaseBarChartComponent {
 
 export interface BaseScatterPoint { x: number; y: number; label?: string; }
 
-/** Correlation chart between two metrics, e.g. MTBR vs utilization. */
 @Component({
   selector: 'base-scatter-chart',
   standalone: true,
@@ -327,7 +320,6 @@ export class BaseScatterChartComponent {
   }
 }
 
-/** Distribution of one metric into touching bars (no gap), e.g. downtime-duration buckets. */
 @Component({
   selector: 'base-histogram',
   standalone: true,
@@ -363,13 +355,6 @@ export class BaseHistogramComponent {
   protected yAt(v: number): number { return this.h - 4 - (v / this.max()) * (this.h - 8); }
 }
 
-/** The standard panel shell every chart sits in: a title/subtitle header, an optional export
- *  action, and — the one thing every chart must offer — a "view as table" toggle. The table is
- *  the accessible source of truth; the chart is the fast read. Project the chart into `[chart]`
- *  and its tabular equivalent (typically a `<base-table>`) into `[table]`:
- *  `<base-chart-frame title="Downtime events" subtitle="Per month · fleet total">
- *     <div chart>...</div><div table>...</div>
- *   </base-chart-frame>` */
 @Component({
   selector: 'base-chart-frame',
   standalone: true,

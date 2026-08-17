@@ -19,7 +19,6 @@ export interface BaseNotification {
   read: boolean;
 }
 
-/** Header-anchored notifications overlay; unread items carry a small dot. */
 @Component({
   selector: 'base-notifications-panel',
   standalone: true,
@@ -89,7 +88,6 @@ export interface BaseSearchResult {
   type: string;
 }
 
-/** Header-anchored command-style global search; results show their type as a tag. */
 @Component({
   selector: 'base-global-search',
   standalone: true,

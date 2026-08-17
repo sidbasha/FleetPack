@@ -37,7 +37,6 @@ export function stateBackground(s: BaseMachineState): string {
 export interface BaseHeatmapCell { col: string; state: BaseMachineState; }
 export interface BaseHeatmapRow { label: string; cells: BaseHeatmapCell[]; }
 
-/** Day × hour grid colored by dominant machine state — spots patterns a line chart would average away. */
 @Component({
   selector: 'base-state-heatmap',
   standalone: true,
@@ -110,7 +109,6 @@ export interface BaseGanttRow {
   noData?: boolean;
 }
 
-/** 24h per-row state segments — the detail view a heatmap cell expands into. */
 @Component({
   selector: 'base-gantt-timeline',
   standalone: true,

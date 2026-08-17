@@ -29,12 +29,6 @@ const TONE_DOT: Record<BaseTone, string> = {
   success: 'bg-success', warning: 'bg-warning', error: 'bg-error', brand: 'bg-brand'
 };
 
-/** Reports state the system owns — never clickable or dismissible (that's `<base-chip>`).
- *  Three shapes share this one component: a status pill (label, optionally [dot]/[icon]),
- *  a numeric/notification pill ([count], auto-capped at "99+"), and a bare [dot] with no
- *  label for "something changed" where a number would be noise (e.g. next to a bell icon —
- *  give the *host* control the accessible name: `aria-label="Notifications, 12 unread"`,
- *  and set [hiddenFromA11y] on the badge itself so the count isn't announced twice). */
 @Component({
   selector: 'base-badge',
   standalone: true,
@@ -83,10 +77,6 @@ export class BaseBadgeComponent {
   }[this.size()]));
 }
 
-/** Records a label a *person* applied — square-cornered on purpose, so at a glance across a
- *  dense row it's obvious whether a label came from the system (`<base-badge>`, pill-shaped)
- *  or from a person. Not clickable; [removable] only withdraws the applied label, it doesn't
- *  make the tag a filter control (that's `<base-chip selectable>`). */
 @Component({
   selector: 'base-tag',
   standalone: true,
@@ -114,10 +104,6 @@ export class BaseTagComponent {
   readonly removed = output<void>();
 }
 
-/** A control: filter chips (multi-select, each independent), choice chips (one of N, mutually
- *  exclusive), and dismissible chips (applied filters). The parent owns selection state either
- *  way — pass [selectable] + [selected] and manage a set (filters) or a single value (choices)
- *  in a `@for`; the default (non-selectable) mode is the plain dismissible chip. */
 @Component({
   selector: 'base-chip',
   standalone: true,
@@ -187,8 +173,6 @@ function deriveInitials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-/** Person identity chip — initials on a deterministic tint. Use `<base-avatar-group>` to stack
- *  a handful with a "+N" overflow instead of repeating this one. */
 @Component({
   selector: 'base-avatar',
   standalone: true,
@@ -217,7 +201,6 @@ export interface BaseAvatarItem {
   colorClass?: string;
 }
 
-/** Overlapping avatar stack with a "+N" overflow badge past [max]. */
 @Component({
   selector: 'base-avatar-group',
   standalone: true,
@@ -246,8 +229,6 @@ export class BaseAvatarGroupComponent {
   protected readonly sizeClass = computed(() => avatarSizeClass(this.size()));
 }
 
-/** ▲ / ▼ percentage pill. Up isn't automatically good — [badWhenUp] declares which direction is
- *  favourable, and the arrow is colored from that, not from the sign alone. */
 @Component({
   selector: 'base-trend',
   standalone: true,
@@ -290,10 +271,6 @@ const RAIL_CLASS: Record<'none' | 'success' | 'warning' | 'error' | 'info', stri
   info: 'border-l-4 border-l-info'
 };
 
-/** KPI tile: the atom of every dashboard — one number, one direction, one comparison window.
- *  A second number that matters equally is a second tile, never a smaller figure squeezed
- *  underneath. A missing metric is [value]="'—'" with a [sub] reason, never a bare 0 — 0 is a
- *  measurement, missing is not. */
 @Component({
   selector: 'base-kpi-card',
   standalone: true,
@@ -354,7 +331,6 @@ export class BaseKpiCardComponent {
   protected readonly railClass = computed(() => RAIL_CLASS[this.railTone()]);
 }
 
-/** Borderless horizontal row of metrics, lighter than a KPI grid. */
 @Component({
   selector: 'base-stat-bar',
   standalone: true,
@@ -374,15 +350,6 @@ export class BaseStatBarComponent {
   readonly stats = input.required<{ value: string | number; label: string }[]>();
 }
 
-/** Generic container that groups content belonging together — an icon+title header, projected
- *  body, and an optional footer row (typically a link on the left, a status badge on the right;
- *  just place both as children, the row is a flex justify-between). Project header-trailing
- *  content (an overflow menu, a "Summary" badge) into `[actions]`.
- *
- *  A card is only [clickable] if the *whole* card leads to one destination — two links inside a
- *  clickable card hides one of them from keyboard users, so don't mix (click) on the card with
- *  focusable links in the body. Cards sit at elevation e1 and only lift to e2 + 2px on hover
- *  when they're actually interactive; a static card never moves. */
 @Component({
   selector: 'base-card',
   standalone: true,
@@ -424,9 +391,6 @@ export class BaseCardComponent {
   protected readonly iconToneClass = computed(() => TONE_TINT[this.iconTone()]);
 }
 
-/** A spinner is only correct when the shape of what's coming is genuinely unknown — reach for
- *  `<base-skeleton>` instead the moment that shape is known, so nothing reflows when data
- *  arrives. [compact] drops the panel wrapper for inline use (a row, a card, next to a label). */
 @Component({
   selector: 'base-loading',
   standalone: true,
@@ -468,11 +432,6 @@ export class BaseLoadingComponent {
     : { spinner: 'w-4 h-4', dot: 'w-1.5 h-1.5', text: 'text-sm' });
 }
 
-/** An empty state uses neutral tone and an inviting action — red is reserved for something
- *  that actually went wrong (see `<base-error-page>` for that). `kind` picks a default icon +
- *  title for the three situations that most often get collapsed into one generic screen: a
- *  collection that's genuinely empty ('no-data'), a search/filter that matched nothing
- *  ('no-results'), and a time window with nothing in it ('out-of-range'). */
 @Component({
   selector: 'base-empty-state',
   standalone: true,
@@ -527,7 +486,6 @@ export class BaseEmptyStateComponent {
   }[this.kind()]));
 }
 
-/** Inline SVG mini line chart — no charting library. */
 @Component({
   selector: 'base-sparkline',
   standalone: true,
@@ -580,9 +538,6 @@ export class BaseSparklineComponent {
   });
 }
 
-/** Row with a hairline divider; use a table for multi-column rows. [subLabel] stacks a second
- *  line under [label] (e.g. "Fab 8 · Dresden · 4h 12m"); project a trailing status pill into
- *  `[status]` — typically a `<base-badge>`. */
 @Component({
   selector: 'base-list-item',
   standalone: true,
@@ -613,8 +568,6 @@ export class BaseListItemComponent {
   readonly itemClick = output<void>();
 }
 
-/** Collapsible section; siblings are independent, not single-open-only. Project a trailing
- *  status pill into `[status]` — typically a `<base-badge>` — it renders before the chevron. */
 @Component({
   selector: 'base-accordion',
   standalone: true,
@@ -649,7 +602,6 @@ export class BaseAccordionComponent {
   toggle(): void { this.open.update(o => !o); }
 }
 
-/** Plain or labeled horizontal rule. */
 @Component({
   selector: 'base-divider',
   standalone: true,

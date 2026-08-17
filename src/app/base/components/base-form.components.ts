@@ -20,8 +20,6 @@ import { BaseMenuItem } from './base-nav.components';
 let uid = 0;
 const nextId = (prefix: string) => `${prefix}-${++uid}`;
 
-/** Base class every form control extends — wires ControlValueAccessor so
- *  [(value)]/[(checked)] also work with ngModel and reactive forms. */
 @Directive()
 export abstract class BaseControl<T> implements ControlValueAccessor {
   protected onChange: (v: T) => void = () => {};
@@ -43,9 +41,6 @@ const INPUT_CLS_NO_BG = INPUT_CLS.replace('bg-neutral-0 ', '');
 const HINT_CLS = `mt-1 text-caption normal-case font-normal text-neutral-400`;
 const ERROR_CLS = `mt-1 text-caption normal-case font-normal text-error`;
 
-/** Primary command surface — one primary action per view, the rest secondary/tertiary/ghost.
- *  Triggers one immediate action (save, run, export, delete); never navigates (that's a link)
- *  and never discloses (that's an expander). See stories/base/button.stories.ts for the full matrix. */
 @Component({
   selector: 'base-button',
   standalone: true,
@@ -108,7 +103,6 @@ export class BaseButtonComponent {
   protected readonly radiusClass = computed(() => this.shape() === 'pill' ? 'rounded-full shadow-e2 hover:shadow-e3' : 'rounded-r-sm');
 }
 
-/** 2–4 mutually exclusive view options; changes what's shown without navigating anywhere. */
 @Component({
   selector: 'base-segmented-control',
   standalone: true,
@@ -146,10 +140,6 @@ export class BaseSegmentedControlComponent<V = unknown> {
 
 const MSG_CLS = `mt-1 flex items-center gap-1 text-caption normal-case font-normal`;
 
-/** Twenty-one controls share this one 36px baseline, one focus treatment, and one validation
- *  grammar: an error/warning/success message never states only that something is wrong (or
- *  right) — it names the rule and the shape of a valid answer, and the signal is never colour
- *  alone (icon + word, every time). Priority when several are set: error › warning › success › hint. */
 @Component({
   selector: 'base-text-input',
   standalone: true,
@@ -416,9 +406,6 @@ export class BaseSelectComponent<V = unknown> extends BaseControl<V | null> {
   writeValue(v: V | null): void { this.value.set(v); }
 }
 
-/** A checkbox is part of a form that gets submitted — pressing Save is what commits it. Reach
- *  for `<base-toggle>` instead when the change should take effect immediately, with no Save
- *  step at all: see that component's doc comment for the full rule. */
 @Component({
   selector: 'base-checkbox',
   standalone: true,
@@ -500,9 +487,6 @@ export class BaseRadioGroupComponent<V = unknown> extends BaseControl<V | null> 
   writeValue(v: V | null): void { this.value.set(v); }
 }
 
-/** Applies immediately with no Save button — the setting takes effect on click, the same instant
- *  as everywhere it's read. Reach for `<base-checkbox>` instead the moment the change is part of
- *  a form that gets submitted: if the operator has to press Save afterwards, it's a checkbox. */
 @Component({
   selector: 'base-toggle',
   standalone: true,
@@ -546,8 +530,6 @@ export class BaseToggleComponent extends BaseControl<boolean> {
   writeValue(v: boolean): void { this.checked.set(!!v); }
 }
 
-/** Default action plus a chevron menu of related variants. Left segment fires
- *  (clicked) immediately; the chevron opens [items]. */
 @Component({
   selector: 'base-split-button',
   standalone: true,
@@ -723,9 +705,6 @@ export class BaseSelectionCardComponent<V = unknown> extends BaseControl<V | nul
   writeValue(v: V | null): void { this.value.set(v); }
 }
 
-/** Bounded integer entry — decrement/value/increment, for small counts an operator adjusts by
- *  a few at a time (retry limits, batch sizes). Reach for `<base-slider>` instead once the
- *  range is wide enough that dragging beats clicking. */
 @Component({
   selector: 'base-numeric-stepper',
   standalone: true,
@@ -780,8 +759,6 @@ export class BaseNumericStepperComponent extends BaseControl<number> {
   writeValue(v: number): void { this.value.set(v ?? 0); }
 }
 
-/** Fixed-length numeric code, one digit per box — auto-advances on entry, steps back on
- *  Backspace from an empty box, and accepts a full paste in one go. */
 @Component({
   selector: 'base-otp-input',
   standalone: true,
@@ -907,9 +884,6 @@ export class BaseColorPickerComponent extends BaseControl<string> {
   writeValue(v: string): void { this.value.set(v ?? ''); }
 }
 
-/** Multi-select where every option must stay visible at once — no dropdown to open, no chips
- *  to scan. Reach for `<base-multi-select-chips>` instead once the option list is longer than
- *  fits on screen and needs search. */
 @Component({
   selector: 'base-checkbox-group',
   standalone: true,
@@ -952,8 +926,6 @@ export class BaseCheckboxGroupComponent<V = unknown> extends BaseControl<V[]> {
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
-/** A dropdown list of preset time slots — pick one, don't type one. Reach for
- *  `<base-datepicker [showTime]="true">` instead when a free HH:MM entry is the better fit. */
 @Component({
   selector: 'base-time-picker',
   standalone: true,

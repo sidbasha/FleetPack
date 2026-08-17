@@ -27,18 +27,6 @@ const ICON_TONE_CLASS: Record<'action' | 'accent' | 'success' | 'warning' | 'err
   neutral: 'bg-neutral-100 text-neutral-500'
 };
 
-/** Interrupts and blocks until the operator resolves it — reach for `<base-drawer>` instead the
- *  moment the task doesn't need to leave the view; interruption is expensive on a monitoring
- *  surface, so use the smallest size that does the job. Footer buttons go in a `<div footer>`
- *  block: `<base-modal [(open)]="show" title="Edit tool"><div footer>...</div></base-modal>` —
- *  for a split footer (a link on the left, the button group on the right), give that div its
- *  own `class="w-full flex items-center justify-between"`.
- *
- *  Focus enters and is trapped inside the dialog (Tab cycles here only), returns to whatever
- *  opened it on close, and the background scroll-locks — `aria-modal="true"` already tells
- *  assistive tech everything outside is inert to browse-mode navigation. A [destructive] modal
- *  focuses the heading instead of the first control, so the danger button is never the default
- *  focus. */
 @Component({
   selector: 'base-modal',
   standalone: true,
@@ -138,12 +126,6 @@ export class BaseModalComponent {
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
-/** A tooltip labels — it must never hold anything the operator needs to click; it disappears
- *  the moment the pointer leaves. Hover/focus, ~400ms show delay. Attach to any element:
- *  `<button baseTooltip="Refresh data" tooltipPosition="top">`. Set [tooltipTitle] for the
- *  "rich tooltip" shape — a heading plus a wrapping definition, still no links, still no
- *  buttons — for a metric that needs more than one line to define; reach for `<base-popover>`
- *  instead the moment the content needs to be clickable. */
 @Directive({ selector: '[baseTooltip]', standalone: true })
 export class BaseTooltipDirective {
   readonly baseTooltip = input.required<string>();
@@ -216,9 +198,6 @@ export class BaseTooltipDirective {
   }
 }
 
-/** Anchored panel for interactive content; traps focus while open. Project the
- *  trigger into `[trigger]` and the panel body into `[panel]`:
- *  `<base-popover><button trigger>...</button><div panel>...</div></base-popover>` */
 @Component({
   selector: 'base-popover',
   standalone: true,
@@ -287,11 +266,6 @@ export class BasePopoverComponent {
   }
 }
 
-/** A preview of an entity — a tool, an operator — reachable from a dense table without leaving
- *  it. Hover-triggered like a tooltip, but (unlike a tooltip) can hold controls, sparingly: a
- *  link out, maybe one action. The hide delay lets the pointer travel from trigger to panel
- *  without the card flickering shut; project the trigger into `[trigger]` and the card body
- *  into `[card]`: `<base-hover-card><a trigger>SP7-04</a><div card>...</div></base-hover-card>` */
 @Component({
   selector: 'base-hover-card',
   standalone: true,
@@ -336,11 +310,6 @@ export class BaseHoverCardComponent {
   }
 }
 
-/** Moves the host element to `document.body` on creation, escaping ancestor
- *  stacking contexts (e.g. a `position: fixed` panel nested in a `position:
- *  sticky` table header). Apply to a popup panel rendered with `@if`:
- *  `<div baseTeleport class="fixed z-30 ...">` — Angular's view bookkeeping
- *  removes it again when the block closes, so no manual cleanup is needed. */
 @Directive({ selector: '[baseTeleport]', standalone: true })
 export class BaseTeleportDirective implements OnInit {
   private readonly host = inject(ElementRef<HTMLElement>);
@@ -351,9 +320,6 @@ export class BaseTeleportDirective implements OnInit {
   }
 }
 
-/** Sits next to what it describes; stays until the condition clears. Use `<base-banner>`
- *  instead when the condition affects the whole page, or `BaseToastService` when it's a
- *  transient confirmation of something the operator just did. */
 @Component({
   selector: 'base-alert',
   standalone: true,
@@ -440,11 +406,6 @@ export class BaseAlertComponent {
   }[this.kind()]));
 }
 
-/** Spans the page — the condition affects the whole product, not one region: a maintenance
- *  window, a degraded feed, a session expiring. Mount at the top of the page/shell, edge to
- *  edge. A persistent banner (no [dismissible]) should only disappear once the condition itself
- *  resolves; a dismissible one must always offer [actionLabel] as a way to reach the detail
- *  first. Use `<base-alert>` instead when the message concerns one region, not the whole page. */
 @Component({
   selector: 'base-banner',
   standalone: true,
@@ -495,9 +456,6 @@ export class BaseBannerComponent {
   }[this.kind()]));
 }
 
-/** Determinate progress bar — pass [indeterminate] instead of [value] the moment the shape of
- *  what's coming is genuinely unknown (a bare spinner, `<base-loading>`, is the same call but
- *  icon-only with no track — reach for whichever reads better inline with other bars). */
 @Component({
   selector: 'base-progress-bar',
   standalone: true,
@@ -550,8 +508,6 @@ export class BaseProgressBarComponent {
   }[this.tone()]));
 }
 
-/** Loading placeholder shaped like its content — rect/circle, or a
- *  table-row/kpi-tile/card/chart preset. */
 @Component({
   selector: 'base-skeleton',
   standalone: true,
@@ -592,11 +548,6 @@ export class BaseSkeletonComponent {
   readonly shape = input<'rect' | 'circle' | 'table-row' | 'kpi-tile' | 'card' | 'chart'>('rect');
 }
 
-/** A full-panel error state (404/403/500, or [offline]) — distinct from `<base-empty-state>`:
- *  this is for something that actually went wrong, not an invitation to act on an empty
- *  collection. Recovery is part of the state: always offer at least one way forward, and if a
- *  [traceId] is given it's shown in mono and is click-to-copy — it's the one thing support will
- *  ask for, so it must never be truncated or unselectable. */
 @Component({
   selector: 'base-error-page',
   standalone: true,
@@ -692,11 +643,6 @@ export interface BaseToastOptions {
 const TOAST_DURATION_MS = 4000;
 const TOAST_MAX_VISIBLE = 3;
 
-/** Confirms an action the operator just took, succeeded or failed — never for something they
- *  did not initiate, and never for an error that still needs action (that belongs in
- *  `<base-alert>` or `<base-banner>`, which stay until the condition is resolved). Auto-dismiss
- *  after 4s except errors, which require explicit dismissal. Stacks bottom-right (max 3
- *  visible, rest queue); mount `<base-toast-host />` once near the app root. */
 @Injectable({ providedIn: 'root' })
 export class BaseToastService {
   private readonly _toasts = signal<BaseToast[]>([]);
@@ -780,8 +726,6 @@ export class BaseToastService {
   }
 }
 
-/** Renders the live toast stack from `BaseToastService`. Mount once, e.g. in
- *  the app root: `<base-toast-host />`. */
 @Component({
   selector: 'base-toast-host',
   standalone: true,
