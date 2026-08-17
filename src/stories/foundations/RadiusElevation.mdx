@@ -1,15 +1,68 @@
 import { Meta } from '@storybook/addon-docs/blocks';
 
-<Meta title="Foundations/Radius &#38; Elevation" />
+<Meta title="Foundations/Surfaces, Radius &#38; Elevation" />
 
-# Radius & Elevation
+# Surfaces, Radius & Elevation
 
-Shape and depth both communicate structure, not decoration. Rounder shapes
-signal "grab this"; higher elevation signals "this floats above what's
-beneath it." Both scales below are additive `rounded-r-*` / `shadow-e*`
-utilities in `styles.css` — they don't touch Tailwind's own `rounded-lg`
-etc., which ~90 existing call sites already depend on at different values;
-migrating a component to the new scale happens per-component, not here.
+Four background surfaces, five radii, three border weights and five
+elevations. Together they answer one question: what is this thing sitting
+on, and how far off the page is it? Elevation encodes distance, not
+importance — a card that matters more doesn't float higher, it gets a
+heavier border or an accent rail instead.
+
+## Background surfaces
+
+Every background in FleetPack is one of these role aliases, not a raw
+neutral step picked by eye.
+
+<div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', margin: '16px 0' }}>
+  <div style={{ textAlign: 'center' }}>
+    <div style={{ width: '96px', height: '56px', background: 'var(--color-surface-page)', border: '1px solid var(--color-neutral-200)', borderRadius: '8px' }}></div>
+    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-ink-700)', marginTop: '8px' }}>--surface-page</div>
+    <div style={{ fontSize: '11px', color: 'var(--color-ink-500)', maxWidth: '96px' }}>The canvas behind everything</div>
+  </div>
+  <div style={{ textAlign: 'center' }}>
+    <div style={{ width: '96px', height: '56px', background: 'var(--color-surface-card)', border: '1px solid var(--color-neutral-200)', borderRadius: '8px' }}></div>
+    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-ink-700)', marginTop: '8px' }}>--surface-card</div>
+    <div style={{ fontSize: '11px', color: 'var(--color-ink-500)', maxWidth: '96px' }}>Cards, panels, tables, modals</div>
+  </div>
+  <div style={{ textAlign: 'center' }}>
+    <div style={{ width: '96px', height: '56px', background: 'var(--color-surface-sunken)', border: '1px solid var(--color-neutral-200)', borderRadius: '8px' }}></div>
+    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-ink-700)', marginTop: '8px' }}>--surface-sunken</div>
+    <div style={{ fontSize: '11px', color: 'var(--color-ink-500)', maxWidth: '96px' }}>Recessed wells inside a card</div>
+  </div>
+  <div style={{ textAlign: 'center' }}>
+    <div style={{ width: '96px', height: '56px', background: 'var(--color-surface-raised)', border: '1px solid var(--color-neutral-200)', borderRadius: '8px' }}></div>
+    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-ink-700)', marginTop: '8px' }}>--surface-raised</div>
+    <div style={{ fontSize: '11px', color: 'var(--color-ink-500)', maxWidth: '96px' }}>Menus, popovers, toasts</div>
+  </div>
+  <div style={{ textAlign: 'center' }}>
+    <div style={{ width: '96px', height: '56px', background: 'var(--color-surface-inverse)', borderRadius: '8px' }}></div>
+    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-ink-700)', marginTop: '8px' }}>--surface-inverse</div>
+    <div style={{ fontSize: '11px', color: 'var(--color-ink-500)', maxWidth: '96px' }}>Dark toasts, tooltips</div>
+  </div>
+</div>
+
+| Container | Background | Separation | Rule |
+|---|---|---|---|
+| Page | `--surface-page` | None | Never white |
+| Panel / card | `--surface-card` | 1px border + e1 | The default container |
+| Well inside a card | `--surface-sunken` | No border, no shadow | Code blocks, nested table rows, empty-state interiors |
+| Table header | `--surface-sunken` | 1px bottom rule | Sticky headers gain a rule on scroll, never a shadow — a shadow over data reads as a bug |
+| Menu / popover | `--surface-raised` | 1px border + e3 | Floats over content, so it earns a real shadow and a border for the high-contrast theme |
+| Modal / drawer | `--surface-card` | e4 + scrim | The scrim, not the shadow, is what separates it from the page |
+
+**Border, shadow, or tone — pick one per edge.** Border is the default. Shadow
+only when the container floats above the page and can be dismissed (menus,
+popovers, toasts, overlays). Tone is for recession inside an existing
+container, where a second border would create a double rule against the
+parent edge. Stacking more than one of the three on the same edge is a sign
+the boundary is trying to say too much at once.
+
+<div style={{ borderLeft: '3px solid var(--color-info)', background: 'var(--color-info-surface)', borderRadius: '0 8px 8px 0', padding: '12px 16px', margin: '16px 0' }}>
+  <strong style={{ fontSize: '12px', color: 'var(--color-info-hover)' }}>Separation must survive the theme</strong>
+  <p style={{ fontSize: '13px', color: 'var(--color-ink-600)', margin: '6px 0 0' }}>In the high-contrast theme every shadow is removed and a heavier, pure-black border takes over — see Foundations → Density & Themes.</p>
+</div>
 
 ## Radius
 
@@ -41,6 +94,31 @@ Five steps, from tight controls to fully round pills.
     <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-ink-700)', marginTop: '8px' }}>r-full · 999px</div>
     <div style={{ fontSize: '11px', color: 'var(--color-ink-500)' }}>Pills, avatars</div>
   </div>
+</div>
+
+## Border width
+
+<div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', margin: '16px 0' }}>
+  <div style={{ textAlign: 'center' }}>
+    <div style={{ width: '120px', height: '36px', borderRadius: '6px', border: '1px solid var(--color-neutral-300)' }}></div>
+    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-ink-700)', marginTop: '8px' }}>bw-hair · 1px</div>
+    <div style={{ fontSize: '11px', color: 'var(--color-ink-500)' }}>Every divider, card edge, table rule</div>
+  </div>
+  <div style={{ textAlign: 'center' }}>
+    <div style={{ width: '120px', height: '36px', borderRadius: '6px', border: '2px solid var(--color-neutral-300)' }}></div>
+    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-ink-700)', marginTop: '8px' }}>bw-control · 2px</div>
+    <div style={{ fontSize: '11px', color: 'var(--color-ink-500)' }}>Checkbox/radio edges, focus rings, active tab underline</div>
+  </div>
+  <div style={{ textAlign: 'center' }}>
+    <div style={{ width: '120px', height: '36px', borderRadius: '6px', borderLeft: '3px solid var(--color-action)', background: 'var(--color-action-surface)' }}></div>
+    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-ink-700)', marginTop: '8px' }}>bw-emphasis · 3px</div>
+    <div style={{ fontSize: '11px', color: 'var(--color-ink-500)' }}>Accent rail on a KPI tile or a selected list row</div>
+  </div>
+</div>
+
+<div style={{ borderLeft: '3px solid var(--color-action)', background: 'var(--color-action-surface)', borderRadius: '0 8px 8px 0', padding: '12px 16px', margin: '16px 0' }}>
+  <strong style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.04em', color: 'var(--color-action-hover)' }}>Rounding record</strong>
+  <p style={{ fontSize: '13px', color: 'var(--color-ink-600)', margin: '6px 0 0' }}>The prototype drew checkbox and radio edges at 1.5px. That resolves up to 2px — a 1.5px edge renders as an inconsistent 1 or 2 device pixels depending on scaling, which made the two controls look different sizes on the same row.</p>
 </div>
 
 ## Elevation

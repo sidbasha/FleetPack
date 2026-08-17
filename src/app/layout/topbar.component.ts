@@ -7,7 +7,15 @@ import { APP_ROUTES, AUTH_CONFIG, FILTER_OPTIONS, TOPBAR_TEXT } from '../core/co
 import { ApiService } from '../core/services/api.service';
 import { GlobalFilters } from '../core/models/models';
 import { FilterStore } from '../core/state/filter.store';
-import { BaseBreadcrumbsComponent, BaseSelectComponent, BaseSelectOption } from '../base';
+import {
+  BaseBreadcrumbsComponent,
+  BaseDensity,
+  BaseDensityService,
+  BaseSelectComponent,
+  BaseSelectOption,
+  BaseThemePreference,
+  BaseThemeService
+} from '../base';
 
 @Component({
   selector: 'fam-topbar',
@@ -72,6 +80,21 @@ import { BaseBreadcrumbsComponent, BaseSelectComponent, BaseSelectOption } from 
                 <dd class="text-ink-700 font-medium truncate">{{ store.fleet() }}</dd>
               </div>
             </dl>
+
+            <!-- Density & theme switchers — see Foundations → Density & Themes. Every token on
+                 every page re-points live off these two; nothing here is a separate stylesheet. -->
+            <div class="pt-3 mt-3 border-t border-neutral-100 space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <label class="text-[11px] font-semibold text-ink-600">Density</label>
+                <base-select class="w-32" [options]="densityOptions" [value]="density.current()"
+                             (valueChange)="onDensityPick($event)" />
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <label class="text-[11px] font-semibold text-ink-600">Theme</label>
+                <base-select class="w-32" [options]="themeOptions" [value]="theme.preference()"
+                             (valueChange)="onThemePick($event)" />
+              </div>
+            </div>
             <button
               type="button"
               class="mt-4 w-full rounded-r-sm border border-neutral-200 px-3 py-2 text-xs font-semibold text-ink-700 hover:border-error/40 hover:bg-error-surface hover:text-error transition-colors"
@@ -90,6 +113,28 @@ export class TopbarComponent implements OnInit {
   readonly text = TOPBAR_TEXT;
   readonly durations: GlobalFilters['duration'][] = [...FILTER_OPTIONS.durations];
   readonly showUserPopup = signal(false);
+
+  readonly density = inject(BaseDensityService);
+  readonly theme = inject(BaseThemeService);
+  readonly densityOptions: BaseSelectOption<BaseDensity>[] = [
+    { label: 'Compact', value: 'compact' },
+    { label: 'Standard', value: 'standard' },
+    { label: 'Comfortable', value: 'comfortable' }
+  ];
+  readonly themeOptions: BaseSelectOption<BaseThemePreference>[] = [
+    { label: 'Auto', value: 'auto' },
+    { label: 'Light', value: 'light' },
+    { label: 'Dark', value: 'dark' },
+    { label: 'High contrast', value: 'high-contrast' }
+  ];
+
+  onDensityPick(v: BaseDensity | null): void {
+    if (v) this.density.set(v);
+  }
+
+  onThemePick(v: BaseThemePreference | null): void {
+    if (v) this.theme.set(v);
+  }
 
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);

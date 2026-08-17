@@ -184,9 +184,10 @@ export class BaseChipComponent {
   readonly clicked = output<void>();
 }
 
-/** sm/md/lg sizing shared by `<base-avatar>` and `<base-avatar-group>`. */
-function avatarSizeClass(size: 'sm' | 'md' | 'lg'): string {
-  return { sm: 'w-6 h-6 text-[10px]', md: 'w-8 h-8 text-[11px]', lg: 'w-11 h-11 text-sm' }[size];
+/** sm/md/lg/xl sizing shared by `<base-avatar>` and `<base-avatar-group>` — 24/32/44/64px,
+ *  initials at 10/11/14/20px (see Foundations → Spacing & Sizing). */
+function avatarSizeClass(size: 'sm' | 'md' | 'lg' | 'xl'): string {
+  return { sm: 'w-6 h-6 text-[10px]', md: 'w-8 h-8 text-[11px]', lg: 'w-11 h-11 text-sm', xl: 'w-16 h-16 text-xl' }[size];
 }
 
 const AVATAR_PALETTE = [
@@ -231,7 +232,7 @@ export class BaseAvatarComponent {
   readonly name = input('');
   /** Explicit 1–2 character initials, overriding the ones derived from [name]. */
   readonly initials = input('');
-  readonly size = input<'sm' | 'md' | 'lg'>('md');
+  readonly size = input<'sm' | 'md' | 'lg' | 'xl'>('md');
   /** Explicit Tailwind classes, overriding the tint derived from [name]. */
   readonly colorClass = input('');
 
@@ -269,7 +270,7 @@ export class BaseAvatarGroupComponent {
   readonly items = input.required<BaseAvatarItem[]>();
   /** How many avatars to render before collapsing the rest into "+N". */
   readonly max = input(4);
-  readonly size = input<'sm' | 'md' | 'lg'>('md');
+  readonly size = input<'sm' | 'md' | 'lg' | 'xl'>('md');
 
   protected readonly visible = computed(() => this.items().slice(0, this.max()));
   protected readonly overflowCount = computed(() => Math.max(0, this.items().length - this.max()));

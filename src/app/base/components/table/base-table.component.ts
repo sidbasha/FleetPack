@@ -48,6 +48,7 @@ import {
 import { BaseCalendarFilterComponent, BaseCheckboxFilterComponent, BaseRangeFilterComponent, calendarFilterLabel, NO_VALUE } from './base-column-filters.components';
 import { BaseManageColumnsComponent, ManageColumnItem } from './base-manage-columns.component';
 import { BaseSkeletonComponent, BaseTooltipDirective } from '../base-overlay.components';
+import { BaseDensityService } from '../../services/base-density.service';
 import { BasePaginatorComponent, BaseSearchInputComponent } from './base-paginator.component';
 import { BaseTableCellComponent } from './base-table-cell.component';
 import { BaseEmptyStateComponent, BaseLoadingComponent } from '../base-ui.components';
@@ -482,10 +483,15 @@ export class BaseTableComponent<T = BaseRow> {
   readonly initialPageSize = input(10);
   readonly pageSizeOptions = input<number[]>([10, 25, 50, 100]);
 
-  /** Row density: compact (26px), standard (36px, default), or comfortable (48px). */
-  readonly density = input<'compact' | 'standard' | 'comfortable'>('standard');
+  /** Row density: compact (26px), standard (36px), or comfortable (48px). Unset (default) falls
+   *  back to the app-wide density switcher via `BaseDensityService`, so most tables never need to
+   *  bind this at all — set it explicitly only when a table must ignore that global preference. */
+  readonly density = input<'compact' | 'standard' | 'comfortable' | null>(null);
+  private readonly densityService = inject(BaseDensityService);
+  /** @internal resolved density — explicit [density] input, else the global default. */
+  protected readonly effectiveDensity = computed(() => this.density() ?? this.densityService.current());
   /** @internal exposed for the [style.--bt-row-pad.px] host binding above. */
-  protected readonly densityPad = computed(() => ({ compact: 3, standard: 8, comfortable: 14 }[this.density()]));
+  protected readonly densityPad = computed(() => ({ compact: 3, standard: 8, comfortable: 14 }[this.effectiveDensity()]));
 
   /** Show the built-in global search toolbar. */
   readonly showSearch = input(true);
@@ -879,7 +885,7 @@ export class BaseTableComponent<T = BaseRow> {
   /** Existing rows dim to 60% (rather than being replaced by skeletons) during a background refresh. */
   readonly dimmed = computed(() => this.loading() && this.rows().length > 0);
   readonly skeletonRows = computed(() => Array.from({ length: this.loadingRowCount() }, (_, i) => i));
-  readonly skeletonHeight = computed(() => ({ compact: '12px', standard: '14px', comfortable: '16px' }[this.density()]));
+  readonly skeletonHeight = computed(() => ({ compact: '12px', standard: '14px', comfortable: '16px' }[this.effectiveDensity()]));
   readonly computedEmptyKind = computed(() => this.emptyKind() ?? (this.hasActiveFilters() ? 'no-results' : 'no-data'));
 
   readonly page = computed(() => {

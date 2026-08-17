@@ -49,6 +49,58 @@ at standard and 2 at wide with each panel independently sized to its own
 content rather than a fixed grid cell, and a card grid uses 3 columns
 standard / 2 compact with a 280px minimum card width before reflowing.
 
+## KPI rows vs. card grids
+
+They look alike — a row of small rectangles — and answer different questions.
+
+| Question | KPI row | Card grid |
+|---|---|---|
+| What is a tile? | Fixed measure, one subject | One object, with several attributes |
+| How many? | Fixed — 3 or 4, decided at design time | Variable, driven by the data, paginated past 24 |
+| Does the set change? | No. Same tiles, same order, every load | Yes. Filtering and sorting reorder it |
+| Is a tile clickable? | Optional — drills into that metric | Yes, the card *is* the object's entry point |
+| Empty behavior | Tile stays, shows an em-dash and a reason | Grid collapses to an empty state |
+| Where it sits | Top of a page, above what it summarizes | The page's main content |
+| Columns | 3–4 standard and wide, 2 compact | 3 standard, 2 compact, min card 280px |
+
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: '16px', margin: '16px 0' }}>
+  <div style={{ border: '1px solid var(--color-success)', background: 'var(--color-success-surface)', borderRadius: '8px', padding: '14px' }}>
+    <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--color-success-hover)', marginBottom: '8px' }}>✓ DO</div>
+    <div style={{ display: 'flex', gap: '16px' }}>
+      <div><div style={{ fontFamily: 'var(--font-mono)', fontWeight: '700', fontSize: '18px', color: 'var(--color-ink-900)' }}>96.4%</div><div style={{ fontSize: '10px', color: 'var(--color-ink-500)' }}>UP-TIME</div></div>
+      <div><div style={{ fontFamily: 'var(--font-mono)', fontWeight: '700', fontSize: '18px', color: 'var(--color-ink-900)' }}>2.1h</div><div style={{ fontSize: '10px', color: 'var(--color-ink-500)' }}>MTTR</div></div>
+    </div>
+    <p style={{ fontSize: '12px', color: 'var(--color-ink-600)', margin: '10px 0 0' }}>A fixed row of measures the fleet page is already about.</p>
+  </div>
+  <div style={{ border: '1px solid var(--color-error)', background: 'var(--color-error-surface)', borderRadius: '8px', padding: '14px' }}>
+    <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--color-error-text)', marginBottom: '8px' }}>✗ DON'T</div>
+    <div style={{ display: 'flex', gap: '16px' }}>
+      <div><div style={{ fontFamily: 'var(--font-mono)', fontWeight: '700', fontSize: '14px', color: 'var(--color-ink-900)' }}>SP7-04</div><div style={{ fontSize: '10px', color: 'var(--color-ink-500)' }}>98.4%</div></div>
+      <div><div style={{ fontFamily: 'var(--font-mono)', fontWeight: '700', fontSize: '14px', color: 'var(--color-ink-900)' }}>EDR-11</div><div style={{ fontSize: '10px', color: 'var(--color-ink-500)' }}>91.2%</div></div>
+    </div>
+    <p style={{ fontSize: '12px', color: 'var(--color-ink-600)', margin: '10px 0 0' }}>Put one object per KPI tile — that's a collection, and 214 tools won't fit in a row.</p>
+  </div>
+</div>
+
+## Common page structures
+
+Eight structures cover FleetPack's surface today, and the shapes any new
+module reaches for.
+
+| Structure | Use when | Grid | Watch for |
+|---|---|---|---|
+| Dashboard | The operator is checking whether anything needs attention | KPI row up 4, panels span 8/4 | Panels that require scrolling before the first chart is visible |
+| Detail page | One object is the subject and the operator arrived here deliberately | span 8 content, span 4 rail | Burying the object's identity |
+| Table page | Filter toolbar, grid, then a footer holding the range, page size and pager | Full width, inner scroll | Page-level horizontal scroll |
+| Split pane | Working through a list where each item needs inspection, alarms, events, results | List 320–400px, detail fills | Below 1024px the pane stacks and the detail becomes a drawer |
+| Wizard | A task with a required order the operator completes in one sitting | Span 6–8, centered | More than six steps: group them, or let the operator leave and return via a checklist |
+| Comparison | Two to four subjects judged against the same measures | 2–4 equal columns | Five or more columns — that's a table |
+| First run | A module with no data yet, or a filter that returns nothing | Span 4–6, centered | More than one primary action; the module should ask one thing |
+| Report | Output meant to be exported, printed or shared outside the product | Fixed measure, page break aware | Interactive controls that can't survive a PDF |
+
+Each structure above is rendered in full under **Patterns** — this page
+documents the shape and when to reach for it, not the pixels.
+
 ## Form grids
 
 Single column is the default for any form under ~5 fields, since top-to-bottom
@@ -56,6 +108,32 @@ scanning beats side-by-side for short forms. Two-column layouts are reserved
 for related-pair fields only (e.g. From/To range) — never two unrelated
 fields side by side purely to save vertical space. Inline toolbars (filter
 rows) sit in a single wrapping flex row with a fixed minimum width each.
+
+| Pattern | Behavior |
+|---|---|
+| Single column | Default for any form under ~5 fields — top-to-bottom scanning beats side-by-side for short forms |
+| Two column | Related pairs only, e.g. a From/To range, a width and a height — never two unrelated fields side by side just to shorten the page |
+| Inline toolbar | Filter rows sit in a single wrapping flex row, each field with a fixed minimum width so wrapping stays predictable |
+| Data grid | A table spans its container and scrolls horizontally within it, so one table with many columns never widens the viewport — the outer page never gets a horizontal scrollbar, only the table does |
+
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: '16px', margin: '16px 0' }}>
+  <div style={{ border: '1px solid var(--color-success)', background: 'var(--color-success-surface)', borderRadius: '8px', padding: '14px' }}>
+    <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--color-success-hover)', marginBottom: '8px' }}>✓ DO</div>
+    <div style={{ display: 'flex', gap: '12px' }}>
+      <div style={{ flex: 1 }}><div style={{ fontSize: '10px', color: 'var(--color-ink-500)' }}>Window start</div><div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--color-ink-900)' }}>2026-07-01</div></div>
+      <div style={{ flex: 1 }}><div style={{ fontSize: '10px', color: 'var(--color-ink-500)' }}>Window end</div><div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--color-ink-900)' }}>2026-07-31</div></div>
+    </div>
+    <p style={{ fontSize: '12px', color: 'var(--color-ink-600)', margin: '10px 0 0' }}>Pair fields that belong to one concept.</p>
+  </div>
+  <div style={{ border: '1px solid var(--color-error)', background: 'var(--color-error-surface)', borderRadius: '8px', padding: '14px' }}>
+    <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--color-error-text)', marginBottom: '8px' }}>✗ DON'T</div>
+    <div style={{ display: 'flex', gap: '12px' }}>
+      <div style={{ flex: 1 }}><div style={{ fontSize: '10px', color: 'var(--color-ink-500)' }}>Tool name</div><div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--color-ink-900)' }}>SP7-04</div></div>
+      <div style={{ flex: 1 }}><div style={{ fontSize: '10px', color: 'var(--color-ink-500)' }}>Notification email</div><div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--color-ink-900)' }}>fab12-ops@kla.com</div></div>
+    </div>
+    <p style={{ fontSize: '12px', color: 'var(--color-ink-600)', margin: '10px 0 0' }}>Pack unrelated fields into a row just to shorten the page.</p>
+  </div>
+</div>
 
 ## Safe areas & alignment
 

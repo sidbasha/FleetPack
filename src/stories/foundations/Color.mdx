@@ -77,6 +77,25 @@ hardcoded color chip.
   </div>
 </div>
 
+## Tint pairings
+
+Fill vs. text — the tint (`*-surface`) is the background, the full-strength
+token is the text/icon sitting on it. `solid-*` is the inverse: full-strength
+fill with white text, for a primary action rather than a passive status chip.
+
+<div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', margin: '16px 0' }}>
+  <span style={{ fontSize: '11px', fontWeight: '600', padding: '4px 10px', borderRadius: '999px', background: 'var(--color-info-surface)', color: 'var(--color-info-hover)' }}>Info tint</span>
+  <span style={{ fontSize: '11px', fontWeight: '600', padding: '4px 10px', borderRadius: '999px', background: 'var(--color-success-surface)', color: 'var(--color-success-hover)' }}>Success tint</span>
+  <span style={{ fontSize: '11px', fontWeight: '600', padding: '4px 10px', borderRadius: '999px', background: 'var(--color-warning-surface)', color: 'var(--color-warning-hover)' }}>Warning tint</span>
+  <span style={{ fontSize: '11px', fontWeight: '600', padding: '4px 10px', borderRadius: '999px', background: 'var(--color-error-surface)', color: 'var(--color-error-text)' }}>Error tint</span>
+  <span style={{ fontSize: '11px', fontWeight: '600', padding: '4px 10px', borderRadius: '999px', background: 'var(--color-accent-surface)', color: 'var(--color-accent-hover)' }}>Accent tint</span>
+  <span style={{ fontSize: '11px', fontWeight: '600', padding: '4px 10px', borderRadius: '999px', background: 'var(--color-action-surface)', color: 'var(--color-action-hover)' }}>Action tint</span>
+  <span style={{ fontSize: '11px', fontWeight: '600', padding: '4px 10px', borderRadius: '999px', background: 'var(--color-neutral-100)', color: 'var(--color-ink-600)' }}>Neutral</span>
+  <span style={{ fontSize: '11px', fontWeight: '600', padding: '4px 10px', borderRadius: '999px', background: 'var(--color-success)', color: '#fff' }}>Solid success</span>
+  <span style={{ fontSize: '11px', fontWeight: '600', padding: '4px 10px', borderRadius: '999px', background: 'var(--color-warning)', color: '#fff' }}>Solid warning</span>
+  <span style={{ fontSize: '11px', fontWeight: '600', padding: '4px 10px', borderRadius: '999px', background: 'var(--color-error)', color: '#fff' }}>Solid error</span>
+</div>
+
 ## Error & destructive ramp
 
 Four steps, not one flat red — replaces the old "KLA Red" `#F01E69` (4.12:1,
@@ -177,6 +196,57 @@ fails AA), which read as pink-magenta rather than danger.
   <p style={{ fontSize: '13px', color: 'var(--color-ink-600)', margin: '6px 0 0' }}>Text on a tinted background must hit 4.5:1. Use the full-strength token for text/icon, the tint only for fill behind it. Never convey status by color alone: always pair with an icon, label, or shape, especially under FAB/cleanroom lighting where hue perception shifts.</p>
 </div>
 
+## Machine state
+
+FleetPack's state vocabulary is the SEMI E10 equipment-state model, not a
+parallel invention — every FleetPack label below maps to one E10 state and
+one semantic token, defined once in `styles.css`, re-keyed everywhere a state
+renders (badges, dots, heatmap cells, Gantt segments) instead of living as a
+second palette.
+
+| SEMI E10 state | FleetPack label | Token | Counts toward |
+|---|---|---|---|
+| Productive Time | Production | `success` | Up-time · availability numerator |
+| Standby Time | Standby | `accent` | Up-time, not production |
+| Engineering Time | Engineering | `action` | Up-time, excluded from OEE |
+| Scheduled Downtime | Scheduled DT | `warning` | Downtime · planned |
+| Unscheduled Downtime | Unscheduled DT | `error` | Downtime · unplanned, drives MTTR |
+| Non-Scheduled Time | Non-scheduled | `neutral` | Excluded from every availability figure |
+| *Not an E10 state* | Gap / no data | `neutral` (`border-default`) | Nothing — telemetry is missing, which is not a state |
+
+<div style={{ borderLeft: '3px solid var(--color-warning)', background: 'var(--color-warning-surface)', borderRadius: '0 8px 8px 0', padding: '12px 16px', margin: '16px 0' }}>
+  <strong style={{ fontSize: '12px', color: 'var(--color-warning-hover)' }}>Non-scheduled is not downtime</strong>
+  <p style={{ fontSize: '13px', color: 'var(--color-ink-600)', margin: '6px 0 0' }}>A tool powered down for an unstaffed shift is non-scheduled, not scheduled downtime — it leaves the availability denominator entirely, rather than counting against it.</p>
+</div>
+
+## State differentiation
+
+Six states sit side by side in a 24-hour Gantt at eighteen pixels tall, often
+under cleanroom lighting that shifts hue perception — so hue alone never
+carries the meaning. Every state also carries a fill pattern and, wherever it
+renders as a badge, its own glyph.
+
+| Adjacent pair | Hue contrast | Second cue that separates them |
+|---|---|---|
+| Production ↔ Standby | 2.1:1 | Both solid, so the badge glyph and label carry it |
+| Standby ↔ Engineering | 1.4:1 | The closest pair in the set |
+| Scheduled ↔ Unscheduled DT | 2.0:1 | Opposing hatch angles plus distinct glyphs |
+| Any downtime ↔ any up-time | ≥ 3.4:1 | Hatched against solid |
+
+| State | Hue | Pattern | Glyph |
+|---|---|---|---|
+| Production | `success` | Solid — processing wafers | `check_circle` |
+| Standby | `accent` | Solid — able to run, idle | `pause_circle` |
+| Engineering | `action` | Solid — qualification or test | `build` |
+| Scheduled DT | `warning` | Hatch 45° — planned maintenance | `event` |
+| Unscheduled DT | `error` | Hatch 135° — fault or interlock | `warning` |
+| Non-scheduled | `neutral` | Dotted — outside the operating calendar | `bedtime` |
+| Gap / no data | `neutral` | Dotted — telemetry missing | `help` |
+
+Live in `<base-state-heatmap>` / `<base-gantt-timeline>`: hue and pattern
+render on every cell/segment; the legend adds the glyph, so all three layers
+are demonstrated together, not just described.
+
 ## Product-specific scales, re-keyed
 
 Machine State and Alarm Severity aren't a parallel palette — every step below
@@ -190,6 +260,7 @@ future palette revision only ever happens in one place.
 | | `state-standby` | `accent` |
 | | `state-scheduled` | `warning` |
 | | `state-unscheduled` | `error` |
+| | `state-non-scheduled` | `neutral-400` |
 | | `state-gap` | `neutral-300` |
 | Alarm severity | `alarm-urgent` | `error` |
 | | `alarm-warning` | `warning` |

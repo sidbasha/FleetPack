@@ -107,8 +107,11 @@
   --text-body-sm--line-height: 1.125rem;    /* 18px */
   --text-body-sm--font-weight: 400;
 
-  --text-caption: 0.625rem;           /* 10px */
-  --text-caption--line-height: 0.875rem;    /* 14px */
+  /* 11/16, not the audited scale's 10.5/14 — rounding down would have
+     dropped table headers/eyebrows below the 11px legibility floor set in
+     the accessibility commitment. The only type value that moved. */
+  --text-caption: 0.6875rem;          /* 11px */
+  --text-caption--line-height: 1rem;        /* 16px */
   --text-caption--font-weight: 700;
   --text-caption--letter-spacing: 0.03em;
 
@@ -165,6 +168,15 @@
 
   --color-surface-inverse: var(--p-surface-inverse);
 
+  /* Surface roles — names the JOB a background does (page / card / sunken well / raised overlay)
+     instead of making every consumer remember which neutral step means what. Aliases only; the
+     Light-theme values below equal the neutral steps already in use, so this is purely additive —
+     existing bg-neutral-0/50 call sites are unaffected and can migrate to bg-surface-* over time. */
+  --color-surface-page: var(--color-neutral-50);
+  --color-surface-card: var(--color-neutral-0);
+  --color-surface-sunken: var(--color-neutral-50);
+  --color-surface-raised: var(--color-neutral-0);
+
   /* Product-specific scales, re-keyed to the tokens above so meaning
      stays consistent app-wide instead of living as a parallel palette */
   --color-state-production: var(--color-success);
@@ -172,6 +184,10 @@
   --color-state-standby: var(--color-accent);
   --color-state-scheduled: var(--color-warning);
   --color-state-unscheduled: var(--color-error);
+  /* Non-scheduled (SEMI E10 "Non-Scheduled Time") is a real, known state — a tool intentionally
+     powered down for an unstaffed shift — NOT downtime, and excluded from every availability
+     figure entirely. Distinct from state-gap, which means telemetry is simply missing. */
+  --color-state-non-scheduled: var(--color-neutral-400);
   --color-state-gap: var(--color-neutral-300);
 
   --color-alarm-urgent: var(--color-error);
@@ -260,11 +276,127 @@
   --layout-gutter: var(--spacing-sp-6);       /* 24px, fixed at every breakpoint */
   --layout-margin-standard: 4rem;             /* 64px */
   --layout-margin-compact: var(--spacing-sp-6); /* 24px */
+
+  /* Border width — three weights, one job each. Consumed via arbitrary values
+     (e.g. border-[length:var(--bw-control)]) rather than a dedicated Tailwind
+     border-width scale, so this can't collide with Tailwind's own border/border-2/border-4. */
+  --bw-hair: 1px;     /* every divider, card edge, table rule */
+  --bw-control: 2px;  /* checkbox/radio edges, focus rings, active tab underline */
+  --bw-emphasis: 3px; /* accent rail on a KPI tile or a selected list row */
+
+  /* Widen under [data-theme="high-contrast"] (2px → 3px). Foundation tokens —
+     most components still hard-code `ring-2`/stroke width today; adopting
+     these is incremental, same as the r-* radius rollout above. */
+  --focus-ring-width: 2px;
+  --icon-stroke-width: 2px;
 }
 
 @layer base {
   html { font-family: var(--font-sans); }
   h1, h2, h3, h4 { font-family: var(--font-display); }
+}
+
+/* ── Themes — Light (default) · Dark (opt-in, persisted) · High contrast ──
+   Every component already reads tier-2 vars exclusively, so a theme is
+   nothing but different values for the SAME custom properties — switching
+   is `<html data-theme="…">` (set by ThemeService) plus this block, never a
+   per-component change. `[data-theme="light"]` is the explicit-light escape
+   hatch so a user override always wins over the `prefers-contrast` media
+   query below. Scope: this is the token-level foundation: not every one of
+   the ~80 existing components has been individually visually re-audited
+   against dark/high-contrast — that's incremental follow-up, same as the
+   r-* radius rollout above.
+
+   Dark — semantic surfaces invert, brand/semantic hues shift lighter to
+   hold contrast on a dark ground, shadows lose their color tint. */
+:root[data-theme="dark"] {
+  --color-neutral-0: #141b2d;
+  --color-neutral-50: #0f1524;
+  --color-neutral-100: #1c2438;
+  --color-neutral-200: #2a3450;
+  --color-neutral-300: #454f6e;
+  --color-neutral-400: #8892ab;
+
+  --color-ink-900: #f5f7fb;
+  --color-ink-700: #dbe1ee;
+  --color-ink-600: #aab2c8;
+  --color-ink-500: #8892ab;
+
+  --color-surface-page: var(--color-neutral-50);
+  --color-surface-card: var(--color-neutral-0);
+  --color-surface-sunken: var(--color-neutral-50);
+  --color-surface-raised: var(--color-neutral-100);
+  --color-surface-inverse: #f5f7fb;
+
+  --color-brand: color-mix(in srgb, var(--p-indigo) 55%, white);
+  --color-action: color-mix(in srgb, var(--p-cobalt) 75%, white);
+  --color-accent: color-mix(in srgb, var(--p-violet) 70%, white);
+  --color-success: color-mix(in srgb, var(--p-green) 65%, white);
+  --color-warning: color-mix(in srgb, var(--p-amber) 60%, white);
+  --color-error: color-mix(in srgb, var(--p-red-700) 55%, white);
+  --color-info: color-mix(in srgb, var(--p-teal) 65%, white);
+  --color-action-surface: color-mix(in srgb, var(--color-action) 18%, var(--color-neutral-0));
+  --color-accent-surface: color-mix(in srgb, var(--color-accent) 18%, var(--color-neutral-0));
+  --color-success-surface: color-mix(in srgb, var(--color-success) 18%, var(--color-neutral-0));
+  --color-warning-surface: color-mix(in srgb, var(--color-warning) 18%, var(--color-neutral-0));
+  --color-error-surface: color-mix(in srgb, var(--color-error) 18%, var(--color-neutral-0));
+  --color-info-surface: color-mix(in srgb, var(--color-info) 18%, var(--color-neutral-0));
+  --color-error-text: color-mix(in srgb, var(--color-error) 85%, white);
+
+  --shadow-e0: none;
+  --shadow-e1: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-e2: 0 2px 4px rgba(0, 0, 0, 0.35), 0 4px 8px rgba(0, 0, 0, 0.30);
+  --shadow-e3: 0 4px 10px rgba(0, 0, 0, 0.40), 0 8px 20px rgba(0, 0, 0, 0.35);
+  --shadow-e4: 0 8px 16px rgba(0, 0, 0, 0.45), 0 16px 40px rgba(0, 0, 0, 0.40);
+}
+
+/* High contrast — tints flatten to solid white, borders go pure black at a
+   heavier weight, shadows are replaced by borders, focus rings/icon strokes
+   thicken. `data-theme="high-contrast"` is the manual opt-in; the media
+   query below auto-activates the same values from the OS `prefers-contrast`
+   signal, but only while no theme has been explicitly picked (light or
+   dark), so a deliberate user choice always wins. */
+@media (prefers-contrast: more) {
+  :root:not([data-theme]) {
+    --color-action-surface: #ffffff;
+    --color-accent-surface: #ffffff;
+    --color-success-surface: #ffffff;
+    --color-warning-surface: #ffffff;
+    --color-error-surface: #ffffff;
+    --color-info-surface: #ffffff;
+    --color-neutral-200: #000000;
+    --color-neutral-300: #000000;
+    --shadow-e0: none;
+    --shadow-e1: none;
+    --shadow-e2: none;
+    --shadow-e3: none;
+    --shadow-e4: none;
+    --bw-hair: 1px;
+    --bw-control: 3px;
+    --bw-emphasis: 3px;
+    --focus-ring-width: 3px;
+    --icon-stroke-width: 3px;
+  }
+}
+:root[data-theme="high-contrast"] {
+  --color-action-surface: #ffffff;
+  --color-accent-surface: #ffffff;
+  --color-success-surface: #ffffff;
+  --color-warning-surface: #ffffff;
+  --color-error-surface: #ffffff;
+  --color-info-surface: #ffffff;
+  --color-neutral-200: #000000;
+  --color-neutral-300: #000000;
+  --shadow-e0: none;
+  --shadow-e1: none;
+  --shadow-e2: none;
+  --shadow-e3: none;
+  --shadow-e4: none;
+  --bw-hair: 1px;
+  --bw-control: 3px;
+  --bw-emphasis: 3px;
+  --focus-ring-width: 3px;
+  --icon-stroke-width: 3px;
 }
 
 /* ── Legacy component-layer utility classes ───────────────────────────

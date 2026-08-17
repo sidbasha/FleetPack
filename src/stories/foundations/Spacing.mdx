@@ -79,10 +79,12 @@ below is the live `p-sp-*` / `gap-sp-*` utility (`--spacing-sp-*` in
 | Button (default / sm / lg) | 36 / 28 / 44px | Meets the 24×24px WCAG 2.2 AA minimum at every size; the `lg` variant reaches 44×44px for touch use |
 | Input / select | 36px | Matches default button height so mixed toolbars share a baseline |
 | Table row (compact / standard / comfortable) | 26 / 36 / 48px | See [Density & Themes](/?path=/docs/foundations-density---themes--docs) for when each applies |
-| Icon button | 32×32px | 20px icon, 6px padding |
+| Icon button | 32×32px | 20px icon, 6px padding; 24×24px in dense table rows |
 | Checkbox / radio | 16×16px | Hit area extended to 24×24px via the wrapping label |
-| Modal (sm / md / lg) | 360 / 440 / 640px | Width; height is intrinsic, capped at 88vh with internal scroll |
-| Drawer / side panel | 340–480px | Width; full viewport height |
+| Toggle | 36×20px | 16px thumb, 16px travel |
+| Modal (sm / md / lg / xl) | 360 / 440 / 640 / 880px | Width; height is intrinsic, capped at 88vh with internal scroll |
+| Drawer / side panel | 340–480px | Width; full viewport height. Bottom drawer caps at 80vh |
+| Avatar (sm / md / lg / xl) | 24 / 32 / 44 / 64px | Always a circle; initials at 10 / 11 / 14 / 20px |
 
 <div style={{ borderLeft: '3px solid var(--color-success)', background: 'var(--color-success-surface)', borderRadius: '0 8px 8px 0', padding: '12px 16px', margin: '20px 0' }}>
   <strong style={{ fontSize: '12px', color: 'var(--color-success-hover)' }}>Hit area ≥ 24px</strong>

@@ -1,22 +1,55 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 
-/** Six-state Machine State color scale (see Foundations → Color). These are
+/** Seven-state Machine State color scale (see Foundations → Color). These are
  *  generic, presentational versions for the base library — the live app
  *  screens (`state-heatmap.component.ts`, `activity-gantt.component.ts` in
  *  `features/uptime-availability`) read from real stores and aren't replaced
- *  by these. */
-export type BaseMachineState = 'production' | 'engineering' | 'standby' | 'scheduled-dt' | 'unscheduled-dt' | 'gap';
+ *  by these.
+ *
+ *  'non-scheduled' vs 'gap' — both render neutral/dotted, but mean different
+ *  things: non-scheduled is a real, known state (a tool intentionally
+ *  powered down for an unstaffed shift, excluded from every availability
+ *  figure); gap means telemetry is simply missing, which is not a state. */
+export type BaseMachineState =
+  | 'production' | 'engineering' | 'standby'
+  | 'scheduled-dt' | 'unscheduled-dt' | 'non-scheduled' | 'gap';
 
-export const BASE_MACHINE_STATE_META: Record<BaseMachineState, { label: string; colorVar: string }> = {
-  production: { label: 'Production', colorVar: 'var(--color-state-production)' },
-  engineering: { label: 'Engineering', colorVar: 'var(--color-state-engineering)' },
-  standby: { label: 'Standby', colorVar: 'var(--color-state-standby)' },
-  'scheduled-dt': { label: 'Scheduled DT', colorVar: 'var(--color-state-scheduled)' },
-  'unscheduled-dt': { label: 'Unscheduled DT', colorVar: 'var(--color-state-unscheduled)' },
-  gap: { label: 'Gap / no data', colorVar: 'var(--color-state-gap)' }
+/** Three-layer differentiation per Foundations → Color → State Differentiation: hue alone isn't
+ *  enough (adjacent pairs like Standby↔Engineering sit as low as 1.4:1), so every state also
+ *  carries a fill pattern (solid up-time / hatched-45° planned DT / hatched-135° unplanned DT /
+ *  dotted non-state) and its own glyph wherever it renders as a badge or legend entry. */
+export type BaseStatePattern = 'solid' | 'hatch-45' | 'hatch-135' | 'dotted';
+
+export const BASE_MACHINE_STATE_META: Record<BaseMachineState, { label: string; colorVar: string; icon: string; pattern: BaseStatePattern }> = {
+  production: { label: 'Production', colorVar: 'var(--color-state-production)', icon: 'check_circle', pattern: 'solid' },
+  engineering: { label: 'Engineering', colorVar: 'var(--color-state-engineering)', icon: 'build', pattern: 'solid' },
+  standby: { label: 'Standby', colorVar: 'var(--color-state-standby)', icon: 'pause_circle', pattern: 'solid' },
+  'scheduled-dt': { label: 'Scheduled DT', colorVar: 'var(--color-state-scheduled)', icon: 'event', pattern: 'hatch-45' },
+  'unscheduled-dt': { label: 'Unscheduled DT', colorVar: 'var(--color-state-unscheduled)', icon: 'warning', pattern: 'hatch-135' },
+  'non-scheduled': { label: 'Non-scheduled', colorVar: 'var(--color-state-non-scheduled)', icon: 'bedtime', pattern: 'dotted' },
+  gap: { label: 'Gap / no data', colorVar: 'var(--color-state-gap)', icon: 'help', pattern: 'dotted' }
 };
 
-const HATCH = 'repeating-linear-gradient(45deg, var(--color-neutral-300) 0 2px, transparent 2px 6px)';
+/** CSS `background` value implementing a state's pattern layer — solid states are just the color;
+ *  hatched/dotted states are a `repeating-linear-gradient` so the fill reads correctly even when
+ *  color perception shifts (cleanroom lighting, color-blindness, grayscale printing). */
+function statePattern(colorVar: string, pattern: BaseStatePattern): string {
+  switch (pattern) {
+    case 'hatch-45':
+      return `repeating-linear-gradient(45deg, ${colorVar} 0 3px, color-mix(in srgb, ${colorVar} 35%, white) 3px 6px)`;
+    case 'hatch-135':
+      return `repeating-linear-gradient(135deg, ${colorVar} 0 3px, color-mix(in srgb, ${colorVar} 35%, white) 3px 6px)`;
+    case 'dotted':
+      return `repeating-linear-gradient(45deg, ${colorVar} 0 2px, transparent 2px 6px)`;
+    default:
+      return colorVar;
+  }
+}
+
+export function stateBackground(s: BaseMachineState): string {
+  const m = BASE_MACHINE_STATE_META[s];
+  return statePattern(m.colorVar, m.pattern);
+}
 
 export interface BaseHeatmapCell { col: string; state: BaseMachineState; }
 export interface BaseHeatmapRow { label: string; cells: BaseHeatmapCell[]; }
@@ -46,7 +79,7 @@ export interface BaseHeatmapRow { label: string; cells: BaseHeatmapCell[]; }
                   <button type="button"
                           class="block w-full outline-none focus-visible:ring-2 focus-visible:ring-action"
                           style="height: 14px; width: 20px;"
-                          [style.background]="cell.state === 'gap' ? hatch : meta(cell.state).colorVar"
+                          [style.background]="bg(cell.state)"
                           [style.opacity]="hover() && hover()!.row === row.label && hover()!.col === cell.col ? 1 : 0.92"
                           [attr.title]="row.label + ' · ' + cell.col + ' · ' + meta(cell.state).label"
                           (mouseenter)="hover.set({ row: row.label, col: cell.col })"
@@ -62,7 +95,8 @@ export interface BaseHeatmapRow { label: string; cells: BaseHeatmapCell[]; }
     <div class="flex flex-wrap items-center gap-x-sp-4 gap-y-1 mt-sp-3 text-[11px] text-ink-600">
       @for (s of legendStates(); track s) {
         <span class="flex items-center gap-1.5">
-          <i class="inline-block w-2.5 h-2.5 rounded-r-xs" [style.background]="s === 'gap' ? hatch : meta(s).colorVar"></i>
+          <i class="inline-block w-2.5 h-2.5 rounded-r-xs" [style.background]="bg(s)"></i>
+          <span class="icon-outline" style="font-size:12px;" [style.color]="meta(s).colorVar" aria-hidden="true">{{ meta(s).icon }}</span>
           {{ meta(s).label }}
         </span>
       }
@@ -72,13 +106,13 @@ export interface BaseHeatmapRow { label: string; cells: BaseHeatmapCell[]; }
 export class BaseStateHeatmapComponent {
   readonly rows = input.required<BaseHeatmapRow[]>();
   readonly columns = input.required<string[]>();
-  /** Which states to show in the legend; defaults to all six. */
-  readonly legendStates = input<BaseMachineState[]>(['production', 'engineering', 'standby', 'scheduled-dt', 'unscheduled-dt', 'gap']);
+  /** Which states to show in the legend; defaults to all seven. */
+  readonly legendStates = input<BaseMachineState[]>(['production', 'engineering', 'standby', 'scheduled-dt', 'unscheduled-dt', 'non-scheduled', 'gap']);
 
-  protected readonly hatch = HATCH;
   protected readonly hover = signal<{ row: string; col: string } | null>(null);
 
   meta(s: BaseMachineState) { return BASE_MACHINE_STATE_META[s]; }
+  bg(s: BaseMachineState): string { return stateBackground(s); }
 }
 
 export interface BaseGanttSegment {
@@ -120,7 +154,7 @@ export interface BaseGanttRow {
                         class="absolute top-0 h-full outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:z-10"
                         [style.left.%]="(seg.startHour / 24) * 100"
                         [style.width.%]="((seg.endHour - seg.startHour) / 24) * 100"
-                        [style.background]="seg.state === 'gap' ? hatch : meta(seg.state).colorVar"
+                        [style.background]="bg(seg.state)"
                         [attr.aria-label]="row.label + ' · ' + fmt(seg.startHour) + '–' + fmt(seg.endHour) + ' · ' + (seg.label || meta(seg.state).label)"
                         (mouseenter)="hover.set({ row: row.label, seg: si })" (mouseleave)="hover.set(null)"
                         (focus)="hover.set({ row: row.label, seg: si })" (blur)="hover.set(null)">
@@ -151,7 +185,8 @@ export interface BaseGanttRow {
     <div class="flex flex-wrap items-center gap-x-sp-4 gap-y-1 mt-sp-3 text-[11px] text-ink-600">
       @for (s of legendStates(); track s) {
         <span class="flex items-center gap-1.5">
-          <i class="inline-block w-2.5 h-2.5 rounded-r-xs" [style.background]="s === 'gap' ? hatch : meta(s).colorVar"></i>
+          <i class="inline-block w-2.5 h-2.5 rounded-r-xs" [style.background]="bg(s)"></i>
+          <span class="icon-outline" style="font-size:12px;" [style.color]="meta(s).colorVar" aria-hidden="true">{{ meta(s).icon }}</span>
           {{ meta(s).label }}
         </span>
       }
@@ -162,7 +197,6 @@ export class BaseGanttTimelineComponent {
   readonly rows = input.required<BaseGanttRow[]>();
   readonly legendStates = input<BaseMachineState[]>(['production', 'standby', 'scheduled-dt', 'unscheduled-dt']);
 
-  protected readonly hatch = HATCH;
   protected readonly hover = signal<{ row: string; seg: number } | null>(null);
 
   protected readonly hoveredSegment = computed(() => {
@@ -192,6 +226,7 @@ export class BaseGanttTimelineComponent {
   }
 
   meta(s: BaseMachineState) { return BASE_MACHINE_STATE_META[s]; }
+  bg(s: BaseMachineState): string { return stateBackground(s); }
 
   fmt(h: number): string {
     const hh = Math.floor(h).toString().padStart(2, '0');

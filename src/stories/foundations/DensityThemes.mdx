@@ -4,9 +4,11 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 # Density & Themes
 
-FleetPack ships a single theme — Light — resolved through the semantic
-tokens documented in [Token Architecture](/?path=/docs/foundations-token-architecture--docs).
-There is no dark mode and no theme switcher in this build.
+Try both switchers in the shell's utility bar (the user menu, top right).
+Every token on every page re-points live — nothing below is a separate
+stylesheet, it's the same semantic aliases resolving to different primitive
+values via `<html data-theme="…">` / `<html data-density="…">`, applied by
+`BaseThemeService` / `BaseDensityService`.
 
 ## Density modes
 
@@ -17,7 +19,7 @@ There is no dark mode and no theme switcher in this build.
   </div>
   <div style={{ border: '1px solid var(--color-neutral-200)', borderRadius: '8px', padding: '16px', background: 'var(--color-action-surface)' }}>
     <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-ink-700)' }}>Standard · 36px rows</div>
-    <p style={{ fontSize: '12.5px', color: 'var(--color-ink-600)', margin: '8px 0 0' }}>Default for every FleetPack table unless the module specifies otherwise. Token: <code>--row-height-standard</code>.</p>
+    <p style={{ fontSize: '12.5px', color: 'var(--color-ink-600)', margin: '8px 0 0' }}>Default for every FleetPack table unless the module (or the global density switcher) says otherwise. Token: <code>--row-height-standard</code>.</p>
   </div>
   <div style={{ border: '1px solid var(--color-neutral-200)', borderRadius: '8px', padding: '16px' }}>
     <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-ink-700)' }}>Comfortable · 48px rows</div>
@@ -25,8 +27,24 @@ There is no dark mode and no theme switcher in this build.
   </div>
 </div>
 
-## Theme
+`<base-table>`'s own `[density]` input still wins when a module needs a
+specific density regardless of the app-wide preference (e.g. an alarm log
+that's always compact) — leaving it unset is what opts a table into the
+global switcher via `BaseDensityService`.
 
-| Theme | Status | When |
+## Themes
+
+| Theme | When | Key differences from Light |
 |---|---|---|
-| **Light** | ✅ Implemented | Default and only theme for all FleetPack modules |
+| **Light** <span style={{ fontSize: '10px', fontWeight: '700', padding: '2px 6px', borderRadius: '999px', background: 'var(--color-action-surface)', color: 'var(--color-action-hover)' }}>Default</span> | Default for all modules | — |
+| **Dark** | Opt-in, persisted per user. Recommended for 24×7 control-room monitors | Semantic surfaces invert; brand/semantic hues shift lighter to hold contrast on a dark ground; shadows lose their color tint |
+| **High contrast** | System-level HC mode (`prefers-contrast: more`), or manual opt-in, for glare and accessibility needs | Tints become solid white; borders go pure black at a heavier weight; shadows are removed in favor of borders; the focus ring widens `--focus-ring-width` 2px → 3px; icon stroke thickens `--icon-stroke-width` 2px → 3px |
+
+A theme choice made explicitly in the switcher (including "Light") always
+overrides the OS `prefers-contrast` signal — "Auto" is what leaves the door
+open for the system setting to resolve High contrast on its own.
+
+<div style={{ borderLeft: '3px solid var(--color-info)', background: 'var(--color-info-surface)', borderRadius: '0 8px 8px 0', padding: '12px 16px', margin: '20px 0' }}>
+  <strong style={{ fontSize: '12px', color: 'var(--color-info-hover)' }}>Scope of this pass</strong>
+  <p style={{ fontSize: '13px', color: 'var(--color-ink-600)', margin: '6px 0 0' }}>Dark and High contrast are implemented at the token layer — every component already reads semantic vars exclusively, so switching theme requires no per-component code. What this pass does <em>not</em> include is an individual visual re-audit of all ~80 existing components against both new themes; that's incremental follow-up, the same way the <code>r-*</code> radius scale rolls out per component rather than all at once.</p>
+</div>
