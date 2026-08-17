@@ -19,6 +19,7 @@ const nextId = (prefix: string) => `${prefix}-${++uid}`;
 
 const LABEL_CLS = `block text-caption text-neutral-400 mb-1`;
 const HINT_CLS = `mt-1 text-caption normal-case font-normal text-neutral-400`;
+const MSG_CLS = `mt-1 flex items-center gap-1 text-caption normal-case font-normal`;
 
 export interface BaseComboOption {
   label: string;
@@ -237,9 +238,9 @@ export interface BaseUploadFile {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="block">
-      @if (label()) { <span class="${LABEL_CLS}">{{ label() }}</span> }
+      @if (label()) { <span class="${LABEL_CLS}">{{ label() }}@if (required()) {<span class="text-error"> *</span>}</span> }
       <label class="flex flex-col items-center justify-center gap-1 border-2 border-dashed rounded-r-md px-sp-4 py-sp-6 text-center cursor-pointer transition-colors"
-             [class]="dragInvalid() ? 'border-error bg-error-surface' : dragOver() ? 'border-action bg-action-surface' : 'border-neutral-200 hover:border-action'"
+             [class]="dropzoneClass()"
              (dragover)="onDragOver($event)" (dragleave)="onDragLeave()" (drop)="onDrop($event)">
         @if (dragInvalid()) {
           <span class="icon-outline text-error" style="font-size:28px;" aria-hidden="true">block</span>
@@ -250,12 +251,17 @@ export interface BaseUploadFile {
           <span class="text-xs font-semibold text-action">Release to upload</span>
           <span class="text-[11px] text-action/70">{{ dragCount() }} file{{ dragCount() === 1 ? '' : 's' }} ready</span>
         } @else {
-          <span class="icon-outline text-neutral-300" style="font-size:28px;" aria-hidden="true">upload_file</span>
+          <span class="icon-outline" [class]="restIconClass()" style="font-size:28px;" aria-hidden="true">upload_file</span>
           <span class="text-xs text-ink-600">Drop files or <span class="text-action font-semibold">browse</span></span>
           @if (accept()) { <span class="text-[11px] text-neutral-400">{{ accept() }}@if (maxSizeMb()) { up to {{ maxSizeMb() }}MB }</span> }
         }
         <input type="file" class="sr-only" [multiple]="multiple()" [attr.accept]="accept() || null" (change)="onSelect($event)" />
       </label>
+      @if (!dragOver() && !dragInvalid()) {
+        @if (error()) { <span class="${MSG_CLS} text-error"><span aria-hidden="true">⊗</span>{{ error() }}</span> }
+        @else if (warning()) { <span class="${MSG_CLS} text-warning"><span aria-hidden="true">⚠</span>{{ warning() }}</span> }
+        @else if (hint()) { <span class="${HINT_CLS}">{{ hint() }}</span> }
+      }
 
       @if (files().length) {
         <div class="mt-sp-3 flex flex-col gap-sp-2">
@@ -305,6 +311,16 @@ export class BaseFileUploadComponent {
   readonly acceptTypes = input<string[]>([]);
   readonly maxSizeMb = input(0);
   readonly multiple = input(true);
+  readonly required = input(false);
+  readonly hint = input('');
+  /** Field-level error, e.g. "At least one recipe file is required." — tints the dropzone box
+   *  itself (border + background), same as `<base-text-input error="...">`. Wins over [warning].
+   *  Distinct from a per-file rejection (`BaseUploadFile.error`, shown in that file's own row)
+   *  and from the transient drag-time preview, which still takes priority while actively
+   *  dragging since it's live feedback about the gesture in progress. */
+  readonly error = input('');
+  /** Field-level warning — same tint treatment as `<base-text-input warning="...">`. */
+  readonly warning = input('');
   /** Controlled list of files + progress; the host owns upload progress updates. */
   readonly files = model<BaseUploadFile[]>([]);
 
@@ -320,6 +336,23 @@ export class BaseFileUploadComponent {
   protected readonly dragOver = signal(false);
   protected readonly dragInvalid = signal(false);
   protected readonly dragCount = signal(0);
+
+  /** Border + background together, as one class list — same priority order and tokens as
+   *  `<base-text-input>`'s `inputClass`: an active drag always wins (it's what the operator is
+   *  doing right now), then field-level error, then warning, then the plain resting state. */
+  protected readonly dropzoneClass = computed(() => {
+    if (this.dragInvalid()) return 'border-error bg-error-surface';
+    if (this.dragOver()) return 'border-action bg-action-surface';
+    if (this.error()) return 'border-error bg-error-surface';
+    if (this.warning()) return 'border-warning bg-warning-surface';
+    return 'border-neutral-200 bg-neutral-0 hover:border-action';
+  });
+
+  protected readonly restIconClass = computed(() => {
+    if (this.error()) return 'text-error';
+    if (this.warning()) return 'text-warning';
+    return 'text-neutral-300';
+  });
 
   onDragOver(ev: DragEvent): void {
     ev.preventDefault();
