@@ -37,3 +37,10 @@ export const ActiveFilterApplied: Story = {
 
 /** DateTime columns: `filterShowTime` on the column def adds HH:MM boxes to both pickers. */
 export const WithTime: Story = { args: { showTime: true } };
+
+/** Click a preset ("Last shift" / "Last 24 hours" / "Last 7 days" / "Last 30 days") in the canvas:
+ *  it fills both dates and applies immediately — one click, no separate Apply needed. Editing
+ *  either date by hand afterward clears the preset so a stale name never survives a manual tweak.
+ *  `<base-table>` renders the resulting preset name (or an open-ended "After …"/"Before …" phrase)
+ *  as a small chip next to the header icon — see `calendarFilterLabel()`. */
+export const RelativePresets: Story = {};

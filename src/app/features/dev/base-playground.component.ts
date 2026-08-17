@@ -15,6 +15,7 @@ import {
   BaseButtonGroupComponent,
   BaseCardComponent,
   BaseCellDirective,
+  BaseCellEditEvent,
   BaseChartFrameComponent,
   BaseChartPoint,
   BaseChildCellDirective,
@@ -77,6 +78,8 @@ import {
   BaseStepperComponent,
   BaseStepperStep,
   BaseTableComponent,
+  BaseTableView,
+  BaseTableViewsComponent,
   BaseTabItem,
   BaseTabsComponent,
   BaseTagComponent,
@@ -105,6 +108,12 @@ interface ToolRow {
   lastMaint: string;
   photo: string;
   fileProgress: number;
+  /** Set on a few rows below — [selectable]="'multiple'" checkbox disabled-with-reason demo. */
+  isCheckboxDisable?: boolean;
+  checkboxDisableReason?: string;
+  /** [editableRows] inline-edit demo state — see the "edit"/"apply"/"cancel" quickActions below. */
+  isEditing?: boolean;
+  hasEditError?: boolean;
 }
 
 const STATUSES: ToolRow['status'][] = ['PRODUCTION', 'ENGINEERING', 'STANDBY', 'DOWN'];
@@ -145,6 +154,7 @@ function mockRows(n: number): ToolRow[] {
   imports: [
     JsonPipe,
     BaseTableComponent,
+    BaseTableViewsComponent,
     BaseCellDirective,
     BaseChildCellDirective,
     BaseKpiCardComponent,
@@ -722,6 +732,25 @@ function mockRows(n: number): ToolRow[] {
         <button class="btn-ghost" (click)="toggleColumn('history')">Toggle Chart col</button>
         <button class="btn-ghost" (click)="addDynamicColumn()">+ Add column</button>
         <button class="btn-ghost" (click)="highlightRandomRow()">Highlight + scroll to a row</button>
+        <button class="btn-ghost" (click)="toggleTableEditable()">
+          {{ tableEditable() ? 'Disable' : 'Enable' }} inline edit
+        </button>
+        <button class="btn-ghost" (click)="toggleTableReadOnly()">
+          {{ tableReadOnly() ? 'Disable' : 'Enable' }} read-only mode
+        </button>
+        <button class="btn-ghost" (click)="simulateLoading()">Simulate refresh</button>
+        <button class="btn-ghost" (click)="simulateError()">Simulate load error</button>
+      </div>
+
+      <!-- Saved Views & Filter Rail (New in v2.0) — fully controlled: this component only renders
+           the rail and emits intent. "Modified" here is a proxy driven off sortChange/filterChange/
+           manageColumn (see onTableStateChanged) since re-applying a saved view's filter/sort state
+           onto the live table needs those to be host-controlled inputs, which is a natural next
+           step beyond this pass — see the summary for why that's out of scope here. -->
+      <div class="panel px-2">
+        <base-table-views [views]="tableViews()" [activeViewId]="activeViewId()" [modified]="viewModified()"
+                           (activeViewIdChange)="onViewSwitch($event)" (save)="onViewSave($event)"
+                           (update)="onViewUpdate()" (reset)="onViewReset()" (copyLink)="onViewCopyLink()" />
       </div>
 
       <base-table class="panel block overflow-hidden"
@@ -731,7 +760,7 @@ function mockRows(n: number): ToolRow[] {
         [showFilterRow]="true"
         [stickyHeader]="true"
         maxHeight="440px"
-        minWidth="1350px"
+        minWidth="1550px"
         selectable="multiple"
         [striped]="true"
         [initialPageSize]="10"
@@ -741,15 +770,24 @@ function mockRows(n: number): ToolRow[] {
         [childColumns]="childColumns()"
         [childRowsOf]="alarmEventsOf"
         [highlightKey]="highlightedToolId()"
+        [readOnly]="tableReadOnly()"
+        [loading]="tableLoading()"
+        [error]="tableError()"
+        errorMessage="The fleet service timed out — the last known page is still shown above."
+        [editableRows]="tableEditable()"
+        [maxVisibleActions]="2"
+        [showSummary]="true"
         (rowClick)="log('rowClick', $event.row.toolId)"
         (cellClick)="log('cellClick', $event.column.key + ' → ' + $event.row.toolId)"
-        (sortChange)="onSort($event)"
+        (sortChange)="onSort($event); onTableStateChanged()"
         (pageChange)="onPage($event)"
-        (filterChange)="onFilter($event)"
+        (filterChange)="onFilter($event); onTableStateChanged()"
         (selectionChange)="selectedCount.set($event.length)"
         (expandChange)="log('expandChange', $event.row.toolId + ' → ' + $event.expanded)"
-        (manageColumn)="log('manageColumn', $event.join(', '))"
-        (handleAction)="onHandleAction($event)">
+        (manageColumn)="log('manageColumn', $event.join(', ')); onTableStateChanged()"
+        (handleAction)="onHandleAction($event)"
+        (cellEdit)="onCellEdit($event)"
+        (retry)="tableError.set(false); log('table retry', 'reloaded')">
 
         <!-- CUSTOM CELL TEMPLATE #1: composite cell (image + text + badge) -->
         <ng-template baseCell="toolId" let-row let-value="value">
@@ -800,42 +838,122 @@ function mockRows(n: number): ToolRow[] {
   `
 })
 export class BasePlaygroundComponent {
-  readonly rows = signal<ToolRow[]>(mockRows(57));
+  readonly rows = signal<ToolRow[]>(mockRows(57).map(r => r.status === 'DOWN'
+    ? { ...r, isCheckboxDisable: true, checkboxDisableReason: 'Down tools are excluded from bulk actions' }
+    : r));
   readonly selectedCount = signal(0);
   readonly events = signal<string[]>([]);
   readonly lastFilter = signal<BaseFilterEvent | null>(null);
 
+  /** Toolbar toggles demoing the table-level opt-in states. */
+  readonly tableEditable = signal(false);
+  readonly tableReadOnly = signal(false);
+  readonly tableLoading = signal(false);
+  readonly tableError = signal(false);
+
+  toggleTableEditable(): void { this.tableEditable.update(v => !v); }
+  toggleTableReadOnly(): void { this.tableReadOnly.update(v => !v); }
+
+  simulateLoading(): void {
+    this.tableLoading.set(true);
+    setTimeout(() => this.tableLoading.set(false), 1500);
+  }
+  simulateError(): void {
+    this.tableError.set(true);
+  }
+
+  // Saved Views & Filter Rail demo state — see the template comment above <base-table-views>.
+  readonly tableViews = signal<BaseTableView[]>([
+    { id: 'all', label: 'All', isDefault: true },
+    { id: 'down-tools', label: 'Down tools', pinned: true },
+    { id: 'shared-fab-a', label: 'Fab-A only', pinned: true, shared: true, readOnly: true }
+  ]);
+  readonly activeViewId = signal('all');
+  readonly viewModified = signal(false);
+
+  onTableStateChanged(): void {
+    if (!this.viewModified()) this.viewModified.set(true);
+  }
+  onViewSwitch(id: string): void {
+    this.activeViewId.set(id);
+    this.viewModified.set(false);
+    this.log('table-views switch', id);
+  }
+  onViewSave(label: string): void {
+    const id = `${label.toLowerCase().replace(/\s+/g, '-')}-${Date.now().toString(36)}`;
+    this.tableViews.update(v => [...v, { id, label }]);
+    this.activeViewId.set(id);
+    this.viewModified.set(false);
+    this.log('table-views save', label);
+  }
+  onViewUpdate(): void {
+    this.viewModified.set(false);
+    this.log('table-views update', this.activeViewId());
+  }
+  onViewReset(): void {
+    this.viewModified.set(false);
+    this.log('table-views reset', this.activeViewId());
+  }
+  onViewCopyLink(): void {
+    this.log('table-views copyLink', this.activeViewId());
+  }
+
+  onCellEdit(e: BaseCellEditEvent<ToolRow>): void {
+    this.rows.update(rows => rows.map(r => r.toolId === e.row.toolId ? { ...r, [e.column.key]: e.value } : r));
+    this.log('cellEdit', `${e.column.key} → ${e.value}`);
+  }
+
   readonly additionalHeader: AdditionalHeaderGroup[] = [
     { displayName: 'Identity', columnIds: ['toolId', 'photo', 'fab', 'chamber'] },
-    { displayName: 'Health', columnIds: ['status', 'uptime', 'alarms', 'trendPct', 'history'] }
+    { displayName: 'Health', columnIds: ['status', 'healthHeat', 'uptime', 'alarms', 'trendPct', 'history'] }
   ];
+
+  private readonly healthHeatMap: Record<string, string> = {
+    PRODUCTION: 'bg-success-surface text-success-hover',
+    ENGINEERING: 'bg-action-surface text-action-hover',
+    STANDBY: 'bg-warning-surface text-warning-hover',
+    DOWN: 'bg-error-surface text-error-hover'
+  };
 
   readonly columns = signal<BaseColumnDef<ToolRow>[]>([
     { key: 'toolId', header: 'Tool ID', sticky: 'left', width: '130px', sortable: true, filterable: true },
     { key: 'photo', header: 'Photo', kind: 'image', width: '70px', imageSize: 36 },
-    { key: 'fab', header: 'Fab', kind: 'dot', filterable: true,
+    { key: 'fab', header: 'Fab', kind: 'dot', filterable: true, editable: true, editType: 'select',
+      editOptions: FABS.map(f => ({ label: f, value: f })),
       dotClassMap: { 'Fab-A': 'bg-indigo-500', 'Fab-B': 'bg-sky-500', 'Fab-C': 'bg-amber-500' } },
-    { key: 'chamber', header: 'Chamber', filterable: true },
-    { key: 'status', header: 'Status', kind: 'badge', sortable: true, filterable: true, filterKind: 'checkbox',
+    { key: 'chamber', header: 'Chamber', filterable: true, editable: true, editType: 'text' },
+    { key: 'status', header: 'Status', kind: 'badge', sortable: true, filterable: true, filterKind: 'checkbox', summary: 'count',
       badgeClassMap: {
         PRODUCTION: 'bg-emerald-50 text-emerald-600',
         ENGINEERING: 'bg-sky-50 text-sky-600',
         STANDBY: 'bg-amber-50 text-amber-600',
         DOWN: 'bg-red-50 text-red-600'
       } },
-    { key: 'uptime', header: 'Uptime', kind: 'progress', width: '150px', sortable: true, align: 'left' },
+    { key: 'healthHeat', header: 'Health', kind: 'heat-cell', width: '110px', value: r => r.status, heatClassMap: this.healthHeatMap },
+    { key: 'uptime', header: 'Uptime', kind: 'progress', width: '150px', sortable: true, align: 'left',
+      editable: true, editType: 'number', summary: 'mean' },
     { key: 'alarms', header: 'Alarms', kind: 'number', align: 'right', sortable: true, filterable: true, filterKind: 'range',
-      cellClass: r => r.alarms > 30 ? 'text-red-600 font-bold' : '' },
+      summary: 'total', cellClass: r => r.alarms > 30 ? 'text-red-600 font-bold' : '' },
+    { key: 'downtimeCost', header: 'Downtime Cost', kind: 'number', align: 'right', sortable: true, width: '130px',
+      value: r => Math.round((r.alarms - 14) * 1240), abbreviateNumbers: true, summary: 'total' },
     { key: 'trendPct', header: 'WoW', kind: 'trend', align: 'center', trendBadWhenUp: false },
     { key: 'history', header: '8-run trend', kind: 'sparkline', width: '120px' },
     { key: 'lastMaint', header: 'Last Maint.', kind: 'date', sortable: true, filterable: true, filterKind: 'calendar',
       dateFormat: { day: '2-digit', month: 'short', year: 'numeric' } },
-    { key: 'quickActions', header: 'Quick', width: '130px', align: 'right', kind: 'row-actions',
+    { key: 'quickActions', header: 'Quick', width: '190px', align: 'right', kind: 'row-actions',
       rowActions: [
-        { type: 'view', title: 'View', run: r => this.log('view', r.toolId) },
-        { type: 'edit', title: 'Edit', isDisabled: r => r.status === 'DOWN', run: r => this.log('edit', r.toolId) },
-        { type: 'download', title: 'Download', run: r => this.log('download', r.toolId) },
-        { type: 'delete', title: 'Delete', isHidden: r => r.status === 'PRODUCTION', run: r => this.removeRow(r.toolId) }
+        { type: 'view', title: 'View', isHidden: r => !!r.isEditing, run: r => this.log('view', r.toolId) },
+        { type: 'edit', title: 'Edit', isHidden: r => !!r.isEditing, isDisabled: r => r.status === 'DOWN',
+          run: r => {
+            if (this.tableEditable()) { r.isEditing = true; this.log('edit start', r.toolId); }
+            else this.log('edit', r.toolId);
+          } },
+        { type: 'apply', title: 'Save', isHidden: r => !r.isEditing,
+          run: r => { r.isEditing = false; r.hasEditError = false; this.log('edit save', r.toolId); } },
+        { type: 'cancel', title: 'Cancel', isHidden: r => !r.isEditing,
+          run: r => { r.isEditing = false; this.log('edit cancel', r.toolId); } },
+        { type: 'download', title: 'Download', isHidden: r => !!r.isEditing, run: r => this.log('download', r.toolId) },
+        { type: 'delete', title: 'Delete', isHidden: r => !!r.isEditing || r.status === 'PRODUCTION', run: r => this.removeRow(r.toolId) }
       ] satisfies BaseRowAction<ToolRow>[] },
     { key: 'actions', header: 'Actions', sticky: 'right', width: '140px', align: 'right' }
   ]);

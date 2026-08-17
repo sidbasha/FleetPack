@@ -10,7 +10,7 @@ import {
   output,
   signal
 } from '@angular/core';
-import { BaseCalendarFilterValue, BaseCheckboxFilterValue, BaseRangeFilterValue } from '../../models/table.model';
+import { BaseCalendarFilterValue, BaseCheckboxFilterValue, BaseFilterOption, BaseRangeFilterValue } from '../../models/table.model';
 import { BaseDatepickerComponent } from '../base-datepicker.component';
 import { BaseTeleportDirective } from '../base-overlay.components';
 
@@ -32,6 +32,9 @@ export function computeFixedPopupPosition(el: HTMLElement, align: 'left' | 'righ
     ? { top: r.bottom + gap, right: Math.max(4, window.innerWidth - r.right) }
     : { top: r.bottom + gap, left: r.left };
 }
+
+/** Sentinel value for the synthetic "(No value)" option representing null/undefined/empty cells. */
+export const NO_VALUE = '__no_value__';
 
 /** Per-column value-filter dropdown for `<base-table>`: search, checkbox
  *  list, optional sort radios. Self-contained trigger + panel — the host owns
@@ -79,15 +82,20 @@ export function computeFixedPopupPosition(el: HTMLElement, align: 'left' | 'righ
                         focus:outline-none focus:ring-1 focus:ring-action-surface" />
           <div class="max-h-36 overflow-y-auto mb-2 flex flex-col gap-1">
             @for (o of filteredOptions(); track o.value) {
-              <label class="inline-flex items-center gap-1.5 text-[11px] text-ink-600 cursor-pointer">
+              <label class="inline-flex items-center gap-1.5 text-[11px] text-ink-600 cursor-pointer"
+                     [class.italic]="o.value === NO_VALUE">
                 <input type="checkbox" class="cb" [checked]="draftSelected().has(o.value)"
                        (change)="toggleOption(o.value)" />
-                {{ o.label }}
+                <span class="flex-1">{{ o.label }}</span>
+                @if (o.count !== undefined) { <span class="text-neutral-300 tabular-nums">{{ o.count }}</span> }
               </label>
             } @empty {
               <span class="text-[11px] text-neutral-300">No matches</span>
             }
           </div>
+          @if (options().length > VIRTUALIZE_ABOVE) {
+            <div class="text-[10px] text-neutral-300 mb-1">{{ options().length }} values — search to narrow down</div>
+          }
           <button type="button" class="btn-primary w-full justify-center" (click)="applyFilter()">Apply</button>
         </div>
       }
@@ -95,9 +103,15 @@ export function computeFixedPopupPosition(el: HTMLElement, align: 'left' | 'righ
   `
 })
 export class BaseCheckboxFilterComponent {
+  protected readonly NO_VALUE = NO_VALUE;
+  /** Past this many options, the list stops trying to be clever about layout — it's a plain
+   *  scrolling+searchable list either way; true windowed virtualization is deliberately out of
+   *  scope here (no rendering-perf issue has actually shown up at this list's max realistic size). */
+  protected readonly VIRTUALIZE_ABOVE = 200;
+
   readonly header = input('');
-  /** Unique column values to list. */
-  readonly options = input.required<{ value: string; label: string }[]>();
+  /** Unique column values to list, each with the record count it would match against every OTHER active filter. */
+  readonly options = input.required<BaseFilterOption[]>();
   /** Currently applied selection (seeds the draft when the panel opens). */
   readonly selected = input<string[]>([]);
   /** Show the Sort Asc/Desc radios (when the column is also sortable). */
@@ -213,11 +227,19 @@ export class BaseCheckboxFilterComponent {
                       aria-label="Close filter" (click)="close()">✕</button>
             </span>
           </div>
+          <div class="flex flex-wrap gap-1 mb-2">
+            @for (p of PRESETS; track p.label) {
+              <button type="button"
+                      class="rounded-r-full px-2 py-0.5 text-[10px] font-semibold transition-colors"
+                      [class]="draftPreset() === p.label ? 'bg-action text-neutral-0' : 'bg-neutral-100 text-ink-500 hover:bg-action-surface hover:text-action'"
+                      (click)="applyPreset(p)">{{ p.label }}</button>
+            }
+          </div>
           <base-datepicker label="Start Date" [value]="draftStart()" [showTime]="showTime()" [clearable]="true"
-                            (valueChange)="draftStart.set($event)" />
+                            (valueChange)="onManualDate('start', $event)" />
           <div class="h-2"></div>
           <base-datepicker label="End Date" [value]="draftEnd()" [showTime]="showTime()" [clearable]="true"
-                            [min]="draftStart()" (valueChange)="draftEnd.set($event)" />
+                            [min]="draftStart()" (valueChange)="onManualDate('end', $event)" />
           <button type="button" class="btn-primary w-full justify-center mt-2" (click)="applyFilter()">Apply</button>
         </div>
       }
@@ -225,6 +247,14 @@ export class BaseCheckboxFilterComponent {
   `
 })
 export class BaseCalendarFilterComponent {
+  /** Relative presets — spec-new, one-click: sets both bounds and applies immediately. */
+  protected readonly PRESETS = [
+    { label: 'Last shift', hours: 8 },
+    { label: 'Last 24 hours', hours: 24 },
+    { label: 'Last 7 days', hours: 24 * 7 },
+    { label: 'Last 30 days', hours: 24 * 30 }
+  ];
+
   readonly header = input('');
   readonly start = input<Date | null>(null);
   readonly end = input<Date | null>(null);
@@ -238,6 +268,8 @@ export class BaseCalendarFilterComponent {
   protected readonly open = signal(false);
   protected readonly draftStart = signal<Date | null>(null);
   protected readonly draftEnd = signal<Date | null>(null);
+  /** Set by a preset click; cleared the moment either date is hand-edited so a stale preset name never survives a manual tweak. */
+  protected readonly draftPreset = signal<string | null>(null);
   protected readonly panelPos = signal<FixedPopupPosition>({ top: 0 });
   private readonly host = inject(ElementRef<HTMLElement>);
   @ViewChild('panel') private panelRef?: ElementRef<HTMLElement>;
@@ -264,6 +296,7 @@ export class BaseCalendarFilterComponent {
     if (this.open()) { this.close(); return; }
     this.draftStart.set(this.start());
     this.draftEnd.set(this.end());
+    this.draftPreset.set(null);
     this.panelPos.set(computeFixedPopupPosition(this.host.nativeElement, this.align()));
     document.addEventListener('click', this.closeOnOutsideClick, true);
     document.addEventListener('scroll', this.closeOnScrollOrResize, true);
@@ -279,15 +312,41 @@ export class BaseCalendarFilterComponent {
     window.removeEventListener('resize', this.closeOnScrollOrResize);
   }
 
+  onManualDate(which: 'start' | 'end', value: Date | null): void {
+    this.draftPreset.set(null);
+    if (which === 'start') this.draftStart.set(value); else this.draftEnd.set(value);
+  }
+
+  applyPreset(p: { label: string; hours: number }): void {
+    const end = new Date();
+    const start = new Date(end.getTime() - p.hours * 3_600_000);
+    this.draftStart.set(start);
+    this.draftEnd.set(end);
+    this.draftPreset.set(p.label);
+    this.applyFilter();
+  }
+
   clearDraft(): void {
     this.draftStart.set(null);
     this.draftEnd.set(null);
+    this.draftPreset.set(null);
   }
 
   applyFilter(): void {
-    this.apply.emit({ start: this.draftStart(), end: this.draftEnd() });
+    this.apply.emit({ start: this.draftStart(), end: this.draftEnd(), preset: this.draftPreset() });
     this.close();
   }
+}
+
+/** Human label for an applied calendar filter — the preset name, or an open-ended/bounded phrase
+ *  built from whichever bounds are set. Both bounds are inclusive. */
+export function calendarFilterLabel(v: BaseCalendarFilterValue): string {
+  if (v.preset) return v.preset;
+  const fmt = (d: Date) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(d);
+  if (v.start && v.end) return `${fmt(v.start)} – ${fmt(v.end)}`;
+  if (v.start) return `After ${fmt(v.start)}`;
+  if (v.end) return `Before ${fmt(v.end)}`;
+  return '';
 }
 
 /** Per-column numeric range filter dropdown — From/To with inline validation. */
@@ -316,6 +375,14 @@ export class BaseCalendarFilterComponent {
                       aria-label="Close filter" (click)="close()">✕</button>
             </span>
           </div>
+          @if (buckets().length > 0) {
+            <div class="flex items-end gap-px h-10 mb-2" aria-hidden="true">
+              @for (b of buckets(); track $index) {
+                <span class="flex-1 rounded-t-xs" [class]="b.inRange ? 'bg-action' : 'bg-neutral-200'"
+                      [style.height.%]="b.pct" [title]="b.title"></span>
+              }
+            </div>
+          }
           <div class="flex items-center gap-1.5">
             <input type="number" [value]="draftFrom() ?? ''" (input)="onFrom($event)"
                    class="w-16 border border-neutral-200 rounded-r-sm px-1.5 py-1 text-[11px] text-center
@@ -336,9 +403,13 @@ export class BaseCalendarFilterComponent {
   `
 })
 export class BaseRangeFilterComponent {
+  private static readonly BUCKET_COUNT = 12;
+
   readonly header = input('');
   readonly from = input<number | null>(null);
   readonly to = input<number | null>(null);
+  /** All numeric values for this column (full row set) — powers the distribution histogram. Empty = no chart. */
+  readonly values = input<number[]>([]);
   readonly active = input(false);
   readonly align = input<'left' | 'right'>('left');
 
@@ -366,6 +437,30 @@ export class BaseRangeFilterComponent {
   protected readonly invalid = computed(() => {
     const f = this.draftFrom(), t = this.draftTo();
     return f !== null && t !== null && f > t;
+  });
+
+  /** Fixed-bucket histogram of `values()`, each bucket flagged whether it falls within the current
+   *  draft [from, to] so the chart previews what the filter would keep before Apply. */
+  protected readonly buckets = computed(() => {
+    const vals = this.values();
+    if (vals.length === 0) return [];
+    const min = Math.min(...vals), max = Math.max(...vals);
+    if (min === max) return [];
+    const n = BaseRangeFilterComponent.BUCKET_COUNT;
+    const width = (max - min) / n;
+    const counts = new Array(n).fill(0);
+    for (const v of vals) counts[Math.min(n - 1, Math.floor((v - min) / width))]++;
+    const maxCount = Math.max(...counts);
+    const f = this.draftFrom(), t = this.draftTo();
+    return counts.map((count, i) => {
+      const lo = min + i * width, hi = lo + width;
+      const inRange = (f === null || hi >= f) && (t === null || lo <= t);
+      return {
+        pct: count === 0 ? 2 : Math.max(6, Math.round((count / maxCount) * 100)),
+        inRange,
+        title: `${lo.toFixed(1)}–${hi.toFixed(1)}: ${count}`
+      };
+    });
   });
 
   @HostListener('document:keydown.escape')

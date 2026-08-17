@@ -1,6 +1,16 @@
+import { Component, signal } from '@angular/core';
 import type { Meta, StoryObj } from '@storybook/angular';
 import { moduleMetadata } from '@storybook/angular';
-import { AdditionalHeaderGroup, BaseChildCellDirective, BaseChildFooterDirective, BaseColumnDef, BaseRowAction, BaseTableComponent } from '../../app/base';
+import {
+  AdditionalHeaderGroup,
+  BaseChildCellDirective,
+  BaseChildFooterDirective,
+  BaseColumnDef,
+  BaseRowAction,
+  BaseTableComponent,
+  BaseTableView,
+  BaseTableViewsComponent
+} from '../../app/base';
 
 interface ToolRow {
   toolId: string;
@@ -178,8 +188,83 @@ const TYPED_ACTION_COLUMNS: BaseColumnDef<ToolRow>[] = [
 
 const ADDITIONAL_HEADER_GROUPS: AdditionalHeaderGroup[] = [
   { displayName: 'Identity', columnIds: ['toolId', 'fab'] },
-  { displayName: 'Performance', columnIds: ['uptime', 'alarms'] }
+  { displayName: 'Performance', columnIds: ['uptime', 'alarms'] },
+  { displayName: 'Maintenance', columnIds: ['lastMaint'] }
 ];
+
+/** kind 'number' + `abbreviateNumbers` (1.2K/84K, full value in a tooltip); negative values get
+ *  automatic error-toned styling regardless — no per-column opt-in needed for that part. */
+const METRIC_COLUMNS: BaseColumnDef<ToolRow>[] = [
+  { key: 'toolId', header: 'Tool', sortable: true },
+  { key: 'fab', header: 'Fab' },
+  {
+    key: 'downtimeCost', header: 'Downtime Cost ($)', kind: 'number', align: 'right', sortable: true,
+    value: (r) => Math.round((r.alarms - 14) * 1240), abbreviateNumbers: true
+  }
+];
+
+const HEALTH_HEAT_MAP: Record<string, string> = {
+  PRODUCTION: 'bg-success-surface text-success-hover',
+  ENGINEERING: 'bg-action-surface text-action-hover',
+  STANDBY: 'bg-warning-surface text-warning-hover',
+  DOWN: 'bg-error-surface text-error-hover'
+};
+
+/** kind 'heat-cell' — a full-cell colored block for a value read against a threshold. Never
+ *  color alone: the value text is always shown alongside the tint. */
+const HEAT_CELL_COLUMNS: BaseColumnDef<ToolRow>[] = [
+  { key: 'toolId', header: 'Tool', sortable: true },
+  { key: 'fab', header: 'Fab' },
+  { key: 'status', header: 'Health', kind: 'heat-cell', heatClassMap: HEALTH_HEAT_MAP, width: '140px' },
+  { key: 'uptime', header: 'Uptime %', kind: 'number', align: 'right' }
+];
+
+/** Five typed actions on one row — with `[maxVisibleActions]="2"` only the first two show inline,
+ *  the rest collapse into a "⋯" overflow menu. */
+const MANY_ACTION_COLUMNS: BaseColumnDef<ToolRow>[] = [
+  { key: 'toolId', header: 'Tool', sortable: true },
+  { key: 'fab', header: 'Fab' },
+  { key: 'status', header: 'Status', kind: 'badge', badgeClassMap: STATUS_BADGE_MAP },
+  {
+    key: 'actions', header: '', align: 'right', width: '160px', kind: 'row-actions',
+    rowActions: [
+      { type: 'view', title: 'View', run: () => {} },
+      { type: 'edit', title: 'Edit', run: () => {} },
+      { type: 'download', title: 'Download', run: () => {} },
+      { type: 'history', title: 'History', run: () => {} },
+      { type: 'delete', title: 'Delete', run: () => {} }
+    ] satisfies BaseRowAction<ToolRow>[]
+  }
+];
+
+/** [showSummary] pins a real `<tfoot>` aggregate row over the FILTERED set (not just the page). */
+const SUMMARY_COLUMNS: BaseColumnDef<ToolRow>[] = [
+  { key: 'toolId', header: 'Tool', sortable: true },
+  { key: 'fab', header: 'Fab' },
+  { key: 'status', header: 'Status', kind: 'badge', badgeClassMap: STATUS_BADGE_MAP, summary: 'count' },
+  { key: 'uptime', header: 'Uptime %', kind: 'number', align: 'right', summary: 'mean' },
+  { key: 'alarms', header: 'Alarms', kind: 'number', align: 'right', summary: 'total' }
+];
+
+/** [editableRows] + `editable`/`editType` per column: while `row.isEditing` is true, those cells
+ *  render live controls; the table only reflects/gates state — the host owns save/cancel. */
+const EDITABLE_COLUMNS: BaseColumnDef<ToolRow>[] = [
+  { key: 'toolId', header: 'Tool' },
+  { key: 'fab', header: 'Fab', editable: true, editType: 'select', editOptions: FABS.map((f) => ({ label: f, value: f })) },
+  { key: 'uptime', header: 'Uptime %', kind: 'number', align: 'right', editable: true, editType: 'number' },
+  {
+    key: 'actions', header: '', align: 'right', width: '90px', kind: 'row-actions',
+    rowActions: [
+      { type: 'edit', title: 'Edit row', isHidden: (r: any) => !!r.isEditing, run: (r: any) => { r.isEditing = true; } },
+      { type: 'apply', title: 'Save', isHidden: (r: any) => !r.isEditing, run: (r: any) => { r.isEditing = false; } },
+      { type: 'cancel', title: 'Cancel', isHidden: (r: any) => !r.isEditing, run: (r: any) => { r.isEditing = false; } }
+    ]
+  }
+];
+
+/** Own copy, not `ROWS` — the Edit action mutates `row.isEditing` in place, and `ROWS` is shared
+ *  across every story in this file. */
+const EDITABLE_ROWS: ToolRow[] = ROWS.slice(0, 6).map((r) => ({ ...r }));
 
 const meta: Meta<BaseTableComponent<ToolRow>> = {
   title: 'Base/Tables & Data/Table',
@@ -188,6 +273,8 @@ const meta: Meta<BaseTableComponent<ToolRow>> = {
   argTypes: {
     selectable: { control: 'select', options: ['none', 'single', 'multiple'] },
     groupHeaderStyle: { control: 'select', options: ['accent', 'plain', 'light'] },
+    emptyKind: { control: 'select', options: [null, 'no-results', 'no-access', 'no-data', 'out-of-range', 'not-configured', 'custom'] },
+    scrollTriggerPosition: { control: 'select', options: ['top', 'bottom'] },
     groupBy: { control: false },
     childColumns: { control: false },
     childRowsOf: { control: false },
@@ -209,7 +296,19 @@ const meta: Meta<BaseTableComponent<ToolRow>> = {
     manageColumns: false,
     enableScroll: false,
     scrollLoading: false,
-    highlightKey: null
+    scrollTriggerPosition: 'bottom',
+    scrollEnd: false,
+    highlightKey: null,
+    loading: false,
+    loadingRowCount: 5,
+    error: false,
+    errorMessage: '',
+    emptyKind: null,
+    showSummary: false,
+    editableRows: false,
+    maxVisibleActions: 2,
+    serverSide: false,
+    totalItems: 0
   },
   render: (args) => ({
     props: args,
@@ -221,7 +320,11 @@ const meta: Meta<BaseTableComponent<ToolRow>> = {
       [groupBy]="groupBy" [groupHeaderStyle]="groupHeaderStyle" [groupActionLabel]="groupActionLabel"
       [maxHeight]="maxHeight" [minWidth]="minWidth" [additionalHeader]="additionalHeader"
       [manageColumns]="manageColumns" [enableScroll]="enableScroll" [scrollLoading]="scrollLoading"
+      [scrollTriggerPosition]="scrollTriggerPosition" [scrollEnd]="scrollEnd"
       [highlightKey]="highlightKey"
+      [loading]="loading" [loadingRowCount]="loadingRowCount" [error]="error" [errorMessage]="errorMessage"
+      [emptyKind]="emptyKind" [showSummary]="showSummary" [editableRows]="editableRows"
+      [maxVisibleActions]="maxVisibleActions" [serverSide]="serverSide" [totalItems]="totalItems"
       [expandable]="expandable" [childColumns]="childColumns" [childRowsOf]="childRowsOf"
       [childPaginate]="childPaginate" [childShowSearch]="childShowSearch" />`
   })
@@ -236,7 +339,10 @@ export const AllCellKinds: Story = {
   args: { columns: ALL_KIND_COLUMNS, minWidth: '1550px', showSearch: false }
 };
 
-/** `sticky: 'left' | 'right'` + a fixed `width` pins a column while the rest scrolls horizontally. */
+/** `sticky: 'left' | 'right'` + a fixed `width` pins a column while the rest scrolls horizontally —
+ *  `toolId` (left) and the actions column (right) are pinned together here, on top of `stickyHeader`,
+ *  so all three axes (header, left column, right column) hold at once. Resize the canvas/browser
+ *  under ~720px and the right-frozen group unfreezes automatically (left stays pinned). */
 export const StickyColumns: Story = {
   args: { columns: STICKY_COLUMNS, minWidth: '900px', maxHeight: '360px', stickyHeader: true, showSearch: false }
 };
@@ -275,7 +381,9 @@ export const ManageColumns: Story = {
   args: { columns: STICKY_COLUMNS, manageColumns: true, minWidth: '900px', showSearch: false }
 };
 
-/** `[additionalHeader]` renders a merged/grouped label row above the normal header; `columnIds` auto-recomputes the colspan. */
+/** `[additionalHeader]` renders a merged/grouped label row above the normal header; `columnIds`
+ *  auto-recomputes the colspan. Each group gets its own hue, rotating through the semantic
+ *  surface-tone palette (never repeating one color across groups), and carries `scope="colgroup"`. */
 export const AdditionalHeaderRow: Story = {
   args: { additionalHeader: ADDITIONAL_HEADER_GROUPS, showSearch: false }
 };
@@ -377,4 +485,157 @@ export const NestedRowsWithCustomCell: Story = {
   })
 };
 
+/**
+ * "New in v2.0" — `<base-table-views>` paired with a real `<base-table>`. Sort a column, filter,
+ * or search below and watch the active tab pick up a "Modified" badge; Update/Reset/Save-as-new
+ * light up on the rail. The rail is fully controlled (see its own class doc) — this demo's host
+ * component owns the view list and derives "modified" off the table's own (sortChange)/
+ * (filterChange)/(manageColumn) events, since those are the only pieces of filter/sort state the
+ * table currently exposes outward; it does not re-apply a selected view's filters onto the table
+ * (that needs the table's internal filter/sort signals to become host-controlled inputs, which is
+ * a bigger API change than this component pair takes on today).
+ */
+@Component({
+  selector: 'story-table-with-views-demo',
+  standalone: true,
+  imports: [BaseTableComponent, BaseTableViewsComponent],
+  template: `
+    <div class="space-y-3">
+      <div class="panel px-2">
+        <base-table-views [views]="views()" [activeViewId]="activeViewId()" [modified]="modified()"
+                           (activeViewIdChange)="onSwitch($event)" (save)="onSave($event)"
+                           (update)="onUpdate()" (reset)="onReset()" (copyLink)="log.set('Copied link to current view')" />
+      </div>
+      <base-table class="panel block overflow-hidden"
+        [columns]="columns" [rows]="rows" trackKey="toolId" maxHeight="360px" minWidth="900px"
+        (sortChange)="onStateChanged()" (filterChange)="onStateChanged()" (manageColumn)="onStateChanged()" />
+      <p class="text-[11px] text-neutral-400 px-1">{{ log() }}</p>
+    </div>
+  `
+})
+class StoryTableWithViewsDemoComponent {
+  readonly columns = BASIC_COLUMNS;
+  readonly rows = ROWS;
+
+  readonly views = signal<BaseTableView[]>([
+    { id: 'all', label: 'All', isDefault: true },
+    { id: 'down', label: 'Down tools', pinned: true },
+    { id: 'shared-fab-a', label: 'Fab-A only', pinned: true, shared: true, readOnly: true }
+  ]);
+  readonly activeViewId = signal('all');
+  readonly modified = signal(false);
+  readonly log = signal('Sort, filter, or search the table below — watch the rail react.');
+
+  onStateChanged(): void {
+    if (this.modified()) return;
+    this.modified.set(true);
+    this.log.set('Live table state changed — active view marked "Modified"');
+  }
+
+  onSwitch(id: string): void {
+    this.activeViewId.set(id);
+    this.modified.set(false);
+    this.log.set(`Switched to "${this.views().find((v) => v.id === id)?.label}"`);
+  }
+
+  onSave(label: string): void {
+    const id = `${label.toLowerCase().replace(/\s+/g, '-')}-${Date.now().toString(36)}`;
+    this.views.update((v) => [...v, { id, label }]);
+    this.activeViewId.set(id);
+    this.modified.set(false);
+    this.log.set(`Saved new view "${label}"`);
+  }
+
+  onUpdate(): void {
+    this.modified.set(false);
+    this.log.set(`Updated "${this.views().find((v) => v.id === this.activeViewId())?.label}" with the current state`);
+  }
+
+  onReset(): void {
+    this.modified.set(false);
+    this.log.set('Reverted — "modified" cleared (the demo does not restore prior sort/filter values, see class doc)');
+  }
+}
+
+export const WithSavedViewsRail: StoryObj<StoryTableWithViewsDemoComponent> = {
+  decorators: [moduleMetadata({ imports: [StoryTableWithViewsDemoComponent] })],
+  render: () => ({ template: `<story-table-with-views-demo />` })
+};
+
 export const Empty: Story = { args: { rows: [], showSearch: false } };
+
+/** `emptyKind` auto-picks 'no-results' (with a "Clear all filters" action) when a search/filter is
+ *  active, or 'no-data' when there simply isn't any yet — override explicitly via `[emptyKind]`. */
+export const EmptyNoDataYet: Story = { args: { rows: [], emptyKind: 'no-data', showSearch: false } };
+
+/** `abbreviateNumbers` shows 1.2K/84K with the exact value in a tooltip; negative values (a
+ *  data type behavior, not an opt-in) get error-toned text automatically either way. */
+export const AbbreviatedAndNegativeNumbers: Story = {
+  args: { columns: METRIC_COLUMNS, showSearch: false }
+};
+
+/** kind 'heat-cell' — a full-cell tint read against a threshold, value text always shown alongside it. */
+export const HeatCells: Story = { args: { columns: HEAT_CELL_COLUMNS, showSearch: false } };
+
+/** `[maxVisibleActions]="2"` — only the first two typed actions render inline; the rest collapse
+ *  into a "⋯" overflow menu (click it in the canvas). */
+export const RowActionsOverflow: Story = {
+  args: { columns: MANY_ACTION_COLUMNS, maxVisibleActions: 2, showSearch: false }
+};
+
+/** `[readOnly]="true"` REMOVES mutating actions (edit/delete/…) from the row entirely rather than
+ *  merely greying them out — only view/copy/download/run/history/more survive. */
+export const ReadOnlyRemovesMutatingActions: Story = {
+  args: { columns: MANY_ACTION_COLUMNS, readOnly: true, showSearch: false }
+};
+
+/** No rows yet — skeleton rows sized to the current density, in place of the table body. */
+export const LoadingInitial: Story = { args: { loading: true, rows: [], showSearch: false } };
+
+/** Rows already on screen, refreshing in the background — existing rows dim to 60% (not replaced
+ *  by skeletons) and the paginator/footer stays put and interactive-looking either way. */
+export const LoadingBackgroundRefresh: Story = { args: { loading: true, showSearch: false } };
+
+/** Something actually failed — a recoverable error state (distinct from an empty result), with a
+ *  Retry action wired to `(retry)`. */
+export const ErrorWithRetry: Story = {
+  args: { error: true, errorMessage: 'The fleet service timed out after 3 attempts.', retryLabel: 'Retry', showSearch: false }
+};
+
+/** `[showSummary]` pins a real `<tfoot>` aggregate row (never a styled div) over the FILTERED —
+ *  not just the current page's — row set. Per-column `summary` picks the function. */
+export const SummaryFooter: Story = {
+  args: { columns: SUMMARY_COLUMNS, showSummary: true, showSearch: false }
+};
+
+/** `[editableRows]` + `editable`/`editType` per column. Click a row's Edit action: its editable
+ *  cells swap to live controls, the row tints amber, and sort/filter/paging block with a banner
+ *  until every dirty row is saved or cancelled (see the Edit/Save/Cancel row actions). */
+export const InlineEdit: Story = {
+  args: { columns: EDITABLE_COLUMNS, rows: EDITABLE_ROWS, showSearch: false, paginate: false }
+};
+
+/** `[serverSide]="true"` with `[totalItems]="0"` (unknown total): the paginator drops page numbers
+ *  for "Showing X–Y" + a Next button gated by a full-page heuristic (or `[hasNextPage]` if the host
+ *  knows better) — never a fabricated total. */
+export const UnknownTotalServerSide: Story = {
+  args: { serverSide: true, totalItems: 0, rows: ROWS.slice(0, 10), paginate: true, showSearch: false }
+};
+
+/** `[enableScroll]` + `[scrollEnd]="true"` — once there's nothing left to fetch, the loader row is
+ *  replaced by an end-of-list message instead of spinning forever. */
+export const InfiniteScrollEnded: Story = {
+  args: { enableScroll: true, scrollLoading: false, scrollEnd: true, maxHeight: '360px', paginate: false, showSearch: false }
+};
+
+/** `[scrollTriggerPosition]="'top'"` — for "load older items" patterns, the loader/end row renders
+ *  above the data instead of below it. */
+export const InfiniteScrollTopTrigger: Story = {
+  args: { enableScroll: true, scrollLoading: true, scrollTriggerPosition: 'top', maxHeight: '360px', paginate: false, showSearch: false }
+};
+
+/** A numeric range filter is exclusive with sort and every other filter — apply one on Uptime %,
+ *  then notice the banner and that the search box/other filter icons are inert until it's cleared. */
+export const RangeFilterBlocksOtherInteractions: Story = {
+  args: { columns: RANGE_FILTER_COLUMNS, showSearch: true }
+};

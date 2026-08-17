@@ -1,4 +1,4 @@
-import { BaseColumnDef, BaseLegacyRowAction, BaseRow, BaseRowAction, ROW_ACTION_ICON } from '../models/table.model';
+import { BaseColumnDef, BaseLegacyRowAction, BaseRow, BaseRowAction, BaseSummaryFn, ROW_ACTION_ICON } from '../models/table.model';
 
 /** Pure (column, row) → value/text/class formatters for `<base-table>` cells,
  *  shared by `BaseTableComponent` (filtering/sorting/search) and
@@ -33,7 +33,34 @@ export function numberText<T>(c: BaseColumnDef<T>, row: T): string {
   const v = cellValue(c, row);
   if (c.format) return c.format(row, v);
   if (v === null || v === undefined || v === '') return '—';
+  const n = Number(v);
+  return c.abbreviateNumbers ? abbreviateNumber(n) : new Intl.NumberFormat(undefined, c.numberFormat).format(n);
+}
+
+/** Full, unabbreviated value for the tooltip on an abbreviated number cell. */
+export function numberFullText<T>(c: BaseColumnDef<T>, row: T): string {
+  const v = cellValue(c, row);
+  if (v === null || v === undefined || v === '') return '';
   return new Intl.NumberFormat(undefined, c.numberFormat).format(Number(v));
+}
+
+/** 1,234,567 → "1.2M"; 84,200 → "84.2K"; leaves anything under 1,000 (and non-finite values) as-is. */
+export function abbreviateNumber(n: number): string {
+  if (!isFinite(n)) return String(n);
+  const abs = Math.abs(n);
+  const [div, suffix] =
+    abs >= 1_000_000_000 ? [1_000_000_000, 'B'] :
+    abs >= 1_000_000 ? [1_000_000, 'M'] :
+    abs >= 1_000 ? [1_000, 'K'] : [1, ''];
+  if (div === 1) return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n);
+  return `${(n / div).toFixed(1).replace(/\.0$/, '')}${suffix}`;
+}
+
+/** kind 'number': negative values get distinct (error-toned) styling on top of any `cellClass`/`clickable` treatment. */
+export function numberCellClass<T>(c: BaseColumnDef<T>, row: T): string {
+  const base = extraClass(c, row);
+  const v = Number(cellValue(c, row));
+  return !isNaN(v) && v < 0 ? `${base} text-error`.trim() : base;
 }
 
 export function dateText<T>(c: BaseColumnDef<T>, row: T): string {
@@ -134,6 +161,55 @@ export function sparkData<T>(c: BaseColumnDef<T>, row: T): number[] {
 export function downloadProgress<T>(row: T): number | null {
   const p = (row as BaseRow).fileProgress;
   return typeof p === 'number' && p > 0 ? Math.round(p) : null;
+}
+
+/** kind 'heat-cell': value → full-cell classes. Falls back to a neutral block so an unmapped value
+ *  still reads as "measured, no signal" rather than silently rendering unstyled. */
+export function heatClass<T>(c: BaseColumnDef<T>, row: T): string {
+  return c.heatClassMap?.[String(cellValue(c, row))] ?? 'bg-neutral-100 text-ink-500';
+}
+
+/** Numeric source for a summary aggregate: `value()`/`format`-independent — always the raw number. */
+function summaryNumbers<T>(c: BaseColumnDef<T>, rows: T[]): number[] {
+  return rows
+    .map(r => Number(cellValue(c, r)))
+    .filter(n => !isNaN(n));
+}
+
+/** Computes one column's footer aggregate over the given (already-filtered) row set. Returns null
+ *  when there's nothing to show (no rows, or 'none'). */
+export function computeSummary<T>(c: BaseColumnDef<T>, rows: T[]): number | null {
+  const fn = c.summary;
+  if (!fn || fn === 'none') return null;
+  if (fn === 'outOfSpec') return c.summaryOutOfSpec ? rows.filter(r => c.summaryOutOfSpec!(r)).length : null;
+  if (fn === 'count') return rows.length;
+  const nums = summaryNumbers(c, rows);
+  if (nums.length === 0) return null;
+  switch (fn) {
+    case 'total': return nums.reduce((a, b) => a + b, 0);
+    case 'mean': return nums.reduce((a, b) => a + b, 0) / nums.length;
+    case 'min': return Math.min(...nums);
+    case 'max': return Math.max(...nums);
+    case 'median': {
+      const sorted = [...nums].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    }
+  }
+}
+
+/** Label prefix for a summary value, e.g. "Total" / "Mean" / "Out of spec". */
+export const SUMMARY_LABEL: Record<BaseSummaryFn, string> = {
+  total: 'Total', mean: 'Mean', median: 'Median', min: 'Min', max: 'Max',
+  count: 'Count', outOfSpec: 'Out of spec', none: ''
+};
+
+export function formatSummary<T>(c: BaseColumnDef<T>, value: number): string {
+  if (c.summaryFormat) return c.summaryFormat(value);
+  return new Intl.NumberFormat(undefined, c.summary === 'outOfSpec' || c.summary === 'count'
+    ? { maximumFractionDigits: 0 }
+    : (c.numberFormat ?? { maximumFractionDigits: 1 })
+  ).format(value);
 }
 
 function isTypedAction<T>(a: BaseRowAction<T> | BaseLegacyRowAction<T>): a is BaseRowAction<T> {

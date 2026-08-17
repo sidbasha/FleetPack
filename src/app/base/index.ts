@@ -8,6 +8,7 @@ export * from './components/table/base-table.component';
 export * from './components/table/base-table-cell.component';
 export * from './components/table/base-column-filters.components';
 export * from './components/table/base-manage-columns.component';
+export * from './components/table/base-table-views.component';
 export * from './utils/table-cell.utils';
 export * from './components/table/base-paginator.component';
 export * from './components/base-ui.components';

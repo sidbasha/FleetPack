@@ -23,12 +23,18 @@ export type BaseCellKind =
   | 'sparkline' // mini line chart, value = number[]
   | 'link'      // anchor; href from linkHref(row)
   | 'row-actions' // small icon buttons, e.g. delete/edit
+  | 'heat-cell' // full-cell colored block for a value measured against a threshold (never color alone — value text always shown)
   | 'template'; // custom ng-template (see BaseCellDirective)
 
 /** Column filter UI. Unset (with `filterable: true`) keeps the classic text filter-row input. */
 export type BaseColumnFilterKind = 'text' | 'checkbox' | 'calendar' | 'range';
 
-/** 16 built-in row-action types (icons resolved via ROW_ACTION_ICON below). */
+/** Per-column footer aggregate, rendered in `<base-table>`'s `<tfoot>` when [showSummary] is on.
+ *  Computed over the currently FILTERED row set (not just the current page). 'total' is meant for
+ *  additive columns (counts, durations) — for rate/percentage columns use 'mean' instead. */
+export type BaseSummaryFn = 'total' | 'mean' | 'median' | 'min' | 'max' | 'count' | 'outOfSpec' | 'none';
+
+/** 17 built-in row-action types (icons resolved via ROW_ACTION_ICON below). */
 export type RowActionType =
   | 'add' | 'click' | 'copy' | 'delete' | 'download' | 'edit' | 'more' | 'reset'
   | 'run' | 'upload' | 'view' | 'cancel' | 'history' | 'revert' | 'apply' | 'disable' | 'enable';
@@ -69,6 +75,31 @@ export interface AdditionalHeaderGroup {
   colSpan?: number;
   /** When set, colSpan auto-recalculates from how many of these keys are currently visible. */
   columnIds?: string[];
+}
+
+/** One option in a `<base-checkbox-filter>` list. `count` is the number of rows that would match
+ *  if this value were selected, evaluated against every OTHER active filter (never this column's
+ *  own) so the count reflects "what you'd get", not the current unfiltered total. */
+export interface BaseFilterOption {
+  value: string;
+  label: string;
+  count?: number;
+}
+
+/** One saved/pinned view in a `<base-table-views>` rail. `state` is an opaque snapshot the host
+ *  produces and compares — `<base-table-views>` never reads inside it, it just carries it. */
+export interface BaseTableView<S = unknown> {
+  id: string;
+  label: string;
+  /** Pinned tabs always show, up to 4. Unpinned saved views overflow into a "More views" menu. */
+  pinned?: boolean;
+  /** Shared by another user — editable only by its owner; everyone else sees it read-only. */
+  shared?: boolean;
+  /** True for the current viewer specifically (derived from `shared` + ownership upstream). */
+  readOnly?: boolean;
+  /** The unmodifiable "All" view — no Save/Update/Reset, always present, always first. */
+  isDefault?: boolean;
+  state?: S;
 }
 
 export interface BaseColumnDef<T = BaseRow> {
@@ -140,6 +171,28 @@ export interface BaseColumnDef<T = BaseRow> {
   barValue?: (row: T) => number;
   /** kind 'row-actions': typed built-in actions and/or freeform icon buttons. */
   rowActions?: (BaseRowAction<T> | BaseLegacyRowAction<T>)[];
+  /** kind 'heat-cell': value → full-cell background/text classes, e.g. { ok: 'bg-success-surface text-success-hover', ... }. */
+  heatClassMap?: Record<string, string>;
+
+  // ── data-type behaviour ──
+  /** kind 'number': show an abbreviated form (1.2M / 84K) with the exact formatted value in a tooltip. */
+  abbreviateNumbers?: boolean;
+
+  // ── inline edit (see [editableRows] on <base-table>) ──
+  /** Row is editable AND this column opts in: while `row.isEditing` is true, this cell renders an
+   *  inline control instead of its display value. Ignored unless the table's [editableRows] is on. */
+  editable?: boolean;
+  editType?: 'text' | 'number' | 'select';
+  /** kind-agnostic 'select' edit control options. */
+  editOptions?: { label: string; value: string }[];
+
+  // ── column summary footer (see [showSummary] on <base-table>) ──
+  /** Aggregate shown for this column in the summary `<tfoot>` row. Computed over numeric `value()`,
+   *  except 'outOfSpec' which counts rows where `summaryOutOfSpec(row)` is true. */
+  summary?: BaseSummaryFn;
+  summaryOutOfSpec?: (row: T) => boolean;
+  /** Formats the computed aggregate. Default: locale number, or `format` if the column has one. */
+  summaryFormat?: (value: number) => string;
 }
 
 export interface BaseSortEvent {
@@ -185,16 +238,26 @@ export interface BaseCheckboxFilterValue {
   sort: 'asc' | 'desc' | null;
 }
 
-/** Emitted by the calendar column filter's Apply button. */
+/** Emitted by the calendar column filter's Apply button (or a one-click preset). */
 export interface BaseCalendarFilterValue {
   start: Date | null;
   end: Date | null;
+  /** Set when a relative preset ("Last 7 days"…) produced this range, for chip/label text. Absent for a manual range. */
+  preset?: string | null;
 }
 
 /** Emitted by the numeric range column filter's Apply button. */
 export interface BaseRangeFilterValue {
   from: number | null;
   to: number | null;
+}
+
+/** Emitted by `<base-table>` when an inline-edit control's value changes (see [editableRows]). The
+ *  table never commits this itself — it's display-only feedback; the host owns save/cancel/validation. */
+export interface BaseCellEditEvent<T = BaseRow> {
+  row: T;
+  column: BaseColumnDef<T>;
+  value: unknown;
 }
 
 /** Infinite-scroll position, emitted by (scrollEvent) when [enableScroll] is on. */

@@ -2,6 +2,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   computed,
   contentChildren,
@@ -22,9 +23,11 @@ import {
   AdditionalHeaderGroup,
   BaseCalendarFilterValue,
   BaseCellClickEvent,
+  BaseCellEditEvent,
   BaseCheckboxFilterValue,
   BaseColumnDef,
   BaseFilterEvent,
+  BaseFilterOption,
   BaseHandleActionEvent,
   BaseManageColumnsEvent,
   BasePageEvent,
@@ -34,10 +37,17 @@ import {
   BaseScrollEvent,
   BaseSortEvent
 } from '../../models/table.model';
-import { cellText as getCellText, cellValue as getCellValue, rowTooltipText as getRowTooltipText } from '../../utils/table-cell.utils';
-import { BaseCalendarFilterComponent, BaseCheckboxFilterComponent, BaseRangeFilterComponent } from './base-column-filters.components';
+import {
+  cellText as getCellText,
+  cellValue as getCellValue,
+  computeSummary,
+  formatSummary,
+  rowTooltipText as getRowTooltipText,
+  SUMMARY_LABEL
+} from '../../utils/table-cell.utils';
+import { BaseCalendarFilterComponent, BaseCheckboxFilterComponent, BaseRangeFilterComponent, calendarFilterLabel, NO_VALUE } from './base-column-filters.components';
 import { BaseManageColumnsComponent, ManageColumnItem } from './base-manage-columns.component';
-import { BaseTooltipDirective } from '../base-overlay.components';
+import { BaseSkeletonComponent, BaseTooltipDirective } from '../base-overlay.components';
 import { BasePaginatorComponent, BaseSearchInputComponent } from './base-paginator.component';
 import { BaseTableCellComponent } from './base-table-cell.component';
 import { BaseEmptyStateComponent, BaseLoadingComponent } from '../base-ui.components';
@@ -55,12 +65,26 @@ interface AdditionalHeaderCell {
   key?: string;
 }
 
+/** Below 720px wide, a right-frozen column group unfreezes (falls back into normal scroll) — a
+ *  narrow viewport doesn't have room for two axes of pinned content at once. Left-frozen columns
+ *  are unaffected; they're usually the row's own identity and stay put. */
+const NARROW_VIEWPORT_PX = 720;
+
+/** Rotating hue per merged-header group, from the semantic surface-tone palette (never re-uses
+ *  the plain header row's neutral background, so grouped columns read as visually related). */
+const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-success-surface/60', 'bg-warning-surface/60', 'bg-info-surface/60'];
+
 /** Core reusable data table: dynamic columns, client- or server-side
  *  pagination/filter/sort, per-column custom cell templates
  *  (`<ng-template baseCell="key">`) or built-in cell kinds, sticky
- *  header/columns, drag reorder + show/hide via Manage Columns, typed row
- *  actions, merged header rows, row highlight/auto-scroll, and infinite
- *  scroll. In server-side mode ([serverSide]="true") the table only emits
+ *  header/columns (both axes at once, unfreezing the right group under
+ *  720px), drag reorder + show/hide via Manage Columns, typed row
+ *  actions (max [maxVisibleActions] inline + overflow), merged header rows
+ *  (one hue per group), row highlight/auto-scroll, infinite scroll (top or
+ *  bottom trigger, with an end-of-list state), loading/error/empty states,
+ *  a column summary footer, and opt-in inline cell editing that blocks
+ *  sort/filter/page while rows are dirty. In server-side mode
+ *  ([serverSide]="true") the table only emits
  *  (filterChange)/(sortChange)/(pageChange) — the host fetches and passes
  *  back the current page. See src/app/base/README.md for the full feature list. */
 @Component({
@@ -77,6 +101,7 @@ interface AdditionalHeaderCell {
     BaseTableCellComponent,
     BaseEmptyStateComponent,
     BaseLoadingComponent,
+    BaseSkeletonComponent,
     BaseTooltipDirective,
     BaseCheckboxFilterComponent,
     BaseCalendarFilterComponent,
@@ -111,6 +136,18 @@ interface AdditionalHeaderCell {
       </div>
     }
 
+    @if (hasEditingRows()) {
+      <div class="flex items-center gap-2 px-4 py-2 bg-warning-surface border-b border-warning/30 text-[11px] text-warning-hover font-medium">
+        <span class="icon-outline" style="font-size:14px;" aria-hidden="true">edit_note</span>
+        {{ editingCount() }} row{{ editingCount() === 1 ? '' : 's' }} being edited — save or cancel before sorting, filtering, or changing pages.
+      </div>
+    } @else if (hasRangeFilterActive()) {
+      <div class="flex items-center gap-2 px-4 py-2 bg-action-surface border-b border-action/20 text-[11px] text-action-hover font-medium">
+        <span class="icon-outline" style="font-size:14px;" aria-hidden="true">filter_alt</span>
+        Range filter active — other filters and sorting are paused until it's cleared.
+      </div>
+    }
+
     <div class="overflow-x-auto" [style.maxHeight]="maxHeight() || null" [style.overflowY]="maxHeight() ? 'auto' : null"
          (scroll)="onScroll($event)">
       <table class="w-full" [style.minWidth]="minWidth() || null">
@@ -129,7 +166,8 @@ interface AdditionalHeaderCell {
                       [style.left]="stickyMeta()[cell.key!]?.left ?? null"
                       [style.right]="stickyMeta()[cell.key!]?.right ?? null"></th>
                 } @else {
-                  <th class="table-th text-center bg-action-surface/60" [attr.colspan]="cell.span">{{ cell.group!.displayName }}</th>
+                  <th [class]="'table-th text-center ' + headerGroupClass(cell.group!)" [attr.colspan]="cell.span"
+                      [attr.scope]="'colgroup'">{{ cell.group!.displayName }}</th>
                 }
               }
             </tr>
@@ -140,7 +178,8 @@ interface AdditionalHeaderCell {
             }
             @if (selectable() === 'multiple') {
               <th class="table-th w-8" [class.bt-sticky-th]="hasLeftSticky()" [style.left]="leadingStickyLeft('checkbox')">
-                <input type="checkbox" [checked]="allSelected()" [disabled]="isDisableSelectAll() || readOnly()"
+                <input type="checkbox" [checked]="allSelected()" [indeterminate]="someSelected()"
+                       [disabled]="isDisableSelectAll() || readOnly()"
                        (change)="toggleAll($event)" aria-label="Select all rows" />
               </th>
             }
@@ -148,7 +187,8 @@ interface AdditionalHeaderCell {
               <th class="table-th select-none"
                   [class.text-right]="c.align === 'right'"
                   [class.text-center]="c.align === 'center'"
-                  [class.cursor-pointer]="c.sortable && !readOnly()"
+                  [class.cursor-pointer]="c.sortable && !readOnly() && !interactionBlocked()"
+                  [class.cursor-not-allowed]="c.sortable && !readOnly() && interactionBlocked()"
                   [class.bt-sticky-th]="c.sticky"
                   [class]="stickyEdgeClass(c)"
                   [style.width]="c.width ?? null"
@@ -187,10 +227,13 @@ interface AdditionalHeaderCell {
                           [end]="calendarFilters()[c.key]?.end ?? null" [showTime]="!!c.filterShowTime"
                           [active]="!!calendarFilters()[c.key]" [align]="last ? 'right' : 'left'"
                           (apply)="onCalendarFilter(c.key, $event)" (click)="$event.stopPropagation()" />
+                        @if (calendarFilters()[c.key]) {
+                          <span class="text-[9px] font-semibold text-action whitespace-nowrap">{{ calendarLabel(c.key) }}</span>
+                        }
                       }
                       @case ('range') {
                         <base-range-filter [header]="c.header" [from]="rangeFilters()[c.key]?.from ?? null"
-                          [to]="rangeFilters()[c.key]?.to ?? null" [active]="!!rangeFilters()[c.key]"
+                          [to]="rangeFilters()[c.key]?.to ?? null" [values]="rangeValuesFor(c)" [active]="!!rangeFilters()[c.key]"
                           [align]="last ? 'right' : 'left'"
                           (apply)="onRangeFilter(c.key, $event)" (click)="$event.stopPropagation()" />
                       }
@@ -227,141 +270,192 @@ interface AdditionalHeaderCell {
           }
         </thead>
 
-        <tbody class="divide-y divide-neutral-100">
-          @for (g of groupedRows(); track g.key) {
-            @if (g.key !== null && groupHeaderStyle() === 'plain') {
-              <tr class="bg-neutral-50">
-                <td [attr.colspan]="colspan()"
-                    class="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-neutral-400 border-t border-neutral-100">
-                  {{ g.key }}
-                </td>
-              </tr>
-            } @else if (g.key !== null && groupHeaderStyle() === 'light') {
-              <tr class="bg-neutral-0">
-                <td [attr.colspan]="groupActionLabel() ? colspan() - 1 : colspan()"
-                    class="px-3 py-2.5 text-[13px] font-bold text-ink-700">
-                  {{ g.key }}
-                  <span class="ml-1.5 text-[10px] font-semibold text-ink-500 bg-neutral-100 rounded-r-full px-2 py-0.5 align-middle">
-                    {{ g.rows.length }} {{ groupCountLabel() }}
-                  </span>
-                </td>
-                @if (groupActionLabel()) {
-                  <td class="px-3 py-2.5 text-right">
-                    <button type="button" class="btn-primary" (click)="groupAction.emit(g.key!)">{{ groupActionLabel() }}</button>
-                  </td>
-                }
-              </tr>
-            } @else if (g.key !== null) {
-              <tr class="bg-action-surface/60">
-                <td [attr.colspan]="groupActionLabel() ? colspan() - 1 : colspan()"
-                    class="px-3 py-1.5 text-[11px] font-bold text-action-hover">
-                  {{ g.key }} <span class="font-medium text-action">· {{ g.rows.length }} {{ groupCountLabel() }}</span>
-                </td>
-                @if (groupActionLabel()) {
-                  <td class="px-3 py-1.5 text-right">
-                    <button type="button" class="text-[11px] font-semibold text-action hover:text-action-hover"
-                            (click)="groupAction.emit(g.key!)">{{ groupActionLabel() }}</button>
-                  </td>
+        <tbody class="divide-y divide-neutral-100" [class.opacity-60]="dimmed()" [class.pointer-events-none]="dimmed()">
+          @if (loading() && rows().length === 0) {
+            @for (i of skeletonRows(); track i) {
+              <tr>
+                @if (expandable()) { <td class="table-td w-8"></td> }
+                @if (selectable() === 'multiple') { <td class="table-td w-8"></td> }
+                @for (c of visibleColumns(); track c.key) {
+                  <td class="table-td"><base-skeleton [height]="skeletonHeight()" /></td>
                 }
               </tr>
             }
-          @for (row of g.rows; track rowTrack(row); let i = $index) {
-            <tr [class]="rowClassOf(row, i)" [attr.data-row-key]="rowTrack(row)" (click)="onRowClick(row, i)">
-              @if (expandable()) {
-                <td class="table-td w-8 text-center" [class.bt-sticky-td]="hasLeftSticky()" [style.left]="leadingStickyLeft('expand')">
-                  @if (hasChildren(row)) {
-                    <button type="button" class="inline-flex items-center justify-center w-5 h-5 rounded-r-xs hover:bg-neutral-100 text-ink-500"
-                            [attr.aria-label]="isExpanded(row) ? 'Collapse row' : 'Expand row'"
-                            [attr.aria-expanded]="isExpanded(row)"
-                            (click)="$event.stopPropagation(); toggleExpand(row)">
-                      <span class="inline-block transition-transform text-[10px]" [class.rotate-90]="isExpanded(row)">▶</span>
-                    </button>
-                  }
-                </td>
-              }
-              @if (selectable() === 'multiple') {
-                <td class="table-td w-8" [class.bt-sticky-td]="hasLeftSticky()" [style.left]="leadingStickyLeft('checkbox')">
-                  <input type="checkbox" [checked]="isSelected(row)" [disabled]="isRowCheckboxDisabled(row)"
-                         (click)="$event.stopPropagation()"
-                         (change)="toggleRow(row)" aria-label="Select row" />
-                </td>
-              }
-              @for (c of visibleColumns(); track c.key) {
-                <td class="table-td"
-                    [class.text-right]="c.align === 'right'"
-                    [class.text-center]="c.align === 'center'"
-                    [class.bt-sticky-td]="c.sticky"
-                    [class]="stickyEdgeClass(c)"
-                    [style.left]="stickyMeta()[c.key]?.left ?? null"
-                    [style.right]="stickyMeta()[c.key]?.right ?? null"
-                    [baseTooltip]="rowTooltipText(c, row)" [tooltipPosition]="c.tooltipPosition ?? 'top'"
-                    (click)="onCellClick(row, c, i, $event)">
-
-                  <!-- custom template ALWAYS wins -->
-                  @if (templateFor(c.key); as tpl) {
-                    <ng-container *ngTemplateOutlet="tpl; context: cellContext(row, c, i)" />
-                  } @else {
-                    <base-table-cell [column]="c" [row]="row" [rowIndex]="snoValue(row)"
-                                      [actionTemplateFor]="actionTemplateFor"
-                                      (actionRun)="handleAction.emit($event)" />
-                  }
-                </td>
-              }
-            </tr>
-            @if (expandable() && isExpanded(row) && hasChildren(row)) {
-              <tr class="bg-neutral-50/60">
-                <td [attr.colspan]="colspan()" class="p-0">
-                  <div class="pl-9 pr-3 py-2 ml-3 border-l-2 border-action-surface">
-                    <base-table
-                      [columns]="childColumns() ?? []"
-                      [rows]="childRowsFor(row)"
-                      [trackKey]="trackKey()"
-                      [paginate]="childPaginate()"
-                      [showSearch]="childShowSearch()"
-                      (rowClick)="rowClick.emit($event)"
-                      (cellClick)="cellClick.emit($event)">
-                      <!-- forward any baseChildCell templates so the nested table supports fully custom cells too -->
-                      @for (t of childCellTemplates(); track t.baseChildCell()) {
-                        <ng-template [baseCell]="t.baseChildCell()" let-childRow let-value="value" let-column="column" let-index="index">
-                          <ng-container *ngTemplateOutlet="t.template; context: { $implicit: childRow, value: value, column: column, index: index }" />
-                        </ng-template>
-                      }
-                    </base-table>
-                    @if (childFooterTemplate(); as ft) {
-                      <div class="mt-2">
-                        <ng-container *ngTemplateOutlet="ft; context: { $implicit: row }" />
-                      </div>
-                    }
-                  </div>
-                </td>
-              </tr>
-            }
-          }
-          } @empty {
+          } @else if (error()) {
             <tr>
               <td [attr.colspan]="colspan()">
-                <base-empty-state [title]="emptyTitle()" [hint]="emptyHint()" />
+                <base-empty-state kind="custom" icon="error" title="Unable to load data"
+                                   [hint]="errorMessage()" [actionLabel]="retryLabel()" (action)="retry.emit()" />
               </td>
             </tr>
-          }
-          @if (enableScroll() && scrollLoading()) {
-            <tr>
-              <td [attr.colspan]="colspan()" class="p-2">
-                <base-loading message="Loading more…" />
-              </td>
-            </tr>
+          } @else {
+            @if (enableScroll() && scrollTriggerPosition() === 'top') {
+              @if (scrollLoading()) {
+                <tr><td [attr.colspan]="colspan()" class="p-2"><base-loading message="Loading more…" /></td></tr>
+              } @else if (scrollEnd()) {
+                <tr><td [attr.colspan]="colspan()" class="text-center text-[10px] text-neutral-300 py-2">{{ scrollEndMessage() }}</td></tr>
+              }
+            }
+            @for (g of groupedRows(); track g.key) {
+              @if (g.key !== null && groupHeaderStyle() === 'plain') {
+                <tr class="bg-neutral-50">
+                  <td [attr.colspan]="colspan()"
+                      class="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-neutral-400 border-t border-neutral-100">
+                    {{ g.key }}
+                  </td>
+                </tr>
+              } @else if (g.key !== null && groupHeaderStyle() === 'light') {
+                <tr class="bg-neutral-0">
+                  <td [attr.colspan]="groupActionLabel() ? colspan() - 1 : colspan()"
+                      class="px-3 py-2.5 text-[13px] font-bold text-ink-700">
+                    {{ g.key }}
+                    <span class="ml-1.5 text-[10px] font-semibold text-ink-500 bg-neutral-100 rounded-r-full px-2 py-0.5 align-middle">
+                      {{ g.rows.length }} {{ groupCountLabel() }}
+                    </span>
+                  </td>
+                  @if (groupActionLabel()) {
+                    <td class="px-3 py-2.5 text-right">
+                      <button type="button" class="btn-primary" (click)="groupAction.emit(g.key!)">{{ groupActionLabel() }}</button>
+                    </td>
+                  }
+                </tr>
+              } @else if (g.key !== null) {
+                <tr class="bg-action-surface/60">
+                  <td [attr.colspan]="groupActionLabel() ? colspan() - 1 : colspan()"
+                      class="px-3 py-1.5 text-[11px] font-bold text-action-hover">
+                    {{ g.key }} <span class="font-medium text-action">· {{ g.rows.length }} {{ groupCountLabel() }}</span>
+                  </td>
+                  @if (groupActionLabel()) {
+                    <td class="px-3 py-1.5 text-right">
+                      <button type="button" class="text-[11px] font-semibold text-action hover:text-action-hover"
+                              (click)="groupAction.emit(g.key!)">{{ groupActionLabel() }}</button>
+                    </td>
+                  }
+                </tr>
+              }
+            @for (row of g.rows; track rowTrack(row); let i = $index) {
+              <tr [class]="rowClassOf(row, i)" [attr.data-row-key]="rowTrack(row)" (click)="onRowClick(row, i)">
+                @if (expandable()) {
+                  <td class="table-td w-8 text-center" [class.bt-sticky-td]="hasLeftSticky()" [style.left]="leadingStickyLeft('expand')">
+                    @if (hasChildren(row)) {
+                      <button type="button" class="inline-flex items-center justify-center w-5 h-5 rounded-r-xs hover:bg-neutral-100 text-ink-500"
+                              [attr.aria-label]="isExpanded(row) ? 'Collapse row' : 'Expand row'"
+                              [attr.aria-expanded]="isExpanded(row)"
+                              (click)="$event.stopPropagation(); toggleExpand(row)">
+                        <span class="inline-block transition-transform text-[10px]" [class.rotate-90]="isExpanded(row)">▶</span>
+                      </button>
+                    }
+                  </td>
+                }
+                @if (selectable() === 'multiple') {
+                  <td class="table-td w-8" [class.bt-sticky-td]="hasLeftSticky()" [style.left]="leadingStickyLeft('checkbox')">
+                    <input type="checkbox" [checked]="isSelected(row)" [disabled]="isRowCheckboxDisabled(row)"
+                           [title]="isRowCheckboxDisabled(row) ? checkboxDisabledReason(row) : ''"
+                           (click)="$event.stopPropagation()"
+                           (change)="toggleRow(row)" aria-label="Select row" />
+                  </td>
+                }
+                @for (c of visibleColumns(); track c.key) {
+                  <td class="table-td"
+                      [class.text-right]="c.align === 'right'"
+                      [class.text-center]="c.align === 'center'"
+                      [class.bt-sticky-td]="c.sticky"
+                      [class]="stickyEdgeClass(c)"
+                      [style.left]="stickyMeta()[c.key]?.left ?? null"
+                      [style.right]="stickyMeta()[c.key]?.right ?? null"
+                      [baseTooltip]="rowTooltipText(c, row)" [tooltipPosition]="c.tooltipPosition ?? 'top'"
+                      (click)="onCellClick(row, c, i, $event)">
+
+                    <!-- custom template ALWAYS wins -->
+                    @if (templateFor(c.key); as tpl) {
+                      <ng-container *ngTemplateOutlet="tpl; context: cellContext(row, c, i)" />
+                    } @else {
+                      <base-table-cell [column]="c" [row]="row" [rowIndex]="snoValue(row)"
+                                        [actionTemplateFor]="actionTemplateFor"
+                                        [maxVisible]="maxVisibleActions()" [readOnly]="readOnly()"
+                                        [editingRow]="isRowEditing(row)"
+                                        (actionRun)="handleAction.emit($event)"
+                                        (cellEdit)="cellEdit.emit($event)" />
+                    }
+                  </td>
+                }
+              </tr>
+              @if (expandable() && isExpanded(row) && hasChildren(row)) {
+                <tr class="bg-neutral-50/60">
+                  <td [attr.colspan]="colspan()" class="p-0">
+                    <div class="pl-9 pr-3 py-2 ml-3 border-l-2 border-action-surface">
+                      <base-table
+                        [columns]="childColumns() ?? []"
+                        [rows]="childRowsFor(row)"
+                        [trackKey]="trackKey()"
+                        [paginate]="childPaginate()"
+                        [showSearch]="childShowSearch()"
+                        (rowClick)="rowClick.emit($event)"
+                        (cellClick)="cellClick.emit($event)">
+                        <!-- forward any baseChildCell templates so the nested table supports fully custom cells too -->
+                        @for (t of childCellTemplates(); track t.baseChildCell()) {
+                          <ng-template [baseCell]="t.baseChildCell()" let-childRow let-value="value" let-column="column" let-index="index">
+                            <ng-container *ngTemplateOutlet="t.template; context: { $implicit: childRow, value: value, column: column, index: index }" />
+                          </ng-template>
+                        }
+                      </base-table>
+                      @if (childFooterTemplate(); as ft) {
+                        <div class="mt-2">
+                          <ng-container *ngTemplateOutlet="ft; context: { $implicit: row }" />
+                        </div>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+            } @empty {
+              <tr>
+                <td [attr.colspan]="colspan()">
+                  <base-empty-state [kind]="computedEmptyKind()" [title]="emptyTitle()" [hint]="emptyHint()"
+                                     [actionLabel]="hasActiveFilters() && !readOnly() ? 'Clear all filters' : ''"
+                                     (action)="clearAllFilters()" />
+                </td>
+              </tr>
+            }
+            @if (enableScroll() && scrollTriggerPosition() === 'bottom') {
+              @if (scrollLoading()) {
+                <tr><td [attr.colspan]="colspan()" class="p-2"><base-loading message="Loading more…" /></td></tr>
+              } @else if (scrollEnd()) {
+                <tr><td [attr.colspan]="colspan()" class="text-center text-[10px] text-neutral-300 py-2">{{ scrollEndMessage() }}</td></tr>
+              }
+            }
           }
         </tbody>
+
+        @if (showSummary()) {
+          <tfoot>
+            <tr class="bg-neutral-50 border-t-2 border-neutral-200 font-semibold">
+              @if (expandable()) { <td class="table-td"></td> }
+              @if (selectable() === 'multiple') { <td class="table-td"></td> }
+              @for (c of visibleColumns(); track c.key) {
+                <td class="table-td text-[11px] text-ink-600"
+                    [class.text-right]="c.align === 'right'" [class.text-center]="c.align === 'center'"
+                    [class.bt-sticky-td]="c.sticky" [style.left]="stickyMeta()[c.key]?.left ?? null" [style.right]="stickyMeta()[c.key]?.right ?? null">
+                  {{ summaryByKey()[c.key] }}
+                </td>
+              }
+            </tr>
+          </tfoot>
+        }
       </table>
     </div>
 
-    @if (paginate()) {
+    @if (showPaginator()) {
       <div class="px-4 py-3 border-t border-neutral-100">
         <base-paginator
           [page]="page()"
           [pageSize]="pageSize()"
           [total]="filteredTotal()"
           [pageSizeOptions]="pageSizeOptions()"
+          [unknownTotal]="unknownTotal()"
+          [currentCount]="rows().length"
+          [hasNext]="resolvedHasNext()"
           (pageChange)="onPage($event)" />
       </div>
     }
@@ -377,10 +471,13 @@ export class BaseTableComponent<T = BaseRow> {
 
   /** Server-side mode: table renders rows as-is and only emits events. */
   readonly serverSide = input(false);
-  /** Server-side mode: total record count for the paginator. */
+  /** Server-side mode: total record count for the paginator. 0/negative = unknown total (see [hasNextPage]). */
   readonly totalItems = input(0);
+  /** [serverSide] with an unknown total: does another page exist? null (default) = auto-derive from
+   *  whether the current page came back full ([pageSize] rows); pass explicitly once the host knows better. */
+  readonly hasNextPage = input<boolean | null>(null);
 
-  /** Enable the footer paginator. */
+  /** Enable the footer paginator. Auto-hides on a single known page either way (spec: no controls to show). */
   readonly paginate = input(true);
   readonly initialPageSize = input(10);
   readonly pageSizeOptions = input<number[]>([10, 25, 50, 100]);
@@ -403,7 +500,9 @@ export class BaseTableComponent<T = BaseRow> {
   /** Force a min table width, e.g. '1100px', so sticky columns have room to matter. */
   readonly minWidth = input('');
 
-  /** Row selection: 'none' | 'single' (click row) | 'multiple' (checkboxes). */
+  /** Row selection: 'none' | 'single' (click row) | 'multiple' (checkboxes). Selection is keyed by
+   *  [trackKey] and lives independently of the current page/filter, so it survives paging, filtering
+   *  and a data refresh — it only clears when the host actually reassigns [rows] to drop that key. */
   readonly selectable = input<'none' | 'single' | 'multiple'>('none');
   /** Disables the header "select all" checkbox (rows can still be selected individually). */
   readonly isDisableSelectAll = input(false);
@@ -418,17 +517,32 @@ export class BaseTableComponent<T = BaseRow> {
   readonly groupHeaderStyle = input<'accent' | 'plain' | 'light'>('accent');
   /** Unit label after the row count, e.g. 'row(s)' (default) or 'events'. */
   readonly groupCountLabel = input('row(s)');
-  /** Highlight the row whose trackKey value matches (external selection) and auto-scroll it into view. */
+  /** Highlight the row whose trackKey value matches (external selection) and auto-scroll it into view.
+   *  Matched by value, not position, so it survives sort/filter/paging same as selection does. */
   readonly highlightKey = input<string | null>(null);
-  /** CSS classes applied to the highlighted row. Default matches the existing selection color. */
+  /** CSS classes applied to the highlighted row's background (paired with a fixed 3px accent marker). */
   readonly highlightClass = input('bg-action-surface');
   readonly emptyTitle = input('No matching records');
   readonly emptyHint = input('Try adjusting filters or search.');
+  /** Empty-state variant. null (default) auto-picks 'no-results' when filters/search are active, else 'no-data'. */
+  readonly emptyKind = input<'no-results' | 'no-access' | 'no-data' | 'out-of-range' | 'not-configured' | 'custom' | null>(null);
 
-  /** Read-only / "library" mode: hides sort-click, filter dropdowns, and the manage-columns gear. */
+  /** Read-only / "library" mode: hides sort-click, filter dropdowns, and the manage-columns gear,
+   *  and REMOVES (not just disables) mutating row actions rather than leaving dead controls visible. */
   readonly readOnly = input(false);
 
-  /** Merged header row above the normal columns (grouped/spanning labels). */
+  /** Shows skeleton rows (no data yet) or, with rows already present, dims them to 60% during a
+   *  background refresh — the paginator/footer stays put either way. */
+  readonly loading = input(false);
+  readonly loadingRowCount = input(5);
+  /** Something actually failed to load (distinct from an empty result) — replaces the body with a
+   *  recoverable error state instead of the empty state. */
+  readonly error = input(false);
+  readonly errorMessage = input('');
+  readonly retryLabel = input('Retry');
+  readonly retry = output<void>();
+
+  /** Merged header row above the normal columns (grouped/spanning labels), one hue per group. */
   readonly additionalHeader = input<AdditionalHeaderGroup[] | null>(null);
 
   /** Shows a gear-icon "Manage Columns" panel (visibility + drag reorder) on the first column header. */
@@ -438,8 +552,13 @@ export class BaseTableComponent<T = BaseRow> {
 
   /** Infinite-scroll mode: emits (scrollEvent) as the [maxHeight] container nears its top/bottom edge. */
   readonly enableScroll = input(false);
-  /** Shows a spinner row at the bottom while more data is being fetched. */
+  /** Shows a spinner row while more data is being fetched. */
   readonly scrollLoading = input(false);
+  /** Where the loader/end-of-list row renders — 'bottom' (default, loading newer/more) or 'top' (loading older). */
+  readonly scrollTriggerPosition = input<'top' | 'bottom'>('bottom');
+  /** No more data to fetch — replaces the loader with an end-of-list message once [scrollLoading] is false. */
+  readonly scrollEnd = input(false);
+  readonly scrollEndMessage = input("You've reached the end");
 
   /** Show a first-column toggle button that expands a nested child <base-table> under the row. */
   readonly expandable = input(false);
@@ -451,6 +570,19 @@ export class BaseTableComponent<T = BaseRow> {
   readonly childPaginate = input(false);
   /** Show the search box inside nested child tables. Default off. */
   readonly childShowSearch = input(false);
+
+  /** Max inline row-action buttons before the rest collapse into a "⋯" overflow menu. */
+  readonly maxVisibleActions = input(2);
+
+  /** Opt-in inline cell editing. A row renders its `editable` columns as live controls while
+   *  `row.isEditing` is true (host sets this, typically from a row action) — dirty state (`row.hasEditError`
+   *  on a failed save) and the actual save/cancel are the host's; the table only reflects and gates. */
+  readonly editableRows = input(false);
+  /** Fired on every inline-edit control change. Display-only — never committed by the table itself. */
+  readonly cellEdit = output<BaseCellEditEvent<T>>();
+
+  /** Pinned aggregate footer row (real `<tfoot>`), computed over the filtered (not just paged) rows. */
+  readonly showSummary = input(false);
 
   readonly rowClick = output<BaseRowClickEvent<T>>();
   readonly cellClick = output<BaseCellClickEvent<T>>();
@@ -489,8 +621,11 @@ export class BaseTableComponent<T = BaseRow> {
   /** Manage Columns overrides. null = "not customized yet, use authoring order/visibility". */
   private readonly manageOrder = signal<string[] | null>(null);
   private readonly manageHidden = signal<Set<string> | null>(null);
+  /** Narrower than NARROW_VIEWPORT_PX — unfreezes right-sticky columns (see visibleColumns()). */
+  protected readonly viewportNarrow = signal(false);
 
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly destroyRef = inject(DestroyRef);
   private scrollTicking = false;
 
   constructor() {
@@ -516,6 +651,14 @@ export class BaseTableComponent<T = BaseRow> {
         }
       });
     });
+
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      const mq = window.matchMedia(`(max-width: ${NARROW_VIEWPORT_PX}px)`);
+      this.viewportNarrow.set(mq.matches);
+      const onChange = (ev: MediaQueryListEvent) => this.viewportNarrow.set(ev.matches);
+      mq.addEventListener('change', onChange);
+      this.destroyRef.onDestroy(() => mq.removeEventListener('change', onChange));
+    }
   }
 
   // derived view pipeline: filter → sort → paginate
@@ -528,6 +671,8 @@ export class BaseTableComponent<T = BaseRow> {
       cols = order.map(k => byKey.get(k)).filter((c): c is BaseColumnDef<T> => !!c);
     }
     cols = cols.filter(c => hidden ? !hidden.has(c.key) : !c.hidden);
+    // narrow viewport: right-frozen columns fall back to normal (unpinned) scroll — no room for two axes at once.
+    if (this.viewportNarrow()) cols = cols.map(c => c.sticky === 'right' ? { ...c, sticky: undefined } : c);
     // keep authoring order, but pin left-sticky first / right-sticky last so
     // offsets are always well-defined.
     const left = cols.filter(c => c.sticky === 'left');
@@ -548,6 +693,16 @@ export class BaseTableComponent<T = BaseRow> {
     || Object.keys(this.calendarFilters()).length > 0
     || Object.keys(this.rangeFilters()).length > 0
   );
+
+  /** True while there's an active numeric-range filter — sort and every other filter kind are
+   *  exclusive with it (spec) and stay blocked until it's cleared. */
+  readonly hasRangeFilterActive = computed(() => Object.keys(this.rangeFilters()).length > 0);
+  /** True while [editableRows] rows have unsaved edits — sort/filter/page/manage-columns block
+   *  entirely rather than risk losing track of a dirty row. */
+  readonly editingCount = computed(() => this.editableRows() ? this.rows().filter(r => (r as BaseRow).isEditing).length : 0);
+  readonly hasEditingRows = computed(() => this.editingCount() > 0);
+  /** Either blocking condition — drives the header's sort cursor/affordance. */
+  readonly interactionBlocked = computed(() => this.hasEditingRows() || this.hasRangeFilterActive());
 
   /** Merged/grouped header row entries, with colspans resolved against currently visible columns. */
   readonly additionalHeaderRow = computed(() => {
@@ -628,7 +783,10 @@ export class BaseTableComponent<T = BaseRow> {
     return meta;
   });
 
-  private readonly filteredRows = computed(() => {
+  /** All rows passing every active filter EXCEPT the one named by `excludeKey` (any kind) — the
+   *  shared base for both the real filtered set (excludeKey = null) and a checkbox filter's
+   *  per-option counts (excludeKey = that column, so its own selection doesn't shrink its own list). */
+  private rowsExcluding(excludeKey: string | null): T[] {
     if (this.serverSide()) return this.rows();
     const quick = this.quickText().toLowerCase();
     const colF = this.columnFilters();
@@ -642,16 +800,21 @@ export class BaseTableComponent<T = BaseRow> {
         if (!hit) return false;
       }
       for (const [key, text] of Object.entries(colF)) {
-        if (!text) continue;
+        if (!text || key === excludeKey) continue;
         const col = cols.find(c => c.key === key);
         if (col && !this.cellText(col, row).toLowerCase().includes(text.toLowerCase())) return false;
       }
       for (const [key, v] of Object.entries(cbF)) {
-        if (!v.selected.length) continue;
+        if (!v.selected.length || key === excludeKey) continue;
         const col = cols.find(c => c.key === key);
-        if (col && !v.selected.includes(String(this.cellValue(col, row)))) return false;
+        if (col) {
+          const raw = this.cellValue(col, row);
+          const asStr = raw === null || raw === undefined || raw === '' ? NO_VALUE : String(raw);
+          if (!v.selected.includes(asStr)) return false;
+        }
       }
       for (const [key, v] of Object.entries(calF)) {
+        if (key === excludeKey) continue;
         const col = cols.find(c => c.key === key);
         if (!col) continue;
         const raw = this.cellValue(col, row);
@@ -661,16 +824,21 @@ export class BaseTableComponent<T = BaseRow> {
         if (v.end && d > v.end) return false;
       }
       for (const [key, v] of Object.entries(rgF)) {
+        if (key === excludeKey) continue;
         const col = cols.find(c => c.key === key);
         if (!col) continue;
-        const n = Number(this.cellValue(col, row));
+        const raw = this.cellValue(col, row);
+        if (raw === null || raw === undefined || raw === '') return false; // nulls excluded from range filters
+        const n = Number(raw);
         if (isNaN(n)) return false;
         if (v.from !== null && n < v.from) return false;
         if (v.to !== null && n > v.to) return false;
       }
       return true;
     });
-  });
+  }
+
+  private readonly filteredRows = computed(() => this.rowsExcluding(null));
 
   private readonly sortedRows = computed(() => {
     if (this.serverSide()) return this.filteredRows();
@@ -682,9 +850,10 @@ export class BaseTableComponent<T = BaseRow> {
     return [...this.filteredRows()].sort((a, b) => {
       const va = this.cellValue(col, a);
       const vb = this.cellValue(col, b);
+      // nulls sort last ascending, first descending — regardless of the compared type.
       if (va == null && vb == null) return 0;
-      if (va == null) return 1;
-      if (vb == null) return -1;
+      if (va == null) return dir === 1 ? 1 : -1;
+      if (vb == null) return dir === 1 ? -1 : 1;
       if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
       return String(va).localeCompare(String(vb), undefined, { numeric: true }) * dir;
     });
@@ -694,8 +863,27 @@ export class BaseTableComponent<T = BaseRow> {
     this.serverSide() ? this.totalItems() : this.filteredRows().length
   );
 
+  /** [serverSide] with no positive [totalItems] — the paginator switches to "Showing X–Y" + Next-only. */
+  readonly unknownTotal = computed(() => this.serverSide() && this.totalItems() <= 0);
+  /** Auto-derives "is there a next page" for unknownTotal mode from a full-page heuristic, unless
+   *  the host overrides via [hasNextPage]. */
+  readonly resolvedHasNext = computed(() => {
+    const explicit = this.hasNextPage();
+    if (explicit !== null) return explicit;
+    return this.unknownTotal() ? this.rows().length >= this.pageSize() : this.page() < this.totalPageCount();
+  });
+  readonly totalPageCount = computed(() => Math.max(1, Math.ceil(this.filteredTotal() / this.pageSize())));
+  /** Single (known) page hides the whole paginator bar — nothing to control. */
+  readonly showPaginator = computed(() => this.paginate() && (this.unknownTotal() || this.totalPageCount() > 1));
+
+  /** Existing rows dim to 60% (rather than being replaced by skeletons) during a background refresh. */
+  readonly dimmed = computed(() => this.loading() && this.rows().length > 0);
+  readonly skeletonRows = computed(() => Array.from({ length: this.loadingRowCount() }, (_, i) => i));
+  readonly skeletonHeight = computed(() => ({ compact: '12px', standard: '14px', comfortable: '16px' }[this.density()]));
+  readonly computedEmptyKind = computed(() => this.emptyKind() ?? (this.hasActiveFilters() ? 'no-results' : 'no-data'));
+
   readonly page = computed(() => {
-    const count = Math.max(1, Math.ceil(this.filteredTotal() / this.pageSize()));
+    const count = this.totalPageCount();
     return Math.min(this.pageState(), count);
   });
 
@@ -742,7 +930,28 @@ export class BaseTableComponent<T = BaseRow> {
     return rows.length > 0 && rows.every(r => this.selected().has(this.rowTrack(r)));
   });
 
+  /** Header checkbox indeterminate state: some, but not all, of the current page is selected. */
+  readonly someSelected = computed(() => {
+    const rows = this.pagedRows();
+    return rows.some(r => this.isSelected(r)) && !this.allSelected();
+  });
+
+  /** Per-column footer aggregate text ("Total: 1,234"), keyed by column so it stays aligned even
+   *  if columns are reordered/hidden between renders. */
+  readonly summaryByKey = computed<Record<string, string>>(() => {
+    if (!this.showSummary()) return {};
+    const rows = this.filteredRows();
+    const out: Record<string, string> = {};
+    for (const c of this.visibleColumns()) {
+      if (!c.summary || c.summary === 'none') continue;
+      const val = computeSummary(c, rows);
+      if (val !== null) out[c.key] = `${SUMMARY_LABEL[c.summary]}: ${formatSummary(c, val)}`;
+    }
+    return out;
+  });
+
   toggleSort(key: string): void {
+    if (this.interactionBlocked()) return;
     const s = this.sortState();
     const next: BaseSortEvent =
       s.key !== key ? { key, direction: 'asc' } :
@@ -753,12 +962,14 @@ export class BaseTableComponent<T = BaseRow> {
   }
 
   onQuickSearch(text: string): void {
+    if (this.interactionBlocked()) return;
     this.quickText.set(text);
     this.pageState.set(1);
     this.emitFilter();
   }
 
   onColumnFilter(key: string, ev: Event): void {
+    if (this.interactionBlocked()) return;
     const text = (ev.target as HTMLInputElement).value;
     this.columnFilters.update(f => {
       const next = { ...f };
@@ -770,6 +981,7 @@ export class BaseTableComponent<T = BaseRow> {
   }
 
   onCheckboxFilter(key: string, v: BaseCheckboxFilterValue): void {
+    if (this.interactionBlocked()) return;
     this.checkboxFilters.update(f => {
       const next = { ...f };
       if (v.selected.length === 0 && v.sort === null) delete next[key]; else next[key] = v;
@@ -784,6 +996,7 @@ export class BaseTableComponent<T = BaseRow> {
   }
 
   onCalendarFilter(key: string, v: BaseCalendarFilterValue): void {
+    if (this.interactionBlocked()) return;
     this.calendarFilters.update(f => {
       const next = { ...f };
       if (!v.start && !v.end) delete next[key]; else next[key] = v;
@@ -795,6 +1008,7 @@ export class BaseTableComponent<T = BaseRow> {
 
   /** Numeric range filters are exclusive with all other filters/sorts, per spec. */
   onRangeFilter(key: string, v: BaseRangeFilterValue): void {
+    if (this.hasEditingRows()) return;
     this.quickText.set('');
     this.columnFilters.set({});
     this.checkboxFilters.set({});
@@ -806,6 +1020,7 @@ export class BaseTableComponent<T = BaseRow> {
   }
 
   clearAllFilters(): void {
+    if (this.hasEditingRows()) return;
     this.quickText.set('');
     this.columnFilters.set({});
     this.checkboxFilters.set({});
@@ -816,18 +1031,49 @@ export class BaseTableComponent<T = BaseRow> {
     this.emitFilter();
   }
 
-  /** Unique, sorted (value,label) options for a checkbox filter, computed from the full row set. */
-  uniqueValuesFor(c: BaseColumnDef<T>): { value: string; label: string }[] {
+  /** Unique, sorted (value,label,count) options for a checkbox filter. `count` is computed against
+   *  every OTHER active filter (never this column's own), and a synthetic "(No value)" option is
+   *  appended when any row has a null/undefined/empty value for this column. */
+  uniqueValuesFor(c: BaseColumnDef<T>): BaseFilterOption[] {
+    const others = this.rowsExcluding(c.key);
+    const counts = new Map<string, number>();
+    for (const row of others) {
+      const raw = this.cellValue(c, row);
+      const key = raw === null || raw === undefined || raw === '' ? NO_VALUE : String(raw);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
     const seen = new Map<string, string>();
+    let hasNull = false;
     for (const row of this.rows()) {
-      const v = this.cellValue(c, row);
-      if (v === null || v === undefined || v === '') continue;
-      const key = String(v);
+      const raw = this.cellValue(c, row);
+      if (raw === null || raw === undefined || raw === '') { hasNull = true; continue; }
+      const key = String(raw);
       if (!seen.has(key)) seen.set(key, this.cellText(c, row));
     }
-    return [...seen.entries()]
-      .map(([value, label]) => ({ value, label }))
+    const opts: BaseFilterOption[] = [...seen.entries()]
+      .map(([value, label]) => ({ value, label, count: counts.get(value) ?? 0 }))
       .sort((a, b) => a.label.localeCompare(b.label));
+    if (hasNull) opts.push({ value: NO_VALUE, label: '(No value)', count: counts.get(NO_VALUE) ?? 0 });
+    return opts;
+  }
+
+  /** All numeric values for a column across the full row set — powers the range filter's mini histogram. */
+  rangeValuesFor(c: BaseColumnDef<T>): number[] {
+    return this.rows()
+      .map(r => Number(this.cellValue(c, r)))
+      .filter(n => !isNaN(n));
+  }
+
+  /** Applied-filter chip text for an active calendar filter (preset name, or a bounded/open-ended phrase). */
+  calendarLabel(key: string): string {
+    const v = this.calendarFilters()[key];
+    return v ? calendarFilterLabel(v) : '';
+  }
+
+  /** Rotating hue for a merged-header group, by its position in the authored [additionalHeader] list. */
+  headerGroupClass(group: AdditionalHeaderGroup): string {
+    const idx = (this.additionalHeader() ?? []).indexOf(group);
+    return HEADER_GROUP_HUES[Math.max(0, idx) % HEADER_GROUP_HUES.length];
   }
 
   private emitFilter(): void {
@@ -835,12 +1081,14 @@ export class BaseTableComponent<T = BaseRow> {
   }
 
   onPage(ev: BasePageEvent): void {
+    if (this.hasEditingRows()) return;
     this.pageState.set(ev.page);
     this.pageSize.set(ev.pageSize);
     this.pageChange.emit(ev);
   }
 
   onManageColumns(ev: BaseManageColumnsEvent): void {
+    if (this.hasEditingRows()) return;
     this.manageOrder.set(ev.order);
     this.manageHidden.set(new Set(ev.order.filter(k => !ev.visibleKeys.includes(k))));
     this.manageColumn.emit(ev.visibleKeys);
@@ -907,6 +1155,16 @@ export class BaseTableComponent<T = BaseRow> {
     return !!(row as BaseRow).isCheckboxDisable;
   }
 
+  /** Optional reason shown as the disabled checkbox's title, e.g. "Archived — cannot select". Set
+   *  `row.checkboxDisableReason` alongside `row.isCheckboxDisable`. */
+  checkboxDisabledReason(row: T): string {
+    return (row as BaseRow).checkboxDisableReason ?? '';
+  }
+
+  isRowEditing(row: T): boolean {
+    return this.editableRows() && !!(row as BaseRow).isEditing;
+  }
+
   /** Left offset (sticky mode) for the leading expand-toggle / checkbox pseudo-columns. */
   leadingStickyLeft(kind: 'expand' | 'checkbox'): string | null {
     if (!this.hasLeftSticky()) return null;
@@ -963,10 +1221,12 @@ export class BaseTableComponent<T = BaseRow> {
   rowClassOf(row: T, index: number): string {
     const clickable = this.selectable() !== 'none' ? 'cursor-pointer' : '';
     const highlighted = this.highlightKey() != null && String(this.rowTrack(row)) === this.highlightKey();
-    const editing = !!(row as BaseRow).isEditing;
+    const hasEditError = this.editableRows() && !!(row as BaseRow).hasEditError;
+    const editing = this.isRowEditing(row);
     const stripe = this.striped() && !this.groupBy() && index % 2 === 1;
-    const bg = highlighted ? this.highlightClass()
+    const bg = highlighted ? `${this.highlightClass()} border-l-[3px] border-l-action`
       : this.isSelected(row) ? 'bg-action-surface'
+      : hasEditError ? 'bg-error-surface'
       : editing ? 'bg-warning-surface'
       : stripe ? 'bg-neutral-50/60'
       : '';

@@ -10,7 +10,11 @@ import { BasePageEvent } from '../../models/table.model';
   template: `
     <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-neutral-400">
       <span class="text-[11px] text-neutral-400 tabular-nums">
-        @if (pageCountOverride() > 0) {
+        @if (unknownTotal()) {
+          @if (currentCount() > 0) {
+            Showing <b class="text-ink-700">{{ rangeStart() }}</b>–<b class="text-ink-700">{{ rangeEnd() }}</b>
+          } @else { No records }
+        } @else if (pageCountOverride() > 0) {
           Page <b class="text-ink-700">{{ page() }}</b> of <b class="text-ink-700">{{ pageCount() }}</b>
         } @else if (total() > 0) {
           Showing <b class="text-ink-700">{{ rangeStart() }}</b>–<b class="text-ink-700">{{ rangeEnd() }}</b> of <b class="text-ink-700">{{ total() }}</b>
@@ -26,20 +30,26 @@ import { BasePageEvent } from '../../models/table.model';
         }
         <button class="btn-ghost" [disabled]="page() <= 1" (click)="go(1)" aria-label="First page">«</button>
         <button class="btn-ghost" [disabled]="page() <= 1" (click)="go(page() - 1)" aria-label="Previous page">‹ Prev</button>
-        @for (p of pageItems(); track $index) {
-          @if (p === '…') {
-            <span class="px-1.5 text-neutral-300 select-none" aria-hidden="true">…</span>
-          } @else {
-            <button class="rounded-r-sm px-2.5 py-1 text-xs font-semibold transition-colors tabular-nums"
-                    [class]="p === page()
-                      ? 'bg-action text-neutral-0'
-                      : 'text-ink-600 hover:bg-action-surface hover:text-action'"
-                    [attr.aria-current]="p === page() ? 'page' : null"
-                    (click)="go(p)">{{ p }}</button>
+        @if (!unknownTotal()) {
+          @for (p of pageItems(); track $index) {
+            @if (p === '…') {
+              <span class="px-1.5 text-neutral-300 select-none" aria-hidden="true">…</span>
+            } @else {
+              <button class="rounded-r-sm px-2.5 py-1 text-xs font-semibold transition-colors tabular-nums"
+                      [class]="p === page()
+                        ? 'bg-action text-neutral-0'
+                        : 'text-ink-600 hover:bg-action-surface hover:text-action'"
+                      [attr.aria-current]="p === page() ? 'page' : null"
+                      (click)="go(p)">{{ p }}</button>
+            }
           }
         }
-        <button class="btn-ghost" [disabled]="page() >= pageCount()" (click)="go(page() + 1)" aria-label="Next page">Next ›</button>
-        <button class="btn-ghost" [disabled]="page() >= pageCount()" (click)="go(pageCount())" aria-label="Last page">»</button>
+        @if (unknownTotal()) {
+          <button class="btn-ghost" [disabled]="!hasNext()" (click)="go(page() + 1)" aria-label="Next page">Next ›</button>
+        } @else {
+          <button class="btn-ghost" [disabled]="page() >= pageCount()" (click)="go(page() + 1)" aria-label="Next page">Next ›</button>
+          <button class="btn-ghost" [disabled]="page() >= pageCount()" (click)="go(pageCount())" aria-label="Last page">»</button>
+        }
       </span>
     </div>
   `
@@ -58,6 +68,14 @@ export class BasePaginatorComponent {
   /** How many numbered page buttons to show. */
   readonly maxButtons = input(5);
 
+  /** Server-side mode with no known total: drops numbered pages/"last page" and the "of N" label
+   *  in favor of "Showing X–Y" + a Next button gated by [hasNext] instead of a page count. */
+  readonly unknownTotal = input(false);
+  /** [unknownTotal] only: row count actually returned for the current page (for the range label). */
+  readonly currentCount = input(0);
+  /** [unknownTotal] only: whether a next page is believed to exist. Default true (optimistic). */
+  readonly hasNext = input(true);
+
   /** Fired on any page or page-size change. */
   readonly pageChange = output<BasePageEvent>();
 
@@ -66,8 +84,14 @@ export class BasePaginatorComponent {
       ? this.pageCountOverride()
       : Math.max(1, Math.ceil(this.total() / this.pageSize()))
   );
-  protected readonly rangeStart = computed(() => this.total() === 0 ? 0 : (this.page() - 1) * this.pageSize() + 1);
-  protected readonly rangeEnd = computed(() => Math.min(this.page() * this.pageSize(), this.total()));
+  protected readonly rangeStart = computed(() =>
+    this.unknownTotal() ? (this.currentCount() === 0 ? 0 : (this.page() - 1) * this.pageSize() + 1)
+    : this.total() === 0 ? 0 : (this.page() - 1) * this.pageSize() + 1
+  );
+  protected readonly rangeEnd = computed(() =>
+    this.unknownTotal() ? this.rangeStart() + Math.max(0, this.currentCount() - 1)
+    : Math.min(this.page() * this.pageSize(), this.total())
+  );
 
   /** Page 1 and the last page always stay visible so their distance never gets lost — with a
    *  large page count, an ellipsis fills the gap either side of the current-page window instead
@@ -90,7 +114,8 @@ export class BasePaginatorComponent {
   });
 
   go(p: number): void {
-    const clamped = Math.min(Math.max(1, p), this.pageCount());
+    // unknownTotal mode has no real upper bound to clamp against — [hasNext] gates the button instead.
+    const clamped = this.unknownTotal() ? Math.max(1, p) : Math.min(Math.max(1, p), this.pageCount());
     if (clamped !== this.page()) this.pageChange.emit({ page: clamped, pageSize: this.pageSize() });
   }
 
