@@ -1,8 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseKpiCardComponent } from '../../app/base';
 
-/** The atom of every dashboard: one number, one direction, one comparison window. A second
- *  number that matters equally is a second tile, never a smaller figure squeezed underneath. */
 const meta: Meta<BaseKpiCardComponent> = {
   title: 'Base/Cards & Containers/KPI Card',
   component: BaseKpiCardComponent,
@@ -42,7 +40,6 @@ export const NullTrend: Story = {
 };
 export const Clickable: Story = { args: { clickable: true } };
 
-/** A colored left rail encodes a threshold state without touching the number's own color. */
 export const RailTone: Story = {
   args: { label: 'Fab 8 · Dresden', value: 76.9, unit: '%', accent: false, railTone: 'error', trendPct: undefined, sub: 'Breach — 3 tools down' }
 };
@@ -59,8 +56,6 @@ export const Grid: Story = {
   })
 };
 
-/** The "accent rail" pattern from the spec — a fleet of tiles reads at a glance without every
- *  number turning into a traffic light. */
 export const AccentRailRow: Story = {
   render: () => ({
     template: `
@@ -73,9 +68,6 @@ export const AccentRailRow: Story = {
   })
 };
 
-/** A page rarely fails all at once — one panel failing shouldn't take the rest of the screen
- *  with it. Outlines the whole tile in red (not just the left rail) and swaps the number for a
- *  retry link. */
 export const PartialFailure: Story = {
   args: {
     label: 'Predicted Downtime', value: '', errorMessage: "The forecast service didn't respond."

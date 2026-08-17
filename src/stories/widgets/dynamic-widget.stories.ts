@@ -31,17 +31,11 @@ const CHART_WIDGET: ChartWidget = {
   options: { plugins: { legend: { display: false } } }
 };
 
-/** `fam-dynamic-widget` renders the shared panel chrome (title/badge/date-range/tabs/toggle/search/actions/note)
- * around any `WidgetConfig` body. This is what every panel on a dynamic page actually renders through. */
 const meta: Meta<DynamicWidgetComponent> = {
   title: 'Widgets/Dynamic Widget (panel chrome)',
   component: DynamicWidgetComponent,
   tags: ['autodocs'],
   args: { widget: KPI_WIDGET },
-  // DynamicWidgetComponent exposes several getters (asKpis/asChart/asTable/asList/
-  // asComponent/resolvedComponent) that aren't real @Inputs - see base/checkbox.stories.ts
-  // for why an explicit render avoids Storybook stomping non-input props on the instance
-  // (getters have no setter, so a stray assignment would throw outright).
   render: (args) => ({
     props: args,
     template: `<fam-dynamic-widget [widget]="widget" />`

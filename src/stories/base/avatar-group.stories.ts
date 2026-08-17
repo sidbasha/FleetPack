@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseAvatarGroupComponent } from '../../app/base';
 
-/** Overlapping avatar stack with a "+N" overflow badge past [max]. */
 const meta: Meta<BaseAvatarGroupComponent> = {
   title: 'Base/Data Display/Avatar Group',
   component: BaseAvatarGroupComponent,

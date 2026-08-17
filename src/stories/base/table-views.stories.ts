@@ -13,11 +13,6 @@ const VIEWS: BaseTableView[] = [
   { id: 'low-uptime', label: 'Uptime < 90%' }
 ];
 
-/**
- * "New in v2.0" — saved/filter view tab rail. Fully controlled: the host owns the view list and
- * decides what "modified" means by diffing its own live table state against the active view's
- * saved snapshot. See the class doc in base-table-views.component.ts for the full contract.
- */
 const meta: Meta<BaseTableViewsComponent> = {
   title: 'Base/Tables & Data/Table Views',
   component: BaseTableViewsComponent,
@@ -38,20 +33,14 @@ const meta: Meta<BaseTableViewsComponent> = {
 export default meta;
 type Story = StoryObj<BaseTableViewsComponent>;
 
-/** "All" is always first and never editable. Extra saved views beyond the pinned set collapse into "More views". */
 export const Default: Story = {};
 
 export const ActiveNonDefaultView: Story = { args: { activeViewId: 'down' } };
 
-/** Live filters have drifted from the active view's saved state — a "Modified" badge appears on
- *  its tab, and Update/Reset/Save-as-new controls light up on the right. */
 export const Modified: Story = { args: { activeViewId: 'mine', modified: true } };
 
-/** A view shared by someone else — read-only for everyone but its owner: no Update/Reset, only
- *  "Save as new" (a personal copy) stays available. */
 export const SharedReadOnlyView: Story = { args: { activeViewId: 'shared-qual', modified: true } };
 
-/** At the 20-saved-views cap, "Save as new" is replaced by a plain limit note instead of a dead button. */
 export const AtSavedViewsLimit: Story = {
   args: {
     views: [{ id: 'all', label: 'All', isDefault: true }, ...Array.from({ length: 19 }, (_, i) => ({ id: `v${i}`, label: `View ${i + 1}` }))],

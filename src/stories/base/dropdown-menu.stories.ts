@@ -8,8 +8,6 @@ const ITEMS: BaseMenuItem[] = [
   { id: 'delete', label: 'Delete', icon: '🗑', danger: true }
 ];
 
-/** "Tool actions" from the spec — icon + label + right-aligned shortcut hint; the disabled item
- *  states why it can't run right now in its own label rather than going silently grey. */
 const TOOL_ACTIONS: BaseMenuItem[] = [
   { id: 'deep-dive', label: 'Open deep dive', icon: '👁', shortcut: 'O' },
   { id: 'thresholds', label: 'Edit thresholds', icon: '✎', shortcut: 'E' },
@@ -33,11 +31,8 @@ const meta: Meta<BaseDropdownMenuComponent> = {
     disabled: false
   },
   parameters: {
-    // Menu opens on click and is not open by default - story canvas needs room for the popup.
     layout: 'padded'
   },
-  // `open` is an internal signal (not a real @Input) - see checkbox.stories.ts for why
-  // an explicit render avoids Storybook stomping it via the auto-generated wrapper.
   render: (args) => ({
     props: args,
     template: `<base-dropdown-menu [label]="label" [items]="items" [align]="align" [disabled]="disabled" />`
@@ -50,7 +45,6 @@ export const Default: Story = {};
 export const AlignedRight: Story = { args: { align: 'right' } };
 export const Disabled: Story = { args: { disabled: true } };
 
-/** Click the trigger in the canvas to see items, a divider, a disabled item, and a destructive item together. */
 export const OpenExample: Story = {
   render: (args) => ({
     props: args,
@@ -61,7 +55,6 @@ export const OpenExample: Story = {
   })
 };
 
-/** Keyboard-shortcut hints, right-aligned, plus a disabled item that names the reason. */
 export const ToolActions: Story = {
   args: { label: 'Tool actions', items: TOOL_ACTIONS },
   render: (args) => ({

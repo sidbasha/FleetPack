@@ -1,9 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseProgressBarComponent } from '../../app/base';
 
-/** Determinate by default — pass [indeterminate] the moment the shape of what's coming is
- *  genuinely unknown. Above ~10 seconds, a determinate bar with an estimate reads better than
- *  a bare spinner: an operator will wait if they know how long. */
 const meta: Meta<BaseProgressBarComponent> = {
   title: 'Base/Feedback/Progress Bar',
   component: BaseProgressBarComponent,
@@ -20,8 +17,6 @@ const meta: Meta<BaseProgressBarComponent> = {
     indeterminate: false,
     label: ''
   },
-  // `clamped`/`colorClass` are internal computeds (not real @Inputs) - see checkbox.stories.ts
-  // for why an explicit render avoids Storybook stomping them via the auto-generated wrapper.
   render: (args) => ({
     props: args,
     template: `<base-progress-bar [value]="value" [tone]="tone" [color]="color" [height]="height"
@@ -38,7 +33,6 @@ export const AtRisk: Story = { name: 'At risk (warning tone)', args: { value: 18
 export const CustomColor: Story = { args: { value: 72, color: '#6366f1' } };
 export const Indeterminate: Story = { args: { indeterminate: true, label: 'Waiting for the telemetry service' } };
 
-/** The full "Progress Indicators" panel from the spec. */
 export const ProgressIndicators: Story = {
   render: () => ({
     template: `

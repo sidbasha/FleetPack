@@ -1,29 +1,11 @@
 import { Signal, computed, signal } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 
-/**
- * Store foundation for all current & future FAM modules:
- *   createQuery(fetcher, opts)   — async server state (status, TTL cache,
- *                                  in-flight dedupe, cancellation, refresh)
- *   createPagination(source)     — client-side paging over any Signal<T[]>
- *   createListFilter(source, fn) — reactive predicate filtering
- *
- * A feature store is just composition:
- *   @Injectable({ providedIn: 'root' })
- *   export class MyModuleStore {
- *     private api = inject(ApiService);
- *     readonly detailQuery = createQuery((id: string) => this.api.getDetail(id), { cacheTtlMs: 300_000 });
- *     readonly rows = computed(() => this.detailQuery.data()?.rows ?? []);
- *     readonly pager = createPagination(this.rows, 20);
- *   }
- */
 
 export type QueryStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
 export interface QueryOptions {
-  /** Serve cached data for identical params within this window. 0 = no cache. */
   cacheTtlMs?: number;
-  /** Keep showing stale data while a new request is loading. */
   keepPreviousData?: boolean;
 }
 
@@ -34,11 +16,8 @@ export interface Query<T, P extends unknown[] = []> {
   loaded: Signal<boolean>;
   error: Signal<string | null>;
   lastParams: Signal<P | null>;
-  /** Load with params — served from cache when fresh. */
   load: (...params: P) => void;
-  /** Re-run the last load, bypassing the cache. */
   refresh: () => void;
-  /** Reset to idle and drop the cache. */
   clear: () => void;
 }
 
@@ -70,10 +49,9 @@ export function createQuery<T, P extends unknown[] = []>(
       }
     }
 
-    // De-dupe: identical request already in flight.
     if (inflightKey === key && status() === 'loading') return;
 
-    sub?.unsubscribe(); // cancel superseded request
+    sub?.unsubscribe();
     inflightKey = key;
     if (!opts.keepPreviousData) data.set(null);
     status.set('loading');

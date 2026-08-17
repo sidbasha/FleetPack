@@ -1,9 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseTooltipDirective } from '../../app/base';
 
-/** A tooltip labels — it must never hold anything the operator needs to click, and it
- *  disappears the moment the pointer leaves. `[baseTooltip]` is a directive, not a component -
- *  it attaches to any host element. Hover the buttons below. */
 const meta: Meta<BaseTooltipDirective> = {
   title: 'Base/Overlays/Tooltip',
   component: BaseTooltipDirective,
@@ -25,7 +22,6 @@ export const Positions: Story = {
   })
 };
 
-/** Naming an icon button, in the same words the menu item would use — the spec's "Positions" row. */
 export const IconButtonLabels: Story = {
   render: () => ({
     template: `
@@ -37,8 +33,6 @@ export const IconButtonLabels: Story = {
   })
 };
 
-/** A rich tooltip may wrap and carry a heading, but it still contains no links and no buttons —
- *  reach for `<base-popover>` the moment the content needs to be clickable. */
 export const RichTooltip: Story = {
   render: () => ({
     template: `

@@ -1,12 +1,5 @@
 import { GanttDay, GanttSegment, SegmentActivity, StateSegment, ToolEvent, ToolState } from '../models/models';
 
-/**
- * The Activity Gantt bars and the Event Details rows are both derived
- * from the same raw StateSegment[] feed (getAllStateSegments) rather
- * than being separately mocked/fetched — a single source of truth.
- * Production windows are further enriched from the correlated
- * SegmentActivity[] feed (getSegmentActivities) when available.
- */
 
 const STATE_NAME_MAP: Record<string, ToolState> = {
   production: 'Production',

@@ -1,8 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseNumericStepperComponent } from '../../app/base';
 
-/** Bounded integer entry — decrement/value/increment. Reach for `<base-slider>` instead once
- *  the range is wide enough that dragging beats clicking. */
 const meta: Meta<BaseNumericStepperComponent> = {
   title: 'Base/Forms/Numeric Stepper',
   component: BaseNumericStepperComponent,

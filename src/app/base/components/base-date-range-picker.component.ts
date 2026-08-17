@@ -186,19 +186,15 @@ const PRESETS: { id: DateRangePreset; label: string }[] = [
   `
 })
 export class BaseDateRangePickerComponent {
-  /** Two-way bound committed range: [(value)]. */
   readonly value = model<DateRangeValue>({ preset: 'all', from: null, to: null });
   readonly disabled = input(false);
-  /** Disables (strikethrough) any date after `maxDate` (or today, if maxDate is unset). */
   readonly disableFuture = input(true);
   readonly minDate = input<Date | null>(null);
   readonly maxDate = input<Date | null>(null);
-  /** Which edge of the trigger the panel aligns to; 'right' for toolbar-edge triggers. */
   readonly align = input<'left' | 'right'>('left');
 
   readonly opened = output<void>();
   readonly closed = output<void>();
-  /** Fired with the new value when the user clicks Apply. */
   readonly applied = output<DateRangeValue>();
 
   protected readonly presets = PRESETS;

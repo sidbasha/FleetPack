@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseScatterChartComponent } from '../../app/base';
 
-/** Correlation between two metrics, e.g. MTBR vs utilization. */
 const meta: Meta<BaseScatterChartComponent> = {
   title: 'Base/Charts & Visualization/Scatter Chart',
   component: BaseScatterChartComponent,

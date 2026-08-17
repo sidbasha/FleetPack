@@ -14,16 +14,10 @@ export interface DemoAuthUser extends AuthUser {
 
 export interface NavItem {
   label: string;
-  /** Omit when [children] is set — a parent item expands/collapses instead of navigating. */
   path?: string;
   icon: string;
-  /** Small counter pill, e.g. an unresolved-alarm count. */
   badge?: string | number;
-  /** Stays visible rather than disappearing, so the operator learns the shape of the product
-   *  even where their role has no access — label the reason in [label] itself (e.g. "Audit log
-   *  — restricted"), never a bare icon with no explanation. */
   disabled?: boolean;
-  /** Nested sub-items shown when this item is expanded; hidden entirely in the collapsed rail. */
   children?: NavItem[];
 }
 

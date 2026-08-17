@@ -13,8 +13,6 @@ const WIDGET: KpiGridWidget = {
   ]
 };
 
-/** `fam-kpi-grid-widget` renders a `KpiGridWidget` config through `<base-kpi-card>` — the widget-config
- * adapter for KPI rows in `<fam-dynamic-page>`. For the raw card, see Base/Cards & Containers/KPI Card. */
 const meta: Meta<KpiGridWidgetComponent> = {
   title: 'Widgets/KPI Grid',
   component: KpiGridWidgetComponent,

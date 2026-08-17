@@ -9,7 +9,6 @@ function readStored(): BaseDensity {
     const v = localStorage.getItem(STORAGE_KEY);
     if (v === 'compact' || v === 'standard' || v === 'comfortable') return v;
   } catch {
-    // localStorage unavailable — fall through to the default.
   }
   return 'standard';
 }
@@ -28,7 +27,7 @@ export class BaseDensityService {
     effect(() => {
       const d = this.current();
       document.documentElement.setAttribute('data-density', d);
-      try { localStorage.setItem(STORAGE_KEY, d); } catch { /* best-effort persistence only */ }
+      try { localStorage.setItem(STORAGE_KEY, d); } catch { }
     });
   }
 

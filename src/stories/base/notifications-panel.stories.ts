@@ -1,8 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseNotificationsPanelComponent } from '../../app/base';
 
-/** Header-anchored notifications overlay; unread items carry a small dot.
- *  Shown here on a dark surface since that's where it's actually anchored. */
 const meta: Meta<BaseNotificationsPanelComponent> = {
   title: 'Base/Navigation/Notifications Panel',
   component: BaseNotificationsPanelComponent,

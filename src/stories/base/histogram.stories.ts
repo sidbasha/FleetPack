@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseHistogramComponent } from '../../app/base';
 
-/** Distribution of one metric into touching bars, e.g. downtime-duration buckets. */
 const meta: Meta<BaseHistogramComponent> = {
   title: 'Base/Charts & Visualization/Histogram',
   component: BaseHistogramComponent,

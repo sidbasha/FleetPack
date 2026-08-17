@@ -1,11 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseErrorPageComponent } from '../../app/base';
 
-/**
- * Recovery is part of the state: every error screen offers at least one way forward and
- * preserves what the operator already did — filters stay applied, form values stay entered.
- * Distinct from `<base-empty-state>`, which is for a neutral, nothing-went-wrong situation.
- */
 const meta: Meta<BaseErrorPageComponent> = {
   title: 'Base/Feedback/Error Page',
   component: BaseErrorPageComponent,

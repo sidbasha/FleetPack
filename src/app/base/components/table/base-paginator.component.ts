@@ -55,28 +55,18 @@ import { BasePageEvent } from '../../models/table.model';
   `
 })
 export class BasePaginatorComponent {
-  /** 1-based current page. */
   readonly page = input.required<number>();
   readonly pageSize = input(10);
-  /** Total record count (after filtering). */
   readonly total = input.required<number>();
-  /** When the host only knows the page count (not the total), set it here;
-   *  the label switches to 'Page X of Y'. 0 = off. */
   readonly pageCountOverride = input(0);
   readonly pageSizeOptions = input<number[]>([10, 25, 50, 100]);
   readonly showPageSize = input(true);
-  /** How many numbered page buttons to show. */
   readonly maxButtons = input(5);
 
-  /** Server-side mode with no known total: drops numbered pages/"last page" and the "of N" label
-   *  in favor of "Showing X–Y" + a Next button gated by [hasNext] instead of a page count. */
   readonly unknownTotal = input(false);
-  /** [unknownTotal] only: row count actually returned for the current page (for the range label). */
   readonly currentCount = input(0);
-  /** [unknownTotal] only: whether a next page is believed to exist. Default true (optimistic). */
   readonly hasNext = input(true);
 
-  /** Fired on any page or page-size change. */
   readonly pageChange = output<BasePageEvent>();
 
   protected readonly pageCount = computed(() =>
@@ -93,14 +83,11 @@ export class BasePaginatorComponent {
     : Math.min(this.page() * this.pageSize(), this.total())
   );
 
-  /** Page 1 and the last page always stay visible so their distance never gets lost — with a
-   *  large page count, an ellipsis fills the gap either side of the current-page window instead
-   *  of everything sliding as one contiguous run. */
   protected readonly pageItems = computed<(number | '…')[]>(() => {
     const count = this.pageCount(), max = this.maxButtons(), cur = this.page();
     if (count <= max + 2) return Array.from({ length: count }, (_, i) => i + 1);
 
-    const inner = Math.max(1, max - 2); // window width excluding the pinned 1/last
+    const inner = Math.max(1, max - 2);
     let start = Math.max(2, cur - Math.floor(inner / 2));
     let end = Math.min(count - 1, start + inner - 1);
     start = Math.max(2, end - inner + 1);
@@ -114,7 +101,6 @@ export class BasePaginatorComponent {
   });
 
   go(p: number): void {
-    // unknownTotal mode has no real upper bound to clamp against — [hasNext] gates the button instead.
     const clamped = this.unknownTotal() ? Math.max(1, p) : Math.min(Math.max(1, p), this.pageCount());
     if (clamped !== this.page()) this.pageChange.emit({ page: clamped, pageSize: this.pageSize() });
   }
@@ -146,10 +132,8 @@ export class BasePaginatorComponent {
 })
 export class BaseSearchInputComponent {
   readonly placeholder = input('Search…');
-  /** Debounce in ms before (search) fires. */
   readonly debounceMs = input(250);
 
-  /** Debounced search text. Empty string when cleared. */
   readonly search = output<string>();
 
   readonly value = signal('');

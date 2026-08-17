@@ -1,8 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseAlertComponent } from '../../app/base';
 
-/** Sits next to what it describes; stays until the condition clears. See `<base-banner>` for
- *  page-wide conditions and `BaseToastService` for transient action confirmations. */
 const meta: Meta<BaseAlertComponent> = {
   title: 'Base/Feedback/Alert',
   component: BaseAlertComponent,
@@ -20,8 +18,6 @@ const meta: Meta<BaseAlertComponent> = {
     actionInline: false,
     compact: false
   },
-  // `kindClass`/`icon` are internal computeds (not real @Inputs) - see checkbox.stories.ts
-  // for why an explicit render avoids Storybook stomping them via the auto-generated wrapper.
   render: (args) => ({
     props: args,
     template: `<base-alert [kind]="kind" [title]="title" [message]="message" [dismissible]="dismissible"
@@ -48,8 +44,6 @@ export const Neutral: Story = {
 };
 export const Dismissible: Story = { args: { dismissible: true } };
 
-/** Primary action plus a lower-emphasis second action — e.g. a recoverable-error alert
- *  offering both "fix it now" and "back out". */
 export const WithTwoActions: Story = {
   args: {
     kind: 'error', title: "Couldn't save the threshold change",
@@ -58,8 +52,6 @@ export const WithTwoActions: Story = {
   }
 };
 
-/** Dense, single-line layout for table toolbars and card footers — no title, and the action
- *  renders as an inline text link instead of a button. */
 export const Compact: Story = {
   args: { kind: 'warning', message: '2 filters are hiding 187 rows.', actionLabel: 'Clear filters', compact: true }
 };
@@ -85,7 +77,6 @@ export const AllKinds: Story = {
   })
 };
 
-/** Compact variants side by side, as they appear stacked in a table toolbar. */
 export const CompactStack: Story = {
   render: () => ({
     template: `

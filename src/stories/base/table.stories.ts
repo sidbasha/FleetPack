@@ -29,7 +29,6 @@ interface ToolRow {
 const STATUSES: ToolRow['status'][] = ['PRODUCTION', 'ENGINEERING', 'STANDBY', 'DOWN'];
 const FABS = ['Fab-A', 'Fab-B', 'Fab-C'];
 
-/** Deterministic mock data - same shape as `/dev/base`'s playground, but seeded so it doesn't drift between renders. */
 function mockRows(n: number): ToolRow[] {
   return Array.from({ length: n }, (_, i) => {
     const uptime = 78 + ((i * 7) % 22);
@@ -72,7 +71,6 @@ const BASIC_COLUMNS: BaseColumnDef<ToolRow>[] = [
   { key: 'uptime', header: 'Uptime %', kind: 'number', align: 'right', sortable: true }
 ];
 
-/** Every built-in `BaseCellKind` in one table - the reference for "what can a column render". */
 const ALL_KIND_COLUMNS: BaseColumnDef<ToolRow>[] = [
   { key: 'sno', header: '#', kind: 'sno', width: '48px' },
   { key: 'toolId', header: 'Tool', width: '110px', sortable: true },
@@ -104,7 +102,6 @@ const ALL_KIND_COLUMNS: BaseColumnDef<ToolRow>[] = [
   }
 ];
 
-/** Columns for the nested child table shown under a row when expanded. */
 const ALARM_EVENT_COLUMNS: BaseColumnDef<any>[] = [
   { key: 'event', header: 'Alarm Event' },
   { key: 'time', header: 'Time', kind: 'date', dateFormat: { dateStyle: 'short', timeStyle: 'short' } },
@@ -121,7 +118,6 @@ const ALARM_EVENT_COLUMNS: BaseColumnDef<any>[] = [
   }
 ];
 
-/** Deterministic mock child rows - only tools with `alarms > 0` get an expand toggle. */
 function alarmEventsOf(row: ToolRow): Record<string, unknown>[] {
   if (row.alarms === 0) return [];
   const severities = ['High', 'Medium', 'Low'];
@@ -148,7 +144,6 @@ const STICKY_COLUMNS: BaseColumnDef<ToolRow>[] = [
   }
 ];
 
-/** `filterKind: 'checkbox'` swaps the header's filter icon for a search + checklist + sort dropdown. */
 const CHECKBOX_FILTER_COLUMNS: BaseColumnDef<ToolRow>[] = [
   { key: 'toolId', header: 'Tool', sortable: true },
   { key: 'fab', header: 'Fab', filterable: true, filterKind: 'checkbox', sortable: true },
@@ -156,21 +151,18 @@ const CHECKBOX_FILTER_COLUMNS: BaseColumnDef<ToolRow>[] = [
   { key: 'uptime', header: 'Uptime %', kind: 'number', align: 'right', sortable: true }
 ];
 
-/** `filterKind: 'calendar'` adds a Start/End date-range dropdown (reuses `<base-datepicker>`). */
 const CALENDAR_FILTER_COLUMNS: BaseColumnDef<ToolRow>[] = [
   { key: 'toolId', header: 'Tool', sortable: true },
   { key: 'fab', header: 'Fab' },
   { key: 'lastMaint', header: 'Last Maintenance', kind: 'date', filterable: true, filterKind: 'calendar' }
 ];
 
-/** `filterKind: 'range'` adds a numeric From/To dropdown; applying it clears all other filters/sorts. */
 const RANGE_FILTER_COLUMNS: BaseColumnDef<ToolRow>[] = [
   { key: 'toolId', header: 'Tool', sortable: true },
   { key: 'fab', header: 'Fab', filterable: true },
   { key: 'uptime', header: 'Uptime %', kind: 'number', align: 'right', sortable: true, filterable: true, filterKind: 'range' }
 ];
 
-/** Typed `BaseRowAction[]` - icon auto-resolves from `type`; `download` shows a live % while `row.fileProgress > 0`. */
 const TYPED_ACTION_COLUMNS: BaseColumnDef<ToolRow>[] = [
   { key: 'toolId', header: 'Tool', sortable: true },
   { key: 'fab', header: 'Fab' },
@@ -192,8 +184,6 @@ const ADDITIONAL_HEADER_GROUPS: AdditionalHeaderGroup[] = [
   { displayName: 'Maintenance', columnIds: ['lastMaint'] }
 ];
 
-/** kind 'number' + `abbreviateNumbers` (1.2K/84K, full value in a tooltip); negative values get
- *  automatic error-toned styling regardless — no per-column opt-in needed for that part. */
 const METRIC_COLUMNS: BaseColumnDef<ToolRow>[] = [
   { key: 'toolId', header: 'Tool', sortable: true },
   { key: 'fab', header: 'Fab' },
@@ -210,8 +200,6 @@ const HEALTH_HEAT_MAP: Record<string, string> = {
   DOWN: 'bg-error-surface text-error-hover'
 };
 
-/** kind 'heat-cell' — a full-cell colored block for a value read against a threshold. Never
- *  color alone: the value text is always shown alongside the tint. */
 const HEAT_CELL_COLUMNS: BaseColumnDef<ToolRow>[] = [
   { key: 'toolId', header: 'Tool', sortable: true },
   { key: 'fab', header: 'Fab' },
@@ -219,8 +207,6 @@ const HEAT_CELL_COLUMNS: BaseColumnDef<ToolRow>[] = [
   { key: 'uptime', header: 'Uptime %', kind: 'number', align: 'right' }
 ];
 
-/** Five typed actions on one row — with `[maxVisibleActions]="2"` only the first two show inline,
- *  the rest collapse into a "⋯" overflow menu. */
 const MANY_ACTION_COLUMNS: BaseColumnDef<ToolRow>[] = [
   { key: 'toolId', header: 'Tool', sortable: true },
   { key: 'fab', header: 'Fab' },
@@ -237,7 +223,6 @@ const MANY_ACTION_COLUMNS: BaseColumnDef<ToolRow>[] = [
   }
 ];
 
-/** [showSummary] pins a real `<tfoot>` aggregate row over the FILTERED set (not just the page). */
 const SUMMARY_COLUMNS: BaseColumnDef<ToolRow>[] = [
   { key: 'toolId', header: 'Tool', sortable: true },
   { key: 'fab', header: 'Fab' },
@@ -246,8 +231,6 @@ const SUMMARY_COLUMNS: BaseColumnDef<ToolRow>[] = [
   { key: 'alarms', header: 'Alarms', kind: 'number', align: 'right', summary: 'total' }
 ];
 
-/** [editableRows] + `editable`/`editType` per column: while `row.isEditing` is true, those cells
- *  render live controls; the table only reflects/gates state — the host owns save/cancel. */
 const EDITABLE_COLUMNS: BaseColumnDef<ToolRow>[] = [
   { key: 'toolId', header: 'Tool' },
   { key: 'fab', header: 'Fab', editable: true, editType: 'select', editOptions: FABS.map((f) => ({ label: f, value: f })) },
@@ -262,8 +245,6 @@ const EDITABLE_COLUMNS: BaseColumnDef<ToolRow>[] = [
   }
 ];
 
-/** Own copy, not `ROWS` — the Edit action mutates `row.isEditing` in place, and `ROWS` is shared
- *  across every story in this file. */
 const EDITABLE_ROWS: ToolRow[] = ROWS.slice(0, 6).map((r) => ({ ...r }));
 
 const meta: Meta<BaseTableComponent<ToolRow>> = {
@@ -334,15 +315,10 @@ type Story = StoryObj<BaseTableComponent<ToolRow>>;
 
 export const Default: Story = {};
 
-/** One column per `BaseCellKind` - the reference for choosing a `kind` when defining a column. */
 export const AllCellKinds: Story = {
   args: { columns: ALL_KIND_COLUMNS, minWidth: '1550px', showSearch: false }
 };
 
-/** `sticky: 'left' | 'right'` + a fixed `width` pins a column while the rest scrolls horizontally —
- *  `toolId` (left) and the actions column (right) are pinned together here, on top of `stickyHeader`,
- *  so all three axes (header, left column, right column) hold at once. Resize the canvas/browser
- *  under ~720px and the right-frozen group unfreezes automatically (left stays pinned). */
 export const StickyColumns: Story = {
   args: { columns: STICKY_COLUMNS, minWidth: '900px', maxHeight: '360px', stickyHeader: true, showSearch: false }
 };
@@ -352,7 +328,6 @@ export const MultiSelect: Story = {
   args: { selectable: 'multiple' }
 };
 
-/** `isDisableSelectAll` greys out the header checkbox; rows keep their own. */
 export const SelectAllDisabled: Story = {
   args: { selectable: 'multiple', isDisableSelectAll: true }
 };
@@ -361,59 +336,44 @@ export const ColumnFilterRow: Story = {
   args: { showFilterRow: true, columns: BASIC_COLUMNS.map((c) => ({ ...c, filterable: true })) }
 };
 
-/** `filterKind: 'checkbox'` - click a filter icon in the header for search + checklist + Sort Asc/Desc + Apply. */
 export const CheckboxFilter: Story = {
   args: { columns: CHECKBOX_FILTER_COLUMNS, showSearch: false }
 };
 
-/** `filterKind: 'calendar'` - Start Date / End Date via `<base-datepicker>`, no external date library. */
 export const CalendarFilter: Story = {
   args: { columns: CALENDAR_FILTER_COLUMNS, showSearch: false }
 };
 
-/** `filterKind: 'range'` - numeric From/To; Apply clears every other active filter/sort (exclusive). */
 export const RangeFilter: Story = {
   args: { columns: RANGE_FILTER_COLUMNS, showSearch: false }
 };
 
-/** `[manageColumns]="true"` mounts a gear-icon panel on the first header: search, Select All, drag reorder (frozen/sticky columns locked). */
 export const ManageColumns: Story = {
   args: { columns: STICKY_COLUMNS, manageColumns: true, minWidth: '900px', showSearch: false }
 };
 
-/** `[additionalHeader]` renders a merged/grouped label row above the normal header; `columnIds`
- *  auto-recomputes the colspan. Each group gets its own hue, rotating through the semantic
- *  surface-tone palette (never repeating one color across groups), and carries `scope="colgroup"`. */
 export const AdditionalHeaderRow: Story = {
   args: { additionalHeader: ADDITIONAL_HEADER_GROUPS, showSearch: false }
 };
 
-/** Typed `BaseRowAction[]` - icon auto-resolves from `type`, plus `isDisabled`/`isHidden` per row and a `(handleAction)` output. */
 export const TypedRowActions: Story = {
   args: { columns: TYPED_ACTION_COLUMNS, showSearch: false }
 };
 
 export const Striped: Story = { args: { striped: true } };
 
-/** `[readOnly]="true"` disables sort-click, all filter dropdowns, and the manage-columns gear - inert "library mode". */
 export const ReadOnlyLibraryMode: Story = {
   args: { columns: CHECKBOX_FILTER_COLUMNS, manageColumns: true, readOnly: true, showSearch: false }
 };
 
-/**
- * `[highlightKey]` marks and auto-scrolls to a matching row (`scrollIntoView`) - here a row
- * far down the list, inside a `[maxHeight]` scroll container so the scroll is visible.
- */
 export const HighlightAutoScroll: Story = {
   args: { highlightKey: ROWS[28].toolId, maxHeight: '360px', paginate: false, showSearch: false }
 };
 
-/** `[enableScroll]` + `[maxHeight]` emits `(scrollEvent)` near the top/bottom; `[scrollLoading]` shows a spinner row. */
 export const InfiniteScroll: Story = {
   args: { enableScroll: true, scrollLoading: true, maxHeight: '360px', paginate: false, showSearch: false }
 };
 
-/** `groupBy` returns a group key per row (or `null` to leave it ungrouped); `groupHeaderStyle` controls the header look. */
 export const GroupedByStatus: Story = {
   args: {
     groupBy: (r: ToolRow) => r.status,
@@ -436,11 +396,6 @@ export const GroupedLightHeader: Story = {
   }
 };
 
-/**
- * `[expandable]` adds a toggle button as the first column that opens/closes a nested
- * `<base-table>` under the row, driven by `[childColumns]` + `[childRowsOf]`. Rows whose
- * `childRowsOf` returns an empty array (here, tools with no alarms) get no toggle at all.
- */
 export const NestedRows: Story = {
   name: 'Expand/collapse nested table',
   args: {
@@ -451,12 +406,6 @@ export const NestedRows: Story = {
   }
 };
 
-/**
- * `childColumns` accepts a `baseChildCell` template the same way the outer table accepts
- * `baseCell` - declare it inside the outer `<base-table>` and it's forwarded into every
- * nested table. Here it renders a composite cell (dot + text) for the `event` column,
- * alongside the built-in `row-actions` edit/delete column, plus a `baseChildFooter` action row.
- */
 export const NestedRowsWithCustomCell: Story = {
   name: 'Nested table · custom cell + edit/delete + footer',
   decorators: [moduleMetadata({ imports: [BaseChildCellDirective, BaseChildFooterDirective] })],
@@ -564,78 +513,50 @@ export const WithSavedViewsRail: StoryObj<StoryTableWithViewsDemoComponent> = {
 
 export const Empty: Story = { args: { rows: [], showSearch: false } };
 
-/** `emptyKind` auto-picks 'no-results' (with a "Clear all filters" action) when a search/filter is
- *  active, or 'no-data' when there simply isn't any yet — override explicitly via `[emptyKind]`. */
 export const EmptyNoDataYet: Story = { args: { rows: [], emptyKind: 'no-data', showSearch: false } };
 
-/** `abbreviateNumbers` shows 1.2K/84K with the exact value in a tooltip; negative values (a
- *  data type behavior, not an opt-in) get error-toned text automatically either way. */
 export const AbbreviatedAndNegativeNumbers: Story = {
   args: { columns: METRIC_COLUMNS, showSearch: false }
 };
 
-/** kind 'heat-cell' — a full-cell tint read against a threshold, value text always shown alongside it. */
 export const HeatCells: Story = { args: { columns: HEAT_CELL_COLUMNS, showSearch: false } };
 
-/** `[maxVisibleActions]="2"` — only the first two typed actions render inline; the rest collapse
- *  into a "⋯" overflow menu (click it in the canvas). */
 export const RowActionsOverflow: Story = {
   args: { columns: MANY_ACTION_COLUMNS, maxVisibleActions: 2, showSearch: false }
 };
 
-/** `[readOnly]="true"` REMOVES mutating actions (edit/delete/…) from the row entirely rather than
- *  merely greying them out — only view/copy/download/run/history/more survive. */
 export const ReadOnlyRemovesMutatingActions: Story = {
   args: { columns: MANY_ACTION_COLUMNS, readOnly: true, showSearch: false }
 };
 
-/** No rows yet — skeleton rows sized to the current density, in place of the table body. */
 export const LoadingInitial: Story = { args: { loading: true, rows: [], showSearch: false } };
 
-/** Rows already on screen, refreshing in the background — existing rows dim to 60% (not replaced
- *  by skeletons) and the paginator/footer stays put and interactive-looking either way. */
 export const LoadingBackgroundRefresh: Story = { args: { loading: true, showSearch: false } };
 
-/** Something actually failed — a recoverable error state (distinct from an empty result), with a
- *  Retry action wired to `(retry)`. */
 export const ErrorWithRetry: Story = {
   args: { error: true, errorMessage: 'The fleet service timed out after 3 attempts.', retryLabel: 'Retry', showSearch: false }
 };
 
-/** `[showSummary]` pins a real `<tfoot>` aggregate row (never a styled div) over the FILTERED —
- *  not just the current page's — row set. Per-column `summary` picks the function. */
 export const SummaryFooter: Story = {
   args: { columns: SUMMARY_COLUMNS, showSummary: true, showSearch: false }
 };
 
-/** `[editableRows]` + `editable`/`editType` per column. Click a row's Edit action: its editable
- *  cells swap to live controls, the row tints amber, and sort/filter/paging block with a banner
- *  until every dirty row is saved or cancelled (see the Edit/Save/Cancel row actions). */
 export const InlineEdit: Story = {
   args: { columns: EDITABLE_COLUMNS, rows: EDITABLE_ROWS, showSearch: false, paginate: false }
 };
 
-/** `[serverSide]="true"` with `[totalItems]="0"` (unknown total): the paginator drops page numbers
- *  for "Showing X–Y" + a Next button gated by a full-page heuristic (or `[hasNextPage]` if the host
- *  knows better) — never a fabricated total. */
 export const UnknownTotalServerSide: Story = {
   args: { serverSide: true, totalItems: 0, rows: ROWS.slice(0, 10), paginate: true, showSearch: false }
 };
 
-/** `[enableScroll]` + `[scrollEnd]="true"` — once there's nothing left to fetch, the loader row is
- *  replaced by an end-of-list message instead of spinning forever. */
 export const InfiniteScrollEnded: Story = {
   args: { enableScroll: true, scrollLoading: false, scrollEnd: true, maxHeight: '360px', paginate: false, showSearch: false }
 };
 
-/** `[scrollTriggerPosition]="'top'"` — for "load older items" patterns, the loader/end row renders
- *  above the data instead of below it. */
 export const InfiniteScrollTopTrigger: Story = {
   args: { enableScroll: true, scrollLoading: true, scrollTriggerPosition: 'top', maxHeight: '360px', paginate: false, showSearch: false }
 };
 
-/** A numeric range filter is exclusive with sort and every other filter — apply one on Uptime %,
- *  then notice the banner and that the search box/other filter icons are inert until it's cleared. */
 export const RangeFilterBlocksOtherInteractions: Story = {
   args: { columns: RANGE_FILTER_COLUMNS, showSearch: true }
 };

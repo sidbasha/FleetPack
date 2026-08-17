@@ -1,8 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseOtpInputComponent } from '../../app/base';
 
-/** Fixed-length numeric code, one digit per box — auto-advances on entry, steps back on
- *  Backspace from an empty box, and accepts a full paste in one go. */
 const meta: Meta<BaseOtpInputComponent> = {
   title: 'Base/Forms/OTP Input',
   component: BaseOtpInputComponent,

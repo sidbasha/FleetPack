@@ -24,10 +24,7 @@ const MSG_CLS = `mt-1 flex items-center gap-1 text-caption normal-case font-norm
 export interface BaseComboOption {
   label: string;
   value: string;
-  /** Options are grouped by this field in list order — pre-sort/group the array; the combobox
-   *  just inserts a header wherever [group] changes. */
   group?: string;
-  /** Right-aligned trailing text, e.g. a tool count or "offline". */
   meta?: string;
   disabled?: boolean;
 }
@@ -104,7 +101,6 @@ export class BaseComboboxComponent extends BaseControl<string> {
     return this.options().filter(o => o.label.toLowerCase().includes(q));
   });
 
-  /** The current text is an exact, valid pick (not free-typed) — shows the closed-state ✓. */
   protected readonly confirmedMatch = computed(() => this.options().some(o => o.label === this.value() && !o.disabled));
 
   onInput(ev: Event): void {
@@ -180,7 +176,6 @@ export class BaseComboboxComponent extends BaseControl<string> {
 })
 export class BaseMultiSelectChipsComponent extends BaseControl<string[]> {
   readonly options = input.required<BaseComboOption[]>();
-  /** Two-way bound array of selected values: [(value)]. */
   readonly value = model<string[]>([]);
   readonly label = input('');
   readonly placeholder = input('Add…');
@@ -299,29 +294,14 @@ export interface BaseUploadFile {
 })
 export class BaseFileUploadComponent {
   readonly label = input('');
-  /** Display text, e.g. "CSV, XLSX"; only restricts the file picker if it's a valid HTML accept string. */
   readonly accept = input('');
-  /** MIME types for the drag-time rejection preview, e.g. ['application/json', 'text/xml'] — a
-   *  separate input from [accept] because [accept] is display text, not always a valid MIME
-   *  list. Best-effort: the browser only reports a MIME guess during dragover (never the
-   *  filename, for security), and some OS/extension pairs report none at all — when it can't
-   *  tell, this fails open (no red state) rather than risk a false rejection; the real check
-   *  still runs on drop via the native `accept` filter and whatever validation the host applies
-   *  to (filesAdded). Leave empty to skip the drag-time preview entirely. */
   readonly acceptTypes = input<string[]>([]);
   readonly maxSizeMb = input(0);
   readonly multiple = input(true);
   readonly required = input(false);
   readonly hint = input('');
-  /** Field-level error, e.g. "At least one recipe file is required." — tints the dropzone box
-   *  itself (border + background), same as `<base-text-input error="...">`. Wins over [warning].
-   *  Distinct from a per-file rejection (`BaseUploadFile.error`, shown in that file's own row)
-   *  and from the transient drag-time preview, which still takes priority while actively
-   *  dragging since it's live feedback about the gesture in progress. */
   readonly error = input('');
-  /** Field-level warning — same tint treatment as `<base-text-input warning="...">`. */
   readonly warning = input('');
-  /** Controlled list of files + progress; the host owns upload progress updates. */
   readonly files = model<BaseUploadFile[]>([]);
 
   readonly filesAdded = output<File[]>();
@@ -337,9 +317,6 @@ export class BaseFileUploadComponent {
   protected readonly dragInvalid = signal(false);
   protected readonly dragCount = signal(0);
 
-  /** Border + background together, as one class list — same priority order and tokens as
-   *  `<base-text-input>`'s `inputClass`: an active drag always wins (it's what the operator is
-   *  doing right now), then field-level error, then warning, then the plain resting state. */
   protected readonly dropzoneClass = computed(() => {
     if (this.dragInvalid()) return 'border-error bg-error-surface';
     if (this.dragOver()) return 'border-action bg-action-surface';
@@ -432,9 +409,7 @@ export class BaseSliderComponent extends BaseControl<number> {
   readonly unit = input('');
   readonly label = input('');
   readonly disabled = input(false);
-  /** Shows a small tooltip with the current value above the thumb while focused/dragging. */
   readonly showValueBubble = input(false);
-  /** Two-way bound: [(value)]. */
   readonly value = model(0);
 
   protected readonly focused = signal(false);
@@ -497,7 +472,6 @@ export class BaseRangeSliderComponent {
   readonly unit = input('');
   readonly label = input('');
   readonly disabled = input(false);
-  /** Two-way bound {from, to}: [(value)]. */
   readonly value = model<BaseRangeValue>({ from: 0, to: 100 });
 
   readonly changed = output<BaseRangeValue>();

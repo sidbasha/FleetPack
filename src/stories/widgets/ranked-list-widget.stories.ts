@@ -15,7 +15,6 @@ const WIDGET: RankedListWidget = {
   ]
 };
 
-/** `fam-ranked-list-widget` - used for "Top 10 Unavailable Tools" style panels. `onItemClick` (set here) adds a chevron and hover affordance. */
 const meta: Meta<RankedListWidgetComponent> = {
   title: 'Widgets/Ranked List',
   component: RankedListWidgetComponent,

@@ -26,7 +26,6 @@ const nextId = (prefix: string) => `${prefix}-${++uid}`;
 export abstract class BaseControl<T> implements ControlValueAccessor {
   protected onChange: (v: T) => void = () => {};
   protected onTouched: () => void = () => {};
-  /** Disabled state pushed by Reactive Forms; combined with the [disabled] prop. */
   protected readonly formDisabled = signal(false);
 
   abstract writeValue(v: T): void;
@@ -40,9 +39,6 @@ const LABEL_CLS = `block text-caption text-neutral-400 mb-1`;
 const INPUT_CLS = `w-full h-9 border rounded-r-sm px-sp-3 text-xs text-ink-700 bg-neutral-0 transition-colors
   focus:outline-none focus:ring-2 focus:ring-action-surface focus:border-action
   disabled:bg-neutral-50 disabled:text-neutral-400 disabled:cursor-not-allowed`;
-/** Same as INPUT_CLS but without a baked-in background, for callers whose background is itself
- *  state-dependent (see BaseTextInputComponent's `inputClass`) — one class list drives the
- *  background instead of two competing for the same CSS property at equal specificity. */
 const INPUT_CLS_NO_BG = INPUT_CLS.replace('bg-neutral-0 ', '');
 const HINT_CLS = `mt-1 text-caption normal-case font-normal text-neutral-400`;
 const ERROR_CLS = `mt-1 text-caption normal-case font-normal text-error`;
@@ -70,25 +66,18 @@ const ERROR_CLS = `mt-1 text-caption normal-case font-normal text-error`;
   `
 })
 export class BaseButtonComponent {
-  /** Visual style. 'danger' is a back-compat alias for 'destructive'. */
   readonly variant = input<
     'primary' | 'secondary' | 'tertiary' | 'ghost' | 'outline' | 'text' | 'destructive' | 'danger' | 'success' | 'warning'
   >('primary');
   readonly size = input<'sm' | 'md' | 'lg'>('md');
   readonly type = input<'button' | 'submit' | 'reset'>('button');
   readonly disabled = input(false);
-  /** Shows a spinner and disables the button instantly on click. */
   readonly loading = input(false);
-  /** Stretch to the container width. */
   readonly fullWidth = input(false);
-  /** Square, label-hidden sizing for a single icon; pair with [ariaLabel]. */
   readonly iconOnly = input(false);
   readonly ariaLabel = input('');
-  /** 'pill' fully rounds the corners + adds elevation — the FAB shape. Pair with variant="primary"
-   *  and [iconOnly] (or a short label) for the single persistent action on a toolbar-free surface. */
   readonly shape = input<'default' | 'pill'>('default');
 
-  /** Fired on click (not fired while disabled/loading). */
   readonly clicked = output<MouseEvent>();
 
   protected readonly variantClass = computed(() => ({
@@ -104,7 +93,6 @@ export class BaseButtonComponent {
     warning: 'bg-warning text-neutral-0 hover:bg-warning-hover'
   }[this.variant()]));
 
-  /** 'text' is chrome-free by spec — no fixed height/box, just label + hover underline. */
   protected readonly sizeClass = computed(() => {
     const icon = this.iconOnly();
     if (this.variant() === 'text' && !icon) {
@@ -144,7 +132,6 @@ export class BaseButtonComponent {
 })
 export class BaseSegmentedControlComponent<V = unknown> {
   readonly options = input.required<{ label: string; value: V; disabled?: boolean }[]>();
-  /** Two-way bound selected value: [(value)]. */
   readonly value = model<V | null>(null);
   readonly ariaLabel = input('');
 
@@ -212,28 +199,19 @@ const MSG_CLS = `mt-1 flex items-center gap-1 text-caption normal-case font-norm
   `
 })
 export class BaseTextInputComponent extends BaseControl<string> {
-  /** Two-way bound text: [(value)]. Emits (valueChange). */
   readonly value = model('');
   readonly label = input('');
   readonly placeholder = input('');
   readonly type = input<'text' | 'password' | 'email' | 'number' | 'tel' | 'url'>('text');
   readonly hint = input('');
-  /** Error message; also switches the border/icon to red. Wins over [warning]/[success]. */
   readonly error = input('');
-  /** Warning message — a save-blocking-adjacent state that isn't wrong yet. Wins over [success]. */
   readonly warning = input('');
-  /** Success/confirmation message, e.g. "Identifier available". */
   readonly success = input('');
-  /** Shows a trailing spinner and disables the field, e.g. while checking availability — pair
-   *  with [hint]="'Checking availability…'". */
   readonly loading = input(false);
   readonly disabled = input(false);
-  /** Native readonly — unlike [disabled], the value stays selectable/copyable and full-contrast. */
   readonly readOnly = input(false);
   readonly required = input(false);
-  /** Show an ✕ button to clear the value. */
   readonly clearable = input(false);
-  /** Inline text before / after the value, e.g. '₹' or 'kg'. */
   readonly prefix = input('');
   readonly suffix = input('');
   readonly maxLength = input(0);
@@ -243,15 +221,10 @@ export class BaseTextInputComponent extends BaseControl<string> {
   readonly blurred = output<void>();
 
   readonly id = nextId('bti');
-  /** type="password" only: internal show/hide toggle, independent of [type]. */
   protected readonly showPassword = signal(false);
 
   protected readonly effectiveType = computed(() => this.type() === 'password' && this.showPassword() ? 'text' : this.type());
 
-  /** Border + background together, as one class list — warning/error tint the field the same
-   *  way `<base-alert>` does (bg-warning-surface/bg-error-surface), not just the border, so the
-   *  state reads before the operator even gets to the message underneath. Success stays on the
-   *  plain surface with just the border + trailing check; read-only gets the neutral-50 tint. */
   protected readonly inputClass = computed(() => {
     const state = this.error() ? 'border-error bg-error-surface'
       : this.warning() ? 'border-warning bg-warning-surface'
@@ -261,8 +234,6 @@ export class BaseTextInputComponent extends BaseControl<string> {
     return `${INPUT_CLS_NO_BG} ${state}`;
   });
 
-  /** One trailing icon/control at a time, in priority order: a password field always gets its
-   *  own toggle; otherwise loading › clear › validation icon › plain [suffix] text. */
   protected readonly trailingSlot = computed((): '' | 'password' | 'loading' | 'clear' | 'error' | 'warning' | 'success' | 'suffix' => {
     if (this.type() === 'password') return 'password';
     if (this.loading()) return 'loading';
@@ -386,7 +357,6 @@ export interface BaseSelectOption<V = unknown> {
   `
 })
 export class BaseSelectComponent<V = unknown> extends BaseControl<V | null> {
-  /** Two-way bound selected value: [(value)]. */
   readonly value = model<V | null>(null);
   readonly options = input.required<BaseSelectOption<V>[]>();
   readonly label = input('');
@@ -395,12 +365,9 @@ export class BaseSelectComponent<V = unknown> extends BaseControl<V | null> {
   readonly error = input('');
   readonly disabled = input(false);
   readonly required = input(false);
-  /** Adds a filter box inside the dropdown. */
   readonly searchable = input(false);
-  /** Hides the ▲/▼ chevron, e.g. to look like a plain input box. */
   readonly showChevron = input(true);
 
-  /** Fired with the full option object when a selection is made. */
   readonly optionSelected = output<BaseSelectOption<V>>();
   readonly opened = output<void>();
   readonly closed = output<void>();
@@ -474,15 +441,11 @@ export class BaseSelectComponent<V = unknown> extends BaseControl<V | null> {
   `
 })
 export class BaseCheckboxComponent extends BaseControl<boolean> {
-  /** Two-way bound: [(checked)]. Emits (checkedChange). */
   readonly checked = model(false);
   readonly label = input('');
   readonly disabled = input(false);
-  /** Visual indeterminate (mixed) state — doesn't affect the checked value. */
   readonly indeterminate = input(false);
-  /** Secondary line under the label, e.g. what checking it actually does. */
   readonly description = input('');
-  /** Error message; also switches the check color to red. Suppresses [description]. */
   readonly error = input('');
 
   onToggle(ev: Event): void {
@@ -520,13 +483,11 @@ export class BaseCheckboxComponent extends BaseControl<boolean> {
   `
 })
 export class BaseRadioGroupComponent<V = unknown> extends BaseControl<V | null> {
-  /** Two-way bound selected value: [(value)]. */
   readonly value = model<V | null>(null);
   readonly options = input.required<BaseSelectOption<V>[]>();
   readonly label = input('');
   readonly direction = input<'horizontal' | 'vertical'>('horizontal');
   readonly disabled = input(false);
-  /** Error message below the group; also switches every dot's color to red. */
   readonly error = input('');
 
   readonly name = nextId('brg');
@@ -564,12 +525,10 @@ export class BaseRadioGroupComponent<V = unknown> extends BaseControl<V | null> 
   `
 })
 export class BaseToggleComponent extends BaseControl<boolean> {
-  /** Two-way bound: [(checked)]. Emits (checkedChange). */
   readonly checked = model(false);
   readonly label = input('');
   readonly disabled = input(false);
   readonly size = input<'md' | 'lg'>('md');
-  /** 'success' reads as an affirmative "on", e.g. an enabled/healthy state rather than a plain preference. */
   readonly tone = input<'action' | 'success'>('action');
 
   protected readonly toneClass = computed(() => this.tone() === 'success' ? 'bg-success' : 'bg-action');
@@ -633,13 +592,9 @@ export class BaseToggleComponent extends BaseControl<boolean> {
 export class BaseSplitButtonComponent {
   readonly items = input.required<BaseMenuItem[]>();
   readonly disabled = input(false);
-  /** 'secondary' renders a bordered/white split button — a default action plus related
-   *  variants where a solid primary would out-rank the view's actual primary action. */
   readonly variant = input<'primary' | 'secondary'>('primary');
 
-  /** Fired when the primary (left) segment is clicked. */
   readonly clicked = output<MouseEvent>();
-  /** Fired with the chosen menu item from the chevron (right) segment. */
   readonly itemSelect = output<BaseMenuItem>();
 
   protected readonly open = signal(false);
@@ -666,8 +621,6 @@ export class BaseSplitButtonComponent {
   }
 }
 
-/** 2–4 related actions that share one bordered silhouette but fire independently — each press is
- *  its own action (unlike base-segmented-control, which manages a single mutually-exclusive value). */
 export interface BaseButtonGroupItem {
   id: string;
   label: string;
@@ -700,10 +653,7 @@ export interface BaseButtonGroupItem {
 })
 export class BaseButtonGroupComponent {
   readonly items = input.required<BaseButtonGroupItem[]>();
-  /** Optional visual "current" highlight — purely cosmetic. The group does not manage
-   *  selection state itself; every press still emits (itemClick). */
   readonly activeId = input<string | null>(null);
-  /** Hide labels, show icons only (pair with icons on every item). */
   readonly iconOnly = input(false);
   readonly ariaLabel = input('');
 
@@ -715,9 +665,6 @@ export class BaseButtonGroupComponent {
   }
 }
 
-/** One of N, presented as cards instead of `<base-radio-group>`'s dot+label row — reach for
- *  this when each option needs room for a description (or an icon) to be chosen with confidence,
- *  e.g. picking a whole strategy rather than a short setting. */
 export interface BaseSelectionCardOption<V = unknown> {
   label: string;
   value: V;
@@ -755,7 +702,6 @@ export interface BaseSelectionCardOption<V = unknown> {
 })
 export class BaseSelectionCardComponent<V = unknown> extends BaseControl<V | null> {
   readonly options = input.required<BaseSelectionCardOption<V>[]>();
-  /** Two-way bound selected value: [(value)]. */
   readonly value = model<V | null>(null);
   readonly label = input('');
   readonly columns = input(3);
@@ -810,7 +756,6 @@ export class BaseSelectionCardComponent<V = unknown> extends BaseControl<V | nul
   `
 })
 export class BaseNumericStepperComponent extends BaseControl<number> {
-  /** Two-way bound: [(value)]. */
   readonly value = model(0);
   readonly min = input(-Infinity);
   readonly max = input(Infinity);
@@ -864,7 +809,6 @@ export class BaseNumericStepperComponent extends BaseControl<number> {
 })
 export class BaseOtpInputComponent {
   readonly length = input(6);
-  /** Two-way bound digit string, e.g. "481019": [(value)]. */
   readonly value = model('');
   readonly label = input('');
   readonly hint = input('');
@@ -872,7 +816,6 @@ export class BaseOtpInputComponent {
   readonly disabled = input(false);
   readonly ariaLabel = input('');
 
-  /** Fired once every box is filled. */
   readonly completed = output<string>();
 
   @ViewChildren('cell') private cells?: QueryList<ElementRef<HTMLInputElement>>;
@@ -909,14 +852,9 @@ export class BaseOtpInputComponent {
   }
 }
 
-/** Restricted to the design system's own token palette — free-form hex entry is deliberately
- *  absent, so a chosen color is always a token and always survives a theme switch. */
 export interface BaseColorSwatch {
-  /** Stored value, e.g. a token name like 'action'. */
   value: string;
-  /** Tailwind background class, e.g. 'bg-action'. */
   colorClass: string;
-  /** Accessible name, e.g. 'Cobalt'. */
   label: string;
 }
 
@@ -955,9 +893,7 @@ const DEFAULT_COLOR_SWATCHES: BaseColorSwatch[] = [
   `
 })
 export class BaseColorPickerComponent extends BaseControl<string> {
-  /** Defaults to the seven semantic tokens; pass a narrower list to restrict further. */
   readonly swatches = input<BaseColorSwatch[]>(DEFAULT_COLOR_SWATCHES);
-  /** Two-way bound token value, e.g. 'action': [(value)]. */
   readonly value = model('');
   readonly label = input('');
   readonly hint = input('');
@@ -998,7 +934,6 @@ export class BaseColorPickerComponent extends BaseControl<string> {
 })
 export class BaseCheckboxGroupComponent<V = unknown> extends BaseControl<V[]> {
   readonly options = input.required<BaseSelectOption<V>[]>();
-  /** Two-way bound array of checked values: [(value)]. */
   readonly value = model<V[]>([]);
   readonly label = input('');
   readonly direction = input<'horizontal' | 'vertical'>('vertical');
@@ -1045,7 +980,6 @@ const pad2 = (n: number) => String(n).padStart(2, '0');
   `
 })
 export class BaseTimePickerComponent extends BaseControl<string> {
-  /** Two-way bound "HH:MM" value: [(value)]. */
   readonly value = model('');
   readonly label = input('');
   readonly placeholder = input('Select time…');

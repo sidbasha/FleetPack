@@ -10,7 +10,6 @@ const rows: BaseHeatmapRow[] = DAYS.map(d => ({
   cells: HOURS.map((h, i) => ({ col: h, state: STATES[(i + d.charCodeAt(3)) % STATES.length] }))
 }));
 
-/** Day × hour grid colored by dominant machine state — spots patterns a line chart would average away. */
 const meta: Meta<BaseStateHeatmapComponent> = {
   title: 'Base/Charts & Visualization/State Heatmap',
   component: BaseStateHeatmapComponent,

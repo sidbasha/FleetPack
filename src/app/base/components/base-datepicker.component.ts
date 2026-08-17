@@ -116,7 +116,6 @@ const pad2 = (n: number) => String(n).padStart(2, '0');
   `
 })
 export class BaseDatepickerComponent extends BaseControl<Date | null> {
-  /** Two-way bound selected date: [(value)]. Emits (valueChange). */
   readonly value = model<Date | null>(null);
   readonly label = input('');
   readonly placeholder = input('Select date…');
@@ -124,16 +123,11 @@ export class BaseDatepickerComponent extends BaseControl<Date | null> {
   readonly error = input('');
   readonly disabled = input(false);
   readonly clearable = input(true);
-  /** Earliest / latest selectable dates (inclusive). */
   readonly min = input<Date | null>(null);
   readonly max = input<Date | null>(null);
-  /** Custom rule — return true to disable a date (e.g. weekends). */
   readonly disabledDates = input<((d: Date) => boolean) | null>(null);
-  /** Intl format for the display text. */
   readonly displayFormat = input<Intl.DateTimeFormatOptions>({ dateStyle: 'medium' });
-  /** 0 = Sunday, 1 = Monday. */
   readonly weekStart = input<0 | 1>(1);
-  /** Adds HH:MM boxes; picking a date keeps the panel open for time adjustment. */
   readonly showTime = input(false);
 
   readonly opened = output<void>();

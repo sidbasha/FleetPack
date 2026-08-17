@@ -16,9 +16,7 @@ import { BaseTeleportDirective } from './base-overlay.components';
 
 export interface BaseBreadcrumbItem {
   label: string;
-  /** Router path. When present, the crumb navigates via routerLink. */
   url?: string;
-  /** Optional emoji/char icon shown before the label. */
   icon?: string;
 }
 
@@ -56,20 +54,16 @@ export interface BaseBreadcrumbItem {
   `
 })
 export class BaseBreadcrumbsComponent {
-  /** Ordered trail; the last item is the current page (not clickable). */
   readonly items = input.required<BaseBreadcrumbItem[]>();
   readonly separator = input('›');
 
-  /** Fired when any non-last crumb is clicked (also fires alongside routerLink). */
   readonly itemClick = output<{ item: BaseBreadcrumbItem; index: number }>();
 }
 
 export interface BaseTabItem {
   id: string;
   label: string;
-  /** Optional leading icon glyph/emoji — mainly for the 'vertical' variant. */
   icon?: string;
-  /** Small counter badge. */
   badge?: string | number;
   disabled?: boolean;
 }
@@ -137,13 +131,10 @@ export interface BaseTabItem {
 })
 export class BaseTabsComponent {
   readonly tabs = input.required<BaseTabItem[]>();
-  /** Two-way bound active tab id: [(activeId)]. Emits (activeIdChange). */
   readonly activeId = model('');
-  /** 'underline' (default, page sections) · 'pills' (a filter/status switcher) · 'vertical' (a settings-style side list). */
   readonly variant = input<'underline' | 'pills' | 'vertical'>('underline');
   readonly ariaLabel = input('');
 
-  /** Fired with the full tab object on selection. */
   readonly tabSelect = output<BaseTabItem>();
 
   private readonly host = inject(ElementRef<HTMLElement>);
@@ -166,7 +157,6 @@ export class BaseTabsComponent {
     this.tabSelect.emit(t);
   }
 
-  /** Arrow-key roving tabindex to the next/previous enabled tab. */
   moveFocus(dir: 1 | -1): void {
     const list = this.tabs().filter(t => !t.disabled);
     if (!list.length) return;
@@ -180,7 +170,6 @@ export class BaseTabsComponent {
 export interface BaseStepperStep {
   id: string;
   label: string;
-  /** Optional secondary line under the label (vertical orientation only). */
   description?: string;
   disabled?: boolean;
 }
@@ -251,15 +240,11 @@ export type BaseStepperStepStatus = 'completed' | 'active' | 'upcoming';
 })
 export class BaseStepperComponent {
   readonly steps = input.required<BaseStepperStep[]>();
-  /** Two-way bound current step id: [(activeId)]. Emits (activeIdChange). */
   readonly activeId = model('');
   readonly orientation = input<'horizontal' | 'vertical'>('horizontal');
-  /** When true (default), only completed/active steps can be clicked — no
-   *  jumping ahead to a step not yet reached. Set false to allow free jumps. */
   readonly linear = input(true);
   readonly ariaLabel = input('');
 
-  /** Fired with the step + index whenever a reachable step is clicked. */
   readonly stepSelect = output<{ step: BaseStepperStep; index: number }>();
 
   protected readonly activeIndex = computed(() => this.steps().findIndex(s => s.id === this.activeId()));
@@ -291,8 +276,6 @@ export class BaseStepperComponent {
     }[this.statusOf(i)];
   }
 
-  /** Green once the step *leading into* the next one is done, so the filled
-   *  portion always reflects progress made rather than the segment ahead. */
   protected connectorClass(i: number): string {
     return this.statusOf(i) === 'completed' ? 'bg-success' : 'bg-neutral-200';
   }
@@ -308,15 +291,9 @@ export interface BaseMenuItem {
   id: string;
   label: string;
   icon?: string;
-  /** Right-aligned keyboard-shortcut hint, e.g. 'E' or '⌘C' — display only, doesn't bind the key. */
   shortcut?: string;
-  /** Renders in red (destructive actions) — keep these last, separated by [dividerBefore], and
-   *  never adjacent to a frequently-used action. */
   danger?: boolean;
-  /** An item that can't run right now should say why in [label] itself (e.g. "Compare — select
-   *  two tools"), not just go quietly grey with no explanation. */
   disabled?: boolean;
-  /** Draws a divider line above this item. */
   dividerBefore?: boolean;
 }
 
@@ -367,7 +344,6 @@ export class BaseDropdownMenuComponent {
   readonly align = input<'left' | 'right'>('left');
   readonly disabled = input(false);
 
-  /** Fired with the chosen menu item. */
   readonly itemSelect = output<BaseMenuItem>();
 
   protected readonly open = signal(false);
@@ -433,7 +409,6 @@ export class BaseContextMenuComponent {
   protected readonly pos = signal({ x: 0, y: 0 });
   private openedFrom: HTMLElement | null = null;
 
-  /** Opens the menu at a fixed viewport coordinate. */
   openAt(x: number, y: number): void {
     this.openedFrom = document.activeElement as HTMLElement | null;
     this.pos.set({ x, y });

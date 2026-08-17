@@ -1,8 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseComboboxComponent } from '../../app/base';
 
-/** Type-ahead field where the typed text is a real value, not just a filter. Options can be
- *  grouped (pre-sort the array by [group]) and carry trailing [meta] text, e.g. a tool count. */
 const meta: Meta<BaseComboboxComponent> = {
   title: 'Base/Forms/Combobox',
   component: BaseComboboxComponent,
@@ -23,7 +21,6 @@ type Story = StoryObj<BaseComboboxComponent>;
 export const Default: Story = {};
 export const ConfirmedSelection: Story = { name: 'Confirmed selection (closed)', args: { value: 'RCP-8821-A' } };
 
-/** Grouped options with per-option meta text, and a disabled option (offline) — as in the "Site" picker. */
 export const GroupedWithMeta: Story = {
   args: {
     label: 'Site',

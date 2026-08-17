@@ -31,7 +31,6 @@ export class AlarmStore {
     { cacheTtlMs: 300_000 }
   );
 
-  // Back-compat selectors
   readonly home = this.homeQuery.data;
   readonly homeLoading = this.homeQuery.loading;
   readonly fleetDetail = this.fleetQuery.data;

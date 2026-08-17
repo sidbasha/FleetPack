@@ -3,10 +3,6 @@ import type { Meta, StoryObj } from '@storybook/angular';
 import { moduleMetadata } from '@storybook/angular';
 import { BaseButtonComponent, BaseChipComponent } from '../../app/base';
 
-/** A control — the only member of the badge/tag/chip family that's clickable. Three shapes:
- *  filter chips (multi-select, each independent), choice chips (one of N, mutually exclusive),
- *  and dismissible chips (applied filters). The chip itself never owns selection state; the
- *  parent does — see FilterChips/ChoiceChips below for the pattern. */
 const meta: Meta<BaseChipComponent> = {
   title: 'Base/Data Display/Chip',
   component: BaseChipComponent,

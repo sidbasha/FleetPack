@@ -28,8 +28,6 @@ const TOP10: RankedListWidget = {
 
 const WIDGETS: WidgetConfig[] = [KPIS, TREND, TOP10];
 
-/** `fam-dynamic-page` composes a `WidgetConfig[]` into the responsive 6-column grid every FAM screen uses -
- * adding a panel to a page means adding a config object here, not a new template. */
 const meta: Meta<DynamicPageComponent> = {
   title: 'Widgets/Dynamic Page (grid layout)',
   component: DynamicPageComponent,

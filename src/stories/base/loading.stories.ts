@@ -1,8 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseLoadingComponent } from '../../app/base';
 
-/** A spinner is only correct when the shape of what's coming is genuinely unknown — reach for
- *  `<base-skeleton>` instead the moment that shape is known. */
 const meta: Meta<BaseLoadingComponent> = {
   title: 'Base/Feedback/Loading',
   component: BaseLoadingComponent,

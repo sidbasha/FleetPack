@@ -6,7 +6,6 @@ import {
   UptimeTrendResponse, WeeklyUptimePoint
 } from '../models/models';
 
-// Deterministic PRNG so the mock API is stable across reloads.
 function mulberry32(seed: number) {
   return () => {
     seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
@@ -65,7 +64,7 @@ export function buildUptimeAnalysis(): UptimeAnalysisResponse {
   };
 }
 
-const TREND_ANCHOR = new Date(2026, 6, 14); // "today" — most recent granular point
+const TREND_ANCHOR = new Date(2026, 6, 14);
 
 function buildUptimeInfo(rand: () => number, baseline: number, volatility: number, count = 100): UptimeInfoPoint[] {
   const points: UptimeInfoPoint[] = [];
@@ -121,8 +120,6 @@ function buildHeatmap(rand: () => number): HeatmapDay[] {
   return days;
 }
 
-// Tool State Segments — raw feed backing both the Activity Gantt bars and
-// the Event Details rows; see segment-derivation.util.ts for the derivation.
 const SEGMENT_STATES: { name: string; weight: number }[] = [
   { name: 'production', weight: 0.62 },
   { name: 'engineering', weight: 0.10 },
@@ -143,10 +140,10 @@ function pickSegmentState(rand: () => number): string {
 
 function buildDayTrack(rand: () => number, day: Date, sourceName: 'system' | 'tool', idSeed: number): StateSegment[] {
   const segments: StateSegment[] = [];
-  let cursorMin = 0; // whole minutes — avoids float drift when clamped at day end
+  let cursorMin = 0;
   let id = idSeed;
   while (cursorMin < 1440) {
-    const durMin = Math.min(1440 - cursorMin, Math.round((1 + rand() * 7) * 10) * 6); // multiples of 6 min (0.1h)
+    const durMin = Math.min(1440 - cursorMin, Math.round((1 + rand() * 7) * 10) * 6);
     const start = new Date(day);
     start.setHours(0, 0, 0, 0);
     start.setMinutes(cursorMin);
@@ -170,7 +167,7 @@ function buildDayTrack(rand: () => number, day: Date, sourceName: 'system' | 'to
 
 export function buildStateSegments(toolId: string, days = 14): StateSegmentsResponse {
   const rand = mulberry32(toolId.length * 97 + days);
-  const anchor = new Date(2026, 6, 15); // "today"
+  const anchor = new Date(2026, 6, 15);
   const stateSegments: StateSegment[] = [];
   let idSeed = 100000;
   for (let i = days - 1; i >= 0; i--) {
@@ -182,8 +179,6 @@ export function buildStateSegments(toolId: string, days = 14): StateSegmentsResp
   return { stateSegments };
 }
 
-// Segment Activities — task/recipe-level detail generated inside the 'tool'
-// track's Production windows, correlated with the StateSegment data above.
 const RECIPE_SEGMENT_NAMES = ['Recipe Editor', 'Recipe Run', 'Wafer Process', 'Lot Load', 'Lot Unload'];
 const RECIPE_IDS = [
   'Chelsie\\MetroHost\\2_XYS_TIS_fail_UI',

@@ -1,9 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseToggleComponent } from '../../app/base';
 
-/** Applies immediately with no Save button. Reach for `<base-checkbox>` instead the moment the
- *  change is part of a form that gets submitted — if the operator has to press Save afterwards,
- *  it's a checkbox. */
 const meta: Meta<BaseToggleComponent> = {
   title: 'Base/Forms/Toggle',
   component: BaseToggleComponent,
@@ -19,8 +16,6 @@ const meta: Meta<BaseToggleComponent> = {
     size: 'md',
     tone: 'action'
   },
-  // See checkbox.stories.ts - avoids Storybook force-assigning inherited internal
-  // signal state (BaseControl's `formDisabled`) as if it were a plain input.
   render: (args) => ({
     props: args,
     template: `<base-toggle [label]="label" [checked]="checked" [disabled]="disabled" [size]="size" [tone]="tone" />`

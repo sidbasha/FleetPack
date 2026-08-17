@@ -17,14 +17,14 @@ export type Severity = 'Fatal' | 'Non-Fatal';
 
 export interface GlobalFilters {
   fleet: string;
-  dateFrom: string; // yyyy/MM/dd
+  dateFrom: string;
   dateTo: string;
   duration: 'Last 4 Weeks' | 'Last 13 Weeks' | 'Last 52 Weeks';
 }
 
 export interface WeeklyUptimePoint {
-  workWeek: string;        // e.g. 2025-46
-  oneWeekRolling: number;  // %
+  workWeek: string;
+  oneWeekRolling: number;
   thirteenWeekRolling: number;
   periodAverage: number;
 }
@@ -32,7 +32,7 @@ export interface WeeklyUptimePoint {
 export interface UptimeBreakdownRow {
   label: string;
   group: '1 Week Rolling' | '13 Week Rolling' | 'Tool' | 'SW Version';
-  values: Record<string, number>; // workWeek -> %
+  values: Record<string, number>;
 }
 
 export interface UnavailableTool {
@@ -58,9 +58,8 @@ export interface UptimeAnalysisResponse {
   kpis: { oneWeekRolling: number; thirteenWeekRolling: number };
 }
 
-// ── Up-Time Trend (granular history, PascalCase — mirrors upstream API contract) ──
 export interface UptimeInfoPoint {
-  GranulariReferencePoint: string; // e.g. "2026-29" (year-dayOfYear)
+  GranulariReferencePoint: string;
   UptimePercentage: number;
   UptimeDurationHrs: number;
   DowntimeDurationHrs: number;
@@ -68,7 +67,7 @@ export interface UptimeInfoPoint {
 }
 
 export interface UptimeTrendWindow {
-  RollingWindow: number; // e.g. 1, 13
+  RollingWindow: number;
   UptimeInfo: UptimeInfoPoint[];
 }
 
@@ -95,8 +94,8 @@ export interface FleetTrendPoint {
 }
 
 export interface HeatmapDay {
-  date: string;               // MM-dd
-  hours: ToolState[];         // 8 blocks of 3h (or 24 x 1h)
+  date: string;
+  hours: ToolState[];
 }
 
 export interface StateTotals {
@@ -109,16 +108,15 @@ export interface StateTotals {
 
 export interface GanttSegment {
   state: ToolState;
-  startHour: number; // 0..24 fractional
+  startHour: number;
   endHour: number;
-  label?: string;    // e.g. "1.9h"
-  /** Recipe/task context from a correlated segment activity, e.g. "Recipe Run · Fail (0xc82f001a)". */
+  label?: string;
   detail?: string;
 }
 
 export interface GanttDay {
-  day: string;       // Mon
-  date: string;      // 05-04
+  day: string;
+  date: string;
   availabilityPct: number;
   downtimeHrs: number;
   sysRow: GanttSegment[];
@@ -145,16 +143,13 @@ export interface AvailabilityResponse {
   downtimeCategories: DowntimeCategory[];
 }
 
-// ── Tool State Segments — raw feed (mixed casing mirrors upstream API contract).
-// Single source of truth: both the Activity Gantt bars and the Event Details
-// rows are derived from this instead of being separately mocked. ──
 export interface StateSegment {
   ToolDetail: string | null;
   segmentId: number;
   sourceName: 'system' | 'tool';
-  stateName: string; // raw upstream label, e.g. "standby"
-  start: string;      // ISO datetime
-  end: string;        // ISO datetime
+  stateName: string;
+  start: string;
+  end: string;
   segmentDurationHrs: number;
   metadata: unknown | null;
 }
@@ -163,10 +158,6 @@ export interface StateSegmentsResponse {
   stateSegments: StateSegment[];
 }
 
-// ── Segment Activities — task/recipe-level detail within a tool's
-// Production windows (getSegmentActivities). Correlated with StateSegment
-// at generation time so the Activity Gantt and Event Details tables can
-// enrich themselves from this same underlying data. ──
 export interface SegmentActivityParams {
   [key: string]: string | number | null;
 }
@@ -174,11 +165,11 @@ export interface SegmentActivityParams {
 export interface SegmentActivity {
   modelId: string;
   toolId: number;
-  eventStart: string; // ISO datetime
-  eventEnd: string;   // ISO datetime
+  eventStart: string;
+  eventEnd: string;
   duration: number;
-  segmentType: string; // e.g. "TaskSegment"
-  SegmentName: string;  // casing mirrors upstream API contract
+  segmentType: string;
+  SegmentName: string;
   params: SegmentActivityParams;
 }
 
@@ -189,7 +180,6 @@ export interface SegmentActivitiesResponse {
   isError: boolean | null;
   responseException: unknown | null;
   result: SegmentActivity[];
-  /** Not present in the upstream payload — added by the mock for pagination UI. */
   totalCount: number;
 }
 
@@ -241,7 +231,7 @@ export interface AlarmEvent {
   recipe: string | null;
   workWeek: string;
   swVersion: string;
-  duration: string; // hh:mm:ss
+  duration: string;
   resolution: 'Auto-cleared' | 'Manual reset' | 'Tool downtime';
 }
 

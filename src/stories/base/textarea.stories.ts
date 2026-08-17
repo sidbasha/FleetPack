@@ -15,8 +15,6 @@ const meta: Meta<BaseTextareaComponent> = {
     disabled: false,
     maxLength: 0
   },
-  // See checkbox.stories.ts - avoids Storybook force-assigning inherited internal
-  // signal state (BaseControl's `formDisabled`) as if it were a plain input.
   render: (args) => ({
     props: args,
     template: `<base-textarea [label]="label" [placeholder]="placeholder" [value]="value" [rows]="rows"

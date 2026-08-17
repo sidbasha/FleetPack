@@ -8,7 +8,6 @@ const meta: Meta<BaseDateRangePickerComponent> = {
   component: BaseDateRangePickerComponent,
   tags: ['autodocs'],
   parameters: {
-    // The popup panel renders relative to the trigger and can get clipped by the docs iframe.
     layout: 'padded'
   },
   argTypes: {
@@ -22,8 +21,6 @@ const meta: Meta<BaseDateRangePickerComponent> = {
     maxDate: null,
     align: 'left'
   },
-  // `open`/draft signals are internal state (not real @Inputs) - see checkbox.stories.ts
-  // for why an explicit render avoids Storybook stomping them via the auto-generated wrapper.
   render: (args) => ({
     props: args,
     template: `<base-date-range-picker [value]="value" [disabled]="disabled" [disableFuture]="disableFuture"
@@ -33,7 +30,6 @@ const meta: Meta<BaseDateRangePickerComponent> = {
 export default meta;
 type Story = StoryObj<BaseDateRangePickerComponent>;
 
-/** Click the trigger in the canvas to open the panel: quick-range sidebar + dual calendars + time boxes. */
 export const Default: Story = {};
 
 export const Last7Days: Story = { args: { value: { preset: 'last7', from: null, to: null } } };
@@ -52,8 +48,6 @@ export const CustomRangeSelected: Story = {
 
 export const Disabled: Story = { args: { disabled: true } };
 
-/** Realistic placement: trigger sits at the far right of a toolbar, so the panel
- *  is right-aligned and opens leftward to stay on-screen. */
 export const AlignedRight: Story = {
   args: { align: 'right' },
   render: (args) => ({

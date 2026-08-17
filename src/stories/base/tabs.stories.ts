@@ -27,8 +27,6 @@ const SETTINGS_TABS: BaseTabItem[] = [
   { id: 'security', label: 'Security', icon: '🛡' }
 ];
 
-/** Three treatments: 'underline' for page sections (the default), 'pills' for a filter/status
- *  switcher, and 'vertical' for a settings-style side list with icons. */
 const meta: Meta<BaseTabsComponent> = {
   title: 'Base/Navigation/Tabs',
   component: BaseTabsComponent,

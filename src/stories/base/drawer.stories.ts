@@ -2,21 +2,10 @@ import type { Meta, StoryObj } from '@storybook/angular';
 import { moduleMetadata } from '@storybook/angular';
 import { BaseBadgeComponent, BaseButtonComponent, BaseDrawerComponent } from '../../app/base';
 
-/** Holds detail beside the work rather than on top of it — the list/page underneath stays
- *  visible and selectable. `side="bottom"` is the compact-breakpoint equivalent — an action
- *  sheet at a width where a side panel would leave nothing else visible. `open` is bound
- *  one-way here (default `true`) just to show the drawer's anatomy in the canvas — backdrop/ESC
- *  close will flicker rather than stay closed. Exercise the real open/close lifecycle at
- *  `/dev/base` instead. */
 const meta: Meta<BaseDrawerComponent> = {
   title: 'Base/Overlays/Drawer',
   component: BaseDrawerComponent,
   tags: ['autodocs'],
-  // Every story here defaults open, and each is `position: fixed inset-0` — inline on the Docs
-  // page (which renders every story on one scrollable page at once) that's N stacked backdrops
-  // and N competing scroll-locks/focus-traps fighting each other. `inline: false` puts each
-  // story preview in its own iframe on the Docs page instead, scoping all of that per-story.
-  // The standalone "Canvas" view for one story is unaffected either way.
   parameters: { docs: { story: { inline: false, height: '420px' } } },
   argTypes: {
     side: { control: 'select', options: ['left', 'right', 'bottom'] }
@@ -56,8 +45,6 @@ export const NoCloseButton: Story = { args: { showClose: false } };
 export const NoTitle: Story = { args: { title: '' } };
 export const WithIcon: Story = { args: { icon: 'settings', title: 'SP7-04' } };
 
-/** The spec's "tool inspector" side drawer — icon header, status badges, a stat, and a recent-
- *  events list, with Close (secondary) and Deep dive (primary) in the footer. */
 export const ToolInspector: Story = {
   decorators: [moduleMetadata({ imports: [BaseBadgeComponent, BaseButtonComponent] })],
   render: () => ({
@@ -99,7 +86,6 @@ export const ToolInspector: Story = {
   })
 };
 
-/** Bottom drawer — an action sheet at the compact breakpoint, with a drag-handle affordance. */
 export const BottomActionSheet: Story = {
   decorators: [moduleMetadata({ imports: [BaseButtonComponent] })],
   render: () => ({

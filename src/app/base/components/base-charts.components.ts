@@ -1,10 +1,6 @@
 import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input, model, output, signal } from '@angular/core';
 
-/** Categorical series take these six in this exact order, so two charts on one dashboard never
- *  assign different meanings to the same hue. A seventh series wraps back to the first color
- *  rather than inventing a new one — that collision is deliberate: it's the signal that the
- *  chart is doing too much and should split, or move to a table. */
 export const SERIES_COLOR_ORDER = ['action', 'accent', 'info', 'success', 'warning', 'error'] as const;
 export type SeriesTone = typeof SERIES_COLOR_ORDER[number];
 
@@ -17,21 +13,14 @@ const SERIES_COLOR_VAR: Record<SeriesTone, string> = {
   error: 'var(--color-error)'
 };
 
-/** The fixed-order series color for the Nth (0-based) categorical series. */
 export function seriesColor(index: number): string {
   return SERIES_COLOR_VAR[SERIES_COLOR_ORDER[index % SERIES_COLOR_ORDER.length]];
 }
 
 export interface BaseChartPoint {
   x: string;
-  /** Ignored when [segments] is set. */
   y: number;
-  /** Overrides the default series color for this one bar/point — e.g. flagging a single
-   *  "worst month" red among otherwise uniform bars. */
   tone?: SeriesTone;
-  /** Turns this bar into a stacked bar: ordered segments summing to the bar's total. Each
-   *  segment is drawn with a 1px stroke in the surface color, so two similar hues never merge
-   *  into one block. */
   segments?: { value: number; tone: SeriesTone; label?: string }[];
 }
 
@@ -88,7 +77,6 @@ export class BaseTrendChartComponent {
   readonly data = input.required<BaseChartPoint[]>();
   readonly rolling4w = input<number[]>([]);
   readonly rolling13w = input<number[]>([]);
-  /** Optional dash-dot threshold line, e.g. 95 for a 95% target. */
   readonly target = input<number | undefined>(undefined);
   readonly targetLabel = input('Target');
   readonly seriesLabel = input('Actual');
@@ -235,9 +223,7 @@ export class BaseBarChartComponent {
   readonly data = input.required<BaseChartPoint[]>();
   readonly height = input(160);
   readonly orientation = input<'vertical' | 'horizontal'>('vertical');
-  /** Series color for bars that don't set their own [tone] — the first fixed-order series by default. */
   readonly defaultTone = input<SeriesTone>('action');
-  /** Unit suffix appended to horizontal bars' value labels, e.g. ' h'. */
   readonly valueSuffix = input('');
 
   protected readonly SERIES_COLOR_VAR = SERIES_COLOR_VAR;
@@ -263,7 +249,6 @@ export class BaseBarChartComponent {
     return this.h - this.padB - (v / this.max()) * (this.h - this.padT - this.padB);
   }
 
-  /** Sum of a point's stacked segments, or its plain value. */
   protected total(d: BaseChartPoint): number {
     return d.segments?.length ? d.segments.reduce((sum, s) => sum + s.value, 0) : d.y;
   }
@@ -276,8 +261,6 @@ export class BaseBarChartComponent {
     return d.segments!.slice(0, uptoExclusive).reduce((s, x) => s + x.value, 0);
   }
 
-  /** Vertical stacking: segments stack bottom-up, so the rect's top (attr y) is the cumulative
-   *  sum *including* this segment. */
   protected vSegY(d: BaseChartPoint, si: number): number {
     return this.yAt(this.cumulative(d, si) + d.segments![si].value);
   }
@@ -433,12 +416,9 @@ export class BaseHistogramComponent {
 export class BaseChartFrameComponent {
   readonly title = input('');
   readonly subtitle = input('');
-  /** Footer annotation, e.g. "106 hours total · 62% attributable to chamber and handling". */
   readonly caption = input('');
-  /** Set to show an export button and enable (exportClick); empty hides it. */
   readonly exportLabel = input('');
   readonly showTableToggle = input(true);
-  /** Two-way bound: [(tableView)]. true shows `[table]`, false (default) shows `[chart]`. */
   readonly tableView = model(false);
 
   readonly exportClick = output<void>();

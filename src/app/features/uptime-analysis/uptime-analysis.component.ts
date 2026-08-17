@@ -56,10 +56,6 @@ export class UptimeAnalysisComponent implements OnInit {
     return { from: f.dateFrom, to: f.dateTo };
   });
 
-  // Each panel is its own computed() so an unrelated signal change (e.g.
-  // toggling includeTools) only rebuilds the widget(s) that actually
-  // depend on it — the two Chart.js widgets keep a stable object
-  // reference and skip a needless redraw.
 
   readonly trendWidget = computed<WidgetConfig>(() => {
     const trend = this.store.trend() ?? [];
@@ -228,7 +224,6 @@ export class UptimeAnalysisComponent implements OnInit {
     };
   });
 
-  /** The whole page as data. */
   readonly widgets = computed<WidgetConfig[]>(() => {
     if (!this.store.analysis() || !this.store.trend()) return [];
     return [this.trendWidget(), this.breakdownWidget(), this.topUnavailableWidget(), this.downtimeCategoriesWidget()];

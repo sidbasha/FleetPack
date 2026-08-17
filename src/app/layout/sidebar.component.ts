@@ -126,9 +126,6 @@ export class SidebarComponent {
   readonly routes = input(APP_ROUTES);
   readonly sidebar = input(SIDEBAR_TEXT);
 
-  /** Manual override — always collapsed to the rail regardless of viewport once set. Below the
-   *  1024px breakpoint the rail collapses automatically via `lg:w-60` even when this is false.
-   *  Two-way bindable (`[(collapsed)]`) so a host — or a story — can force the rail state. */
   readonly collapsed = model(false);
   private readonly expandedGroups = signal(new Set<string>());
 
@@ -144,9 +141,6 @@ export class SidebarComponent {
     return this.expandedGroups().has(label);
   }
 
-  /** Labels/badges/sub-lists disappear in the manually-collapsed rail; below 1024px (the
-   *  responsive collapse) `lg:block` brings them back — flex-item blockification means this
-   *  reads correctly on inline flex children too, not just the block-level heading/footer text. */
   labelVisibility(): string {
     return this.collapsed() ? 'hidden' : 'hidden lg:block';
   }

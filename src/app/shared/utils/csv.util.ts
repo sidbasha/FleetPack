@@ -1,4 +1,3 @@
-/** Serialize rows to CSV and trigger a browser download. */
 export function downloadCsv(filename: string, rows: (string | number | null | undefined)[][]): void {
   const esc = (v: string | number | null | undefined): string => {
     const s = v === null || v === undefined ? '' : String(v);

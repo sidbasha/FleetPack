@@ -1,9 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseBannerComponent } from '../../app/base';
 
-/** Spans the page — the condition affects the whole product, not one region. A persistent
- *  banner (no [dismissible]) should only disappear once the condition itself resolves; a
- *  dismissible one must always offer [actionLabel] as a way to reach the detail first. */
 const meta: Meta<BaseBannerComponent> = {
   title: 'Base/Feedback/Banner',
   component: BaseBannerComponent,
@@ -28,7 +25,6 @@ type Story = StoryObj<BaseBannerComponent>;
 
 export const Info: Story = {};
 
-/** Persistent — no dismiss control, because only the feed coming back should end it. */
 export const Warning: Story = {
   args: {
     kind: 'warning', title: 'Telemetry from Fab 3 · Leuven has been unavailable since 04:12.',
@@ -36,7 +32,6 @@ export const Warning: Story = {
   }
 };
 
-/** Persistent — the session either extends or expires; there's nothing to dismiss. */
 export const Critical: Story = {
   args: {
     kind: 'critical', title: 'Your session expires in 2 minutes.', message: 'Unsaved changes on this page will be lost.',

@@ -2,8 +2,6 @@ import { moduleMetadata } from '@storybook/angular';
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseBadgeComponent, BaseListItemComponent } from '../../app/base';
 
-/** Row with a hairline divider; use a table for multi-column rows. [subLabel] stacks a second
- *  line under the label; project a trailing status pill into `[status]`. */
 const meta: Meta<BaseListItemComponent> = {
   title: 'Base/Data Display/List Item',
   component: BaseListItemComponent,
@@ -25,7 +23,6 @@ export const Collection: Story = {
   })
 };
 
-/** Two-line rows with a trailing status pill — "Recent downtime" from the spec. */
 export const TwoLineWithStatus: Story = {
   decorators: [moduleMetadata({ imports: [BaseBadgeComponent] })],
   render: () => ({

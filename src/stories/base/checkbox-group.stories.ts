@@ -1,8 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseCheckboxGroupComponent } from '../../app/base';
 
-/** Multi-select where every option must stay visible at once — no dropdown to open. Reach for
- *  `<base-multi-select-chips>` instead once the option list is longer than fits on screen. */
 const meta: Meta<BaseCheckboxGroupComponent> = {
   title: 'Base/Forms/Checkbox Group',
   component: BaseCheckboxGroupComponent,

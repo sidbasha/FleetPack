@@ -1,8 +1,5 @@
 import { Injectable, effect, signal } from '@angular/core';
 
-/** 'auto' leaves `[data-theme]` unset, so `@media (prefers-contrast: more)` in styles.css can
- *  still resolve High contrast from the OS signal — see Foundations → Density & Themes. Picking
- *  any of the other three is an explicit, persisted choice that always wins over that signal. */
 export type BaseThemePreference = 'auto' | 'light' | 'dark' | 'high-contrast';
 
 const STORAGE_KEY = 'base-theme';
@@ -12,7 +9,6 @@ function readStored(): BaseThemePreference {
     const v = localStorage.getItem(STORAGE_KEY);
     if (v === 'auto' || v === 'light' || v === 'dark' || v === 'high-contrast') return v;
   } catch {
-    // localStorage unavailable (private browsing, etc.) — fall through to the default.
   }
   return 'auto';
 }
@@ -32,7 +28,7 @@ export class BaseThemeService {
       const pref = this.preference();
       if (pref === 'auto') document.documentElement.removeAttribute('data-theme');
       else document.documentElement.setAttribute('data-theme', pref);
-      try { localStorage.setItem(STORAGE_KEY, pref); } catch { /* best-effort persistence only */ }
+      try { localStorage.setItem(STORAGE_KEY, pref); } catch { }
     });
   }
 

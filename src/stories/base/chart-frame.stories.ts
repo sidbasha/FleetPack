@@ -2,11 +2,6 @@ import { moduleMetadata } from '@storybook/angular';
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseBarChartComponent, BaseChartFrameComponent, BaseGanttTimelineComponent } from '../../app/base';
 
-/**
- * The standard panel shell every chart sits in: a title/subtitle header, an optional export
- * action, and — the one thing every chart must offer — a "view as table" toggle. The table is
- * the accessible source of truth; the chart is the fast read.
- */
 const meta: Meta<BaseChartFrameComponent> = {
   title: 'Base/Charts & Visualization/Chart Frame',
   component: BaseChartFrameComponent,
@@ -56,7 +51,6 @@ export const WithCaption: Story = {
   args: { title: 'Downtime by root cause', subtitle: 'Hours · last 30 days', caption: '106 hours total · 62% attributable to chamber and handling' }
 };
 
-/** The spec's "State heatmap" and "Activity gantt" headers — export button, no table toggle. */
 export const WithExportOnly: Story = {
   decorators: [moduleMetadata({ imports: [BaseGanttTimelineComponent] })],
   render: () => ({

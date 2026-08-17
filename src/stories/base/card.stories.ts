@@ -2,13 +2,6 @@ import { moduleMetadata } from '@storybook/angular';
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseBadgeComponent, BaseButtonComponent, BaseCardComponent } from '../../app/base';
 
-/**
- * A card groups content that belongs together. Header (icon + title), projected body, and an
- * optional footer row — typically a link on the left, a status badge on the right. A card is
- * only [clickable] if the whole card leads to one destination: two links inside a clickable
- * card hides one of them from keyboard users. Cards sit at e1 and only lift to e2 + 2px on
- * hover when they're actually interactive.
- */
 const meta: Meta<BaseCardComponent> = {
   title: 'Base/Cards & Containers/Card',
   component: BaseCardComponent,
@@ -48,7 +41,6 @@ export const BodyOnly: Story = {
   })
 };
 
-/** The three "information, feature & summary" card shapes from the spec, side by side. */
 export const InfoFeatureSummary: Story = {
   decorators: [moduleMetadata({ imports: [BaseButtonComponent] })],
   render: () => ({

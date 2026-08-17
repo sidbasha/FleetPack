@@ -43,9 +43,6 @@ import { computeFixedPopupPosition, FixedPopupPosition } from './base-column-fil
 import { BaseSparklineComponent, BaseTrendComponent } from '../base-ui.components';
 import { BaseTeleportDirective, BaseTooltipDirective } from '../base-overlay.components';
 
-/** Row-action types treated as safe/informational — the only ones a read-only table keeps.
- *  Everything else (add/delete/edit/reset/revert/apply/disable/enable/cancel/upload) mutates
- *  state, so [readOnly] REMOVES it entirely rather than merely disabling it (spec requirement). */
 const SAFE_ACTION_TYPES = new Set(['view', 'click', 'copy', 'download', 'run', 'history', 'more']);
 
 /** Renders one `<base-table>` cell for its column's built-in `kind`. A
@@ -193,24 +190,16 @@ const SAFE_ACTION_TYPES = new Set(['view', 'click', 'copy', 'download', 'run', '
 export class BaseTableCellComponent<T = BaseRow> {
   readonly column = input.required<BaseColumnDef<T>>();
   readonly row = input.required<T>();
-  /** Pre-resolved, page-aware row number for kind 'sno' (the table owns pagination state). */
   readonly rowIndex = input(0);
-  /** Resolves a `baseActionTemplate` override for a row-action type, from templates projected into the host table. */
   readonly actionTemplateFor = input<((type: string) => TemplateRef<BaseActionTemplateContext<T>> | null) | null>(null);
-  /** Max inline row-actions before the rest collapse into a "⋯" overflow menu. 0 = unlimited. */
   readonly maxVisible = input(0);
-  /** Table is in read-only/library mode: mutating action types (edit/delete/…) are removed, not just disabled. */
   readOnly = input(false);
-  /** Table is in inline-edit mode AND `row.isEditing` is true — a column with `editable: true` renders a live control. */
   readonly editingRow = input(false);
 
-  /** Fired whenever a row action (typed or legacy) runs, in addition to its own `run(row)` callback. */
   readonly actionRun = output<BaseHandleActionEvent<T>>();
-  /** Fired on every keystroke/change of an inline-edit control. Display-only — the host owns commit/cancel. */
   readonly cellEdit = output<BaseCellEditEvent<T>>();
 
   protected readonly value = computed(() => cellValue(this.column(), this.row()));
-  /** Display text for kinds that render `{{ display() }}` verbatim. */
   protected readonly display = computed(() => {
     const c = this.column(), row = this.row();
     switch (c.kind) {
@@ -238,7 +227,6 @@ export class BaseTableCellComponent<T = BaseRow> {
   protected readonly isEditingCell = computed(() => this.editingRow() && !!this.column().editable);
 
   private readonly rawActions = computed<ResolvedRowAction<T>[]>(() => resolvedActions(this.column(), this.row()));
-  /** Each action paired with its `baseActionTemplate` override, if any, then filtered for [readOnly]. */
   protected readonly actionsWithTemplate = computed(() => {
     const resolve = this.actionTemplateFor();
     const withTpl = this.rawActions().map(a => ({ ...a, template: resolve ? resolve(a.type) : null }));

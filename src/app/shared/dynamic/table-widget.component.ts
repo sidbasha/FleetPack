@@ -81,7 +81,6 @@ export class TableWidgetComponent {
     };
   }
 
-  /** Bridge the paginator's absolute page target to the legacy prev/next API. */
   onPage(ev: BasePageEvent): void {
     const p = this.widget().pagination;
     if (!p) return;

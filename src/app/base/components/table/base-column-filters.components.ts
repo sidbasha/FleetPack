@@ -22,10 +22,6 @@ export interface FixedPopupPosition {
   right?: number;
 }
 
-/** Viewport-fixed position for a panel anchored below `el` — escapes a
- *  `position: sticky` table header's clipping/stacking-context issues that a
- *  plain `position: absolute` panel would hit. Pair with `baseTeleport` on
- *  the panel itself. */
 export function computeFixedPopupPosition(el: HTMLElement, align: 'left' | 'right', gap = 4): FixedPopupPosition {
   const r = el.getBoundingClientRect();
   return align === 'right'
@@ -33,7 +29,6 @@ export function computeFixedPopupPosition(el: HTMLElement, align: 'left' | 'righ
     : { top: r.bottom + gap, left: r.left };
 }
 
-/** Sentinel value for the synthetic "(No value)" option representing null/undefined/empty cells. */
 export const NO_VALUE = '__no_value__';
 
 /** Per-column value-filter dropdown for `<base-table>`: search, checkbox
@@ -104,24 +99,16 @@ export const NO_VALUE = '__no_value__';
 })
 export class BaseCheckboxFilterComponent {
   protected readonly NO_VALUE = NO_VALUE;
-  /** Past this many options, the list stops trying to be clever about layout — it's a plain
-   *  scrolling+searchable list either way; true windowed virtualization is deliberately out of
-   *  scope here (no rendering-perf issue has actually shown up at this list's max realistic size). */
   protected readonly VIRTUALIZE_ABOVE = 200;
 
   readonly header = input('');
-  /** Unique column values to list, each with the record count it would match against every OTHER active filter. */
   readonly options = input.required<BaseFilterOption[]>();
-  /** Currently applied selection (seeds the draft when the panel opens). */
   readonly selected = input<string[]>([]);
-  /** Show the Sort Asc/Desc radios (when the column is also sortable). */
   readonly sortable = input(false);
   readonly currentSort = input<'asc' | 'desc' | null>(null);
-  /** Colors the trigger icon blue when this column has an active filter. */
   readonly active = input(false);
   readonly align = input<'left' | 'right'>('left');
 
-  /** Fired on Apply with the selected values + chosen sort direction. */
   readonly apply = output<BaseCheckboxFilterValue>();
 
   protected readonly open = signal(false);
@@ -131,10 +118,8 @@ export class BaseCheckboxFilterComponent {
   protected readonly panelPos = signal<FixedPopupPosition>({ top: 0 });
   protected readonly radioName = `bcf-sort-${++uid}`;
   private readonly host = inject(ElementRef<HTMLElement>);
-  /** Panel is teleported to document.body, so outside-click checks must test it directly too. */
   @ViewChild('panel') private panelRef?: ElementRef<HTMLElement>;
 
-  /** Ignores clicks/scrolls that originate inside the trigger or the (teleported) panel. */
   private isInside(target: Node): boolean {
     return this.host.nativeElement.contains(target) || (this.panelRef?.nativeElement.contains(target) ?? false);
   }
@@ -189,7 +174,6 @@ export class BaseCheckboxFilterComponent {
     });
   }
 
-  /** Resets this panel's own selection/sort draft — does not apply or close. */
   clearDraft(): void {
     this.draftSelected.set(new Set());
     this.draftSort.set(null);
@@ -247,7 +231,6 @@ export class BaseCheckboxFilterComponent {
   `
 })
 export class BaseCalendarFilterComponent {
-  /** Relative presets — spec-new, one-click: sets both bounds and applies immediately. */
   protected readonly PRESETS = [
     { label: 'Last shift', hours: 8 },
     { label: 'Last 24 hours', hours: 24 },
@@ -258,7 +241,6 @@ export class BaseCalendarFilterComponent {
   readonly header = input('');
   readonly start = input<Date | null>(null);
   readonly end = input<Date | null>(null);
-  /** DateTime columns: adds HH:MM boxes to both pickers. */
   readonly showTime = input(false);
   readonly active = input(false);
   readonly align = input<'left' | 'right'>('left');
@@ -268,7 +250,6 @@ export class BaseCalendarFilterComponent {
   protected readonly open = signal(false);
   protected readonly draftStart = signal<Date | null>(null);
   protected readonly draftEnd = signal<Date | null>(null);
-  /** Set by a preset click; cleared the moment either date is hand-edited so a stale preset name never survives a manual tweak. */
   protected readonly draftPreset = signal<string | null>(null);
   protected readonly panelPos = signal<FixedPopupPosition>({ top: 0 });
   private readonly host = inject(ElementRef<HTMLElement>);
@@ -338,8 +319,6 @@ export class BaseCalendarFilterComponent {
   }
 }
 
-/** Human label for an applied calendar filter — the preset name, or an open-ended/bounded phrase
- *  built from whichever bounds are set. Both bounds are inclusive. */
 export function calendarFilterLabel(v: BaseCalendarFilterValue): string {
   if (v.preset) return v.preset;
   const fmt = (d: Date) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(d);
@@ -408,7 +387,6 @@ export class BaseRangeFilterComponent {
   readonly header = input('');
   readonly from = input<number | null>(null);
   readonly to = input<number | null>(null);
-  /** All numeric values for this column (full row set) — powers the distribution histogram. Empty = no chart. */
   readonly values = input<number[]>([]);
   readonly active = input(false);
   readonly align = input<'left' | 'right'>('left');
@@ -439,8 +417,6 @@ export class BaseRangeFilterComponent {
     return f !== null && t !== null && f > t;
   });
 
-  /** Fixed-bucket histogram of `values()`, each bucket flagged whether it falls within the current
-   *  draft [from, to] so the chart previews what the filter would keep before Apply. */
   protected readonly buckets = computed(() => {
     const vals = this.values();
     if (vals.length === 0) return [];

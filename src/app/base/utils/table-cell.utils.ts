@@ -1,12 +1,7 @@
 import { BaseColumnDef, BaseLegacyRowAction, BaseRow, BaseRowAction, BaseSummaryFn, ROW_ACTION_ICON } from '../models/table.model';
 
-/** Pure (column, row) → value/text/class formatters for `<base-table>` cells,
- *  shared by `BaseTableComponent` (filtering/sorting/search) and
- *  `BaseTableCellComponent` (rendering) so neither duplicates this logic. */
 
-/** Resolved row action ready to render — icon/variant/disabled state settled, typed or legacy alike. */
 export interface ResolvedRowAction<T> {
-  /** RowActionType for typed actions, or the icon string itself for legacy actions. */
   type: string;
   icon: string;
   title?: string;
@@ -37,14 +32,12 @@ export function numberText<T>(c: BaseColumnDef<T>, row: T): string {
   return c.abbreviateNumbers ? abbreviateNumber(n) : new Intl.NumberFormat(undefined, c.numberFormat).format(n);
 }
 
-/** Full, unabbreviated value for the tooltip on an abbreviated number cell. */
 export function numberFullText<T>(c: BaseColumnDef<T>, row: T): string {
   const v = cellValue(c, row);
   if (v === null || v === undefined || v === '') return '';
   return new Intl.NumberFormat(undefined, c.numberFormat).format(Number(v));
 }
 
-/** 1,234,567 → "1.2M"; 84,200 → "84.2K"; leaves anything under 1,000 (and non-finite values) as-is. */
 export function abbreviateNumber(n: number): string {
   if (!isFinite(n)) return String(n);
   const abs = Math.abs(n);
@@ -56,7 +49,6 @@ export function abbreviateNumber(n: number): string {
   return `${(n / div).toFixed(1).replace(/\.0$/, '')}${suffix}`;
 }
 
-/** kind 'number': negative values get distinct (error-toned) styling on top of any `cellClass`/`clickable` treatment. */
 export function numberCellClass<T>(c: BaseColumnDef<T>, row: T): string {
   const base = extraClass(c, row);
   const v = Number(cellValue(c, row));
@@ -90,7 +82,6 @@ export function arrayText<T>(c: BaseColumnDef<T>, row: T): string {
   return [...new Set(v.map(x => String(x)))].join(', ');
 }
 
-/** Adds bold/indigo/pointer styling when the column is `clickable`, on top of any `cellClass`. */
 export function extraClass<T>(c: BaseColumnDef<T>, row: T): string {
   const base = c.cellClass ? c.cellClass(row) : '';
   return c.clickable ? `${base} font-semibold text-indigo-700 cursor-pointer`.trim() : base;
@@ -117,12 +108,6 @@ export function trendValue<T>(c: BaseColumnDef<T>, row: T): number | null {
   return v === null || v === undefined ? null : Number(v);
 }
 
-/**
- * Bar width as a % of `progressMax` (defaults to 100, i.e. the raw value is
- * already 0–100). Any positive value gets a minimum visible sliver — on a
- * skewed dataset (one dominant value, several tiny ones) a strict linear
- * scale would render the small rows as an invisible 0px bar.
- */
 function barPct(v: number, max: number): number {
   if (isNaN(v) || v <= 0) return 0;
   const pct = Math.min(100, (v / max) * 100);
@@ -138,7 +123,6 @@ export function progressBarPct<T>(c: BaseColumnDef<T>, row: T): number {
   return barPct(Number(cellValue(c, row)), c.progressMax ?? 100);
 }
 
-/** Same scaling as `progressBarPct`, but reads `barValue` (kind 'text-bar') instead of the cell's own value. */
 export function textBarPct<T>(c: BaseColumnDef<T>, row: T): number {
   const raw = c.barValue ? c.barValue(row) : cellValue(c, row);
   return barPct(Number(raw), c.progressMax ?? 100);
@@ -148,7 +132,6 @@ export function progressBarClass<T>(c: BaseColumnDef<T>, row: T): string {
   return c.barClass ? c.barClass(row) : 'bg-indigo-500';
 }
 
-/** Formatted value when `format` is given (e.g. "2.15"), else the rounded 0–100 value. */
 export function progressLabel<T>(c: BaseColumnDef<T>, row: T): string {
   return c.format ? cellText(c, row) : `${progressValue(c, row)}%`;
 }
@@ -163,21 +146,16 @@ export function downloadProgress<T>(row: T): number | null {
   return typeof p === 'number' && p > 0 ? Math.round(p) : null;
 }
 
-/** kind 'heat-cell': value → full-cell classes. Falls back to a neutral block so an unmapped value
- *  still reads as "measured, no signal" rather than silently rendering unstyled. */
 export function heatClass<T>(c: BaseColumnDef<T>, row: T): string {
   return c.heatClassMap?.[String(cellValue(c, row))] ?? 'bg-neutral-100 text-ink-500';
 }
 
-/** Numeric source for a summary aggregate: `value()`/`format`-independent — always the raw number. */
 function summaryNumbers<T>(c: BaseColumnDef<T>, rows: T[]): number[] {
   return rows
     .map(r => Number(cellValue(c, r)))
     .filter(n => !isNaN(n));
 }
 
-/** Computes one column's footer aggregate over the given (already-filtered) row set. Returns null
- *  when there's nothing to show (no rows, or 'none'). */
 export function computeSummary<T>(c: BaseColumnDef<T>, rows: T[]): number | null {
   const fn = c.summary;
   if (!fn || fn === 'none') return null;
@@ -198,7 +176,6 @@ export function computeSummary<T>(c: BaseColumnDef<T>, rows: T[]): number | null
   }
 }
 
-/** Label prefix for a summary value, e.g. "Total" / "Mean" / "Out of spec". */
 export const SUMMARY_LABEL: Record<BaseSummaryFn, string> = {
   total: 'Total', mean: 'Mean', median: 'Median', min: 'Min', max: 'Max',
   count: 'Count', outOfSpec: 'Out of spec', none: ''

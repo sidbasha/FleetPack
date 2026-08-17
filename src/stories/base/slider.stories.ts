@@ -1,8 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseSliderComponent } from '../../app/base';
 
-/** Bounded numeric single value with a visible current reading. Reach for `<base-range-slider>`
- *  for a from/to pair, or `<base-numeric-stepper>` once clicking beats dragging. */
 const meta: Meta<BaseSliderComponent> = {
   title: 'Base/Forms/Slider',
   component: BaseSliderComponent,

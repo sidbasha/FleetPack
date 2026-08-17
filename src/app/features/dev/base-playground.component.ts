@@ -108,10 +108,8 @@ interface ToolRow {
   lastMaint: string;
   photo: string;
   fileProgress: number;
-  /** Set on a few rows below — [selectable]="'multiple'" checkbox disabled-with-reason demo. */
   isCheckboxDisable?: boolean;
   checkboxDisableReason?: string;
-  /** [editableRows] inline-edit demo state — see the "edit"/"apply"/"cancel" quickActions below. */
   isEditing?: boolean;
   hasEditError?: boolean;
 }
@@ -845,7 +843,6 @@ export class BasePlaygroundComponent {
   readonly events = signal<string[]>([]);
   readonly lastFilter = signal<BaseFilterEvent | null>(null);
 
-  /** Toolbar toggles demoing the table-level opt-in states. */
   readonly tableEditable = signal(false);
   readonly tableReadOnly = signal(false);
   readonly tableLoading = signal(false);
@@ -862,7 +859,6 @@ export class BasePlaygroundComponent {
     this.tableError.set(true);
   }
 
-  // Saved Views & Filter Rail demo state — see the template comment above <base-table-views>.
   readonly tableViews = signal<BaseTableView[]>([
     { id: 'all', label: 'All', isDefault: true },
     { id: 'down-tools', label: 'Down tools', pinned: true },
@@ -958,7 +954,6 @@ export class BasePlaygroundComponent {
     { key: 'actions', header: 'Actions', sticky: 'right', width: '140px', align: 'right' }
   ]);
 
-  /** Nested child table: per-tool alarm events (only tools with alarms > 0 get an expand toggle). */
   readonly childColumns = signal<BaseColumnDef<any>[]>([
     { key: 'event', header: 'Alarm Event' },
     { key: 'time', header: 'Time', kind: 'date', dateFormat: { dateStyle: 'short', timeStyle: 'short' } },
@@ -972,7 +967,6 @@ export class BasePlaygroundComponent {
   ]);
 
   private readonly alarmEventsCache = new Map<string, Record<string, unknown>[]>();
-  /** [childRowsOf] hook — arrow function so `this` stays bound when passed by reference. */
   readonly alarmEventsOf = (row: ToolRow): Record<string, unknown>[] => {
     if (row.alarms === 0) return [];
     if (!this.alarmEventsCache.has(row.toolId)) {
@@ -1030,10 +1024,8 @@ export class BasePlaygroundComponent {
   readonly openDeleteModal = signal(false);
   readonly deleteConfirmText = signal('');
   readonly saving = signal(false);
-  /** Drives [highlightKey] — set to a row's toolId to highlight + auto-scroll to it. */
   readonly highlightedToolId = signal<string | null>(null);
 
-  // Advanced form control demo state
   readonly comboValue = signal('');
   readonly comboOptions: BaseComboOption[] = FABS.map(f => ({ label: f, value: f }));
   readonly multiSelectValue = signal<string[]>(['Fab-A']);
@@ -1076,7 +1068,6 @@ export class BasePlaygroundComponent {
     { id: 'duplicate', label: 'Duplicate', icon: '⧉' },
     { id: 'archive', label: 'Archive', icon: '🗄', dividerBefore: true, danger: true }
   ];
-  /** base-button-group: related actions that share a border but fire independently. */
   readonly viewGroupItems = [
     { id: 'trend', label: 'Trend', icon: '📈' },
     { id: 'table', label: 'Table', icon: '▤' },
@@ -1084,7 +1075,6 @@ export class BasePlaygroundComponent {
   ];
   readonly viewGroupActiveId = signal('table');
 
-  // Feedback / data display demo state
   private readonly toastSvc = inject(BaseToastService);
   readonly statBarSample = [
     { value: '94.2%', label: 'Uptime' },
@@ -1092,7 +1082,6 @@ export class BasePlaygroundComponent {
     { value: '3.4h', label: 'MTTR' }
   ];
 
-  /** base-chip [selectable]: filter chips — multi-select, each independent. */
   readonly filterChipOptions = ['Unscheduled DT', 'Scheduled DT', 'Engineering', 'Standby'];
   readonly activeFilterChips = signal(new Set(['Unscheduled DT']));
   toggleFilterChip(o: string): void {
@@ -1104,7 +1093,6 @@ export class BasePlaygroundComponent {
     this.log('filterChip toggle', o);
   }
 
-  /** base-chip [selectable]: choice chips — one of N, mutually exclusive. */
   readonly choiceChipOptions = ['24 hours', '7 days', '30 days', 'Quarter'];
   readonly choiceChipValue = signal('7 days');
 
@@ -1116,8 +1104,6 @@ export class BasePlaygroundComponent {
     this.toastSvc.success('Export complete', 'service_activity.xlsx is ready to download.');
   }
 
-  /** Undo beats confirm — reversible bulk actions act immediately and offer undo in the toast
-   *  itself rather than a confirmation dialog. */
   showUndoToast(): void {
     this.toastSvc.info('3 tools reassigned to Inspection', undefined, {
       actionLabel: 'Undo',
@@ -1125,7 +1111,6 @@ export class BasePlaygroundComponent {
     });
   }
 
-  // Navigation & overlay demo state
   @ViewChild('contextMenu') contextMenuRef?: BaseContextMenuComponent;
   readonly drawerOpen = signal(false);
   readonly bulkActionsOpen = signal(false);
@@ -1191,11 +1176,8 @@ export class BasePlaygroundComponent {
     if (prev) this.stepperActiveId.set(prev.id);
   }
 
-  // Chart & timeline demo data
   readonly trendChartData: BaseChartPoint[] = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8']
     .map((x, i) => ({ x, y: 90 + Math.round(Math.sin(i) * 4 + i * 0.3) }));
-  /** Series order — the six fixed categorical colors, in order, so two charts on one dashboard
-   *  never assign different meanings to the same hue. */
   readonly seriesOrderLegend = SERIES_COLOR_ORDER.map(tone => ({ label: SERIES_LABEL[tone], colorVar: `var(--color-${tone})` }));
   readonly barChartData: BaseChartPoint[] = [
     { x: 'Dec', y: 14 }, { x: 'Jan', y: 16 }, { x: 'Feb', y: 27, tone: 'error' }, { x: 'Mar', y: 15 },
@@ -1260,7 +1242,6 @@ export class BasePlaygroundComponent {
   onFilter(e: BaseFilterEvent): void { this.lastFilter.set(e); this.log('filterChange', JSON.stringify(e)); }
   onHandleAction(e: BaseHandleActionEvent<ToolRow>): void { this.log('handleAction', `${e.actionType} → ${e.row.toolId}`); }
 
-  /** Picks a row further down the list and highlights + auto-scrolls to it (spec #11). */
   highlightRandomRow(): void {
     const rows = this.rows();
     if (rows.length === 0) return;
@@ -1268,12 +1249,10 @@ export class BasePlaygroundComponent {
     this.highlightedToolId.set(row.toolId);
   }
 
-  /** Dynamic columns: hide/show at runtime — just data changes. */
   toggleColumn(key: string): void {
     this.columns.update(cols => cols.map(c => c.key === key ? { ...c, hidden: !c.hidden } : c));
   }
 
-  /** Dynamic columns: append a brand-new column at runtime. */
   addDynamicColumn(): void {
     const n = ++this.dynamicCount;
     this.columns.update(cols => [

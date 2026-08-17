@@ -5,22 +5,6 @@ import {
   buildSegmentActivities, buildStateSegments, buildToolAlarms, buildUptimeAnalysis, buildUptimeTrend
 } from './mock-data';
 
-/**
- * Mock API — intercepts every request to /api/** and returns
- * deterministic in-memory data with a small network-like latency.
- *
- * Endpoints:
- *   GET /api/fleets
- *   GET /api/uptime/analysis?fleet=...
- *   GET /api/uptime/trend?fleet=...
- *   GET /api/uptime/availability?fleet=...
- *   GET /api/tools/state-segments?toolIds=...&startDate=...&endDate=...
- *   GET /api/tools/segment-activities?toolId=...&startTime=...&endTime=...&pageNumber=...&pageSize=...
- *   GET /api/alarms/home
- *   GET /api/alarms/fleets/:fleetId
- *   GET /api/alarms/fleets/:fleetId/tools/:toolId
- *   GET /api/alarms/fleets/:fleetId/tools/:toolId/alarms/:alarmId/events
- */
 export const mockApiInterceptor: HttpInterceptorFn = (req, next) => {
   const url = new URL(req.url, 'http://mock.local');
   if (!url.pathname.startsWith('/api/')) return next(req);

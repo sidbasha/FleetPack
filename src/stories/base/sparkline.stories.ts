@@ -16,8 +16,6 @@ const meta: Meta<BaseSparklineComponent> = {
     fill: true,
     showLast: true
   },
-  // `linePoints`/`areaPoints`/`last` are internal computeds (not real @Inputs) - see
-  // checkbox.stories.ts for why an explicit render avoids Storybook stomping them.
   render: (args) => ({
     props: args,
     template: `<base-sparkline [data]="data" [width]="width" [height]="height"
@@ -32,7 +30,6 @@ export const Falling: Story = { args: { data: FALLING, color: '#ef4444' } };
 export const NoFill: Story = { args: { fill: false } };
 export const Large: Story = { args: { width: 240, height: 60 } };
 
-/** This is the exact renderer used by `<base-table>`'s `sparkline` cell kind, e.g. a "7-day" history column. */
 export const InTableRow: Story = {
   render: () => ({
     template: `

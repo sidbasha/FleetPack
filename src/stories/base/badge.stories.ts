@@ -1,9 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseBadgeComponent } from '../../app/base';
 
-/** Reports state the system owns — never clickable. Three shapes in one component: a status
- *  pill, a numeric/notification count (auto-capped at "99+"), and a bare dot for "something
- *  changed" where a number would be noise. */
 const meta: Meta<BaseBadgeComponent> = {
   title: 'Base/Feedback/Badge',
   component: BaseBadgeComponent,
@@ -21,8 +18,6 @@ const meta: Meta<BaseBadgeComponent> = {
     shape: 'pill',
     size: 'md'
   },
-  // `toneClass` is an internal computed (not a real @Input) - see checkbox.stories.ts for why
-  // an explicit render avoids Storybook stomping it via the auto-generated wrapper.
   render: (args) => ({
     props: args,
     template: `<base-badge [label]="label" [tone]="tone" [dot]="dot" [solid]="solid" [shape]="shape" [size]="size" />`
@@ -52,7 +47,6 @@ export const Tones: Story = {
   })
 };
 
-/** Reserve solid for a count or a state that must dominate the row. */
 export const SolidVsTint: Story = {
   render: () => ({
     template: `
@@ -66,8 +60,6 @@ export const SolidVsTint: Story = {
   })
 };
 
-/** The FleetPack machine-state vocabulary — `<base-table>`'s `dot`/`badge` cell kinds map row
- *  values to pills exactly this way via `dotClassMap`/`badgeClassMap`, or a `tone` directly. */
 export const StatusVocabulary: Story = {
   render: () => ({
     template: `
@@ -82,7 +74,6 @@ export const StatusVocabulary: Story = {
   })
 };
 
-/** Numeric counts, capped at "99+" — and the bare dot for a change with no number worth showing. */
 export const Counts: Story = {
   render: () => ({
     template: `
@@ -100,7 +91,6 @@ export const Counts: Story = {
   })
 };
 
-/** Attached to a control — the badge stays purely visual; the count is spoken once, by the host. */
 export const AttachedToAControl: Story = {
   render: () => ({
     template: `

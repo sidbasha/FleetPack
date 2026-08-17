@@ -32,8 +32,6 @@ const rows: BaseGanttRow[] = [
   }
 ];
 
-/** 24h per-row state segments — the detail view a heatmap cell expands into. Hover a segment
- *  for its label and duration. */
 const meta: Meta<BaseGanttTimelineComponent> = {
   title: 'Base/Charts & Visualization/Gantt Timeline',
   component: BaseGanttTimelineComponent,
@@ -45,8 +43,6 @@ type Story = StoryObj<BaseGanttTimelineComponent>;
 
 export const Default: Story = {};
 
-/** A custom [label] on a segment — e.g. an alarm/event name — shows in the hover tooltip
- *  instead of the bare state label: "Chamber interlock · 9h". */
 export const WithSegmentLabels: Story = {
   args: {
     rows: [
@@ -62,8 +58,6 @@ export const WithSegmentLabels: Story = {
   }
 };
 
-/** No telemetry for the window at all — a different fact than a Gap segment (which means no
- *  state *change* inside a window where telemetry still arrived). */
 export const WithNoTelemetryRow: Story = {
   args: {
     rows: [

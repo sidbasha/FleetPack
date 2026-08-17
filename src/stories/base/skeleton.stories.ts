@@ -20,7 +20,6 @@ type Story = StoryObj<BaseSkeletonComponent>;
 export const Rect: Story = {};
 export const Circle: Story = { args: { width: '40px', height: '40px', shape: 'circle' } };
 
-/** How this pairs up in practice - an avatar skeleton next to two lines of text, as used while a KPI card loads. */
 export const CardPlaceholder: Story = {
   render: () => ({
     template: `

@@ -88,18 +88,13 @@ import { BaseTableView } from '../../models/table.model';
 export class BaseTableViewsComponent {
   readonly views = input.required<BaseTableView[]>();
   readonly activeViewId = input.required<string>();
-  /** True when the live table state has drifted from the active view's saved snapshot. Host-computed — see class doc. */
   readonly modified = input(false);
-  /** Pinned-tab cap, not counting the always-present "All". */
   readonly maxPinned = input(4);
   readonly maxViews = input(20);
 
   readonly activeViewIdChange = output<string>();
-  /** Save the CURRENT live state as a brand-new view with this label. */
   readonly save = output<string>();
-  /** Overwrite the active view's saved state with the current live state. */
   readonly update = output<void>();
-  /** Discard live drift, reverting back to the active view's saved state. */
   readonly reset = output<void>();
   readonly copyLink = output<void>();
 

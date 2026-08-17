@@ -1,9 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseBarChartComponent } from '../../app/base';
 
-/** Category comparison bar chart, e.g. alarms by module — or [orientation]="'horizontal'" for a
- *  ranked breakdown. Bars take the fixed series-color order unless a point sets its own [tone];
- *  give a point [segments] to stack it. */
 const meta: Meta<BaseBarChartComponent> = {
   title: 'Base/Charts & Visualization/Bar Chart',
   component: BaseBarChartComponent,
@@ -24,7 +21,6 @@ type Story = StoryObj<BaseBarChartComponent>;
 
 export const Default: Story = {};
 
-/** A single flagged bar among otherwise uniform ones — "worst month" red, "best month" green. */
 export const PerBarTone: Story = {
   args: {
     data: [
@@ -48,8 +44,6 @@ export const Horizontal: Story = {
   }
 };
 
-/** A stacked bar — each segment gets a 1px surface-color separator so two similar hues never
- *  merge into one block. */
 export const Stacked: Story = {
   args: {
     valueSuffix: ' h',

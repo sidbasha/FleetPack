@@ -2,8 +2,6 @@ import { DecimalPipe, NgClass, NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input, model, output } from '@angular/core';
 import { BaseButtonComponent } from './base-form.components';
 
-/** Shared semantic tone vocabulary for base-badge/base-chip. Tint = default; solid is reserved
- *  for a count or a state that must dominate the row. */
 export type BaseTone = 'neutral' | 'action' | 'accent' | 'info' | 'success' | 'warning' | 'error' | 'brand';
 
 const TONE_TINT: Record<BaseTone, string> = {
@@ -58,27 +56,15 @@ const TONE_DOT: Record<BaseTone, string> = {
   `
 })
 export class BaseBadgeComponent {
-  /** Text inside the pill. Leave unset with [count] or a bare [dot] instead. */
   readonly label = input('');
-  /** Semantic tone; ignored when [colorClass] is set explicitly. */
   readonly tone = input<BaseTone>('neutral');
-  /** Tailwind classes for the pill, e.g. 'bg-success-surface text-success' — overrides [tone]
-   *  entirely when set, for callers mapping an arbitrary status vocabulary (see `badgeClassMap`
-   *  on `<base-table>`'s `badge` cell kind). */
   readonly colorClass = input('');
-  /** Solid fill instead of a tint — reserve for a count or a state that must dominate the row. */
   readonly solid = input(false);
-  /** Show a small dot before the label (or, with no [label]/[count], a bare notification dot). */
   readonly dot = input(false);
-  /** Optional leading icon glyph/emoji. */
   readonly icon = input('');
-  /** Numeric/notification mode — renders a solid, tabular-nums count pill instead of [label].
-   *  Values over 99 display as "99+"; past that the exact number stops being actionable. */
   readonly count = input<number | undefined>(undefined);
   readonly shape = input<'pill' | 'square'>('pill');
   readonly size = input<'sm' | 'md' | 'lg'>('md');
-  /** Hides this badge from assistive tech — set when the host control already carries the full
-   *  accessible name (e.g. a bell button labelled "Notifications, 12 unread"). */
   readonly hiddenFromA11y = input(false);
 
   protected readonly TONE_DOT = TONE_DOT;
@@ -121,11 +107,8 @@ export class BaseBadgeComponent {
 export class BaseTagComponent {
   readonly label = input.required<string>();
   readonly icon = input('');
-  /** Small leading dot — a lighter-weight alternative to [icon]. */
   readonly dot = input(false);
-  /** Muted/inert rendering for a label that no longer applies, e.g. "Archived". Suppresses [removable]. */
   readonly disabled = input(false);
-  /** Shows a ✕ to withdraw the applied label and enables (removed). */
   readonly removable = input(false);
 
   readonly removed = output<void>();
@@ -168,24 +151,16 @@ export class BaseTagComponent {
 })
 export class BaseChipComponent {
   readonly label = input.required<string>();
-  /** Shows the ✕ remove control and enables (removed) — the default, dismissible-chip mode. */
   readonly removable = input(true);
-  /** Renders a real `<button>` toggle for filter/choice chips instead of the dismissible pill.
-   *  Pair with [selected] + (clicked); the component doesn't manage selection state itself. */
   readonly selectable = input(false);
   readonly selected = input(false);
   readonly disabled = input(false);
-  /** Optional trailing count, e.g. "Equipment safety 12". */
   readonly count = input<number | undefined>(undefined);
 
-  /** Fired when the ✕ is clicked in dismissible mode. */
   readonly removed = output<void>();
-  /** Fired on press when [selectable] is true. */
   readonly clicked = output<void>();
 }
 
-/** sm/md/lg/xl sizing shared by `<base-avatar>` and `<base-avatar-group>` — 24/32/44/64px,
- *  initials at 10/11/14/20px (see Foundations → Spacing & Sizing). */
 function avatarSizeClass(size: 'sm' | 'md' | 'lg' | 'xl'): string {
   return { sm: 'w-6 h-6 text-[10px]', md: 'w-8 h-8 text-[11px]', lg: 'w-11 h-11 text-sm', xl: 'w-16 h-16 text-xl' }[size];
 }
@@ -199,8 +174,6 @@ const AVATAR_PALETTE = [
   'bg-warning-surface text-warning'
 ];
 
-/** Deterministic tint from [name]/[initials] unless [colorClass] is set — same identity always
- *  renders the same color across the app. */
 function avatarTone(seed: string): string {
   let hash = 0;
   for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
@@ -228,12 +201,9 @@ function deriveInitials(name: string): string {
   `
 })
 export class BaseAvatarComponent {
-  /** Full name — initials and tint derive from it unless overridden below. */
   readonly name = input('');
-  /** Explicit 1–2 character initials, overriding the ones derived from [name]. */
   readonly initials = input('');
   readonly size = input<'sm' | 'md' | 'lg' | 'xl'>('md');
-  /** Explicit Tailwind classes, overriding the tint derived from [name]. */
   readonly colorClass = input('');
 
   protected readonly displayInitials = computed(() => this.initials() || deriveInitials(this.name()));
@@ -268,7 +238,6 @@ export interface BaseAvatarItem {
 })
 export class BaseAvatarGroupComponent {
   readonly items = input.required<BaseAvatarItem[]>();
-  /** How many avatars to render before collapsing the rest into "+N". */
   readonly max = input(4);
   readonly size = input<'sm' | 'md' | 'lg' | 'xl'>('md');
 
@@ -302,14 +271,9 @@ export class BaseAvatarGroupComponent {
   `
 })
 export class BaseTrendComponent {
-  /** Percent change. null/undefined renders an em dash; exactly 0 renders [zeroLabel] neutrally
-   *  instead of a false ▼ (0 is not "down"). */
   readonly value = input.required<number | null | undefined>();
-  /** Colors an increase red instead of green, e.g. for alarm counts. */
   readonly badWhenUp = input(false);
-  /** Angular number-pipe digits info. */
   readonly digits = input('1.1-1');
-  /** Label shown for an exact 0 change. */
   readonly zeroLabel = input('No change');
 
   protected readonly positive = computed(() => {
@@ -373,31 +337,18 @@ export class BaseKpiCardComponent {
   readonly value = input.required<string | number>();
   readonly unit = input('');
   readonly sub = input('');
-  /** Highlight the value itself in the accent color — a single hero tile, not a threshold signal. */
   readonly accent = input(false);
-  /** Colored left rail encoding a threshold state without touching the number's own color — a
-   *  fleet of tiles reads at a glance without every number turning into a traffic light. */
   readonly railTone = input<'none' | 'success' | 'warning' | 'error' | 'info'>('none');
-  /** Optional trend pill. Pass null for '—'; omit to hide; pass 0 for a neutral "no change". */
   readonly trendPct = input<number | null | undefined>(undefined);
   readonly trendBadWhenUp = input(false);
-  /** Makes the card clickable and enables (cardClick) — cards sit at e1 and only lift to e2 on
-   *  hover when they're actually interactive; a static tile never moves. */
   readonly clickable = input(false);
-  /** Selection state (border + implied checkbox) for bulk-select grids. */
   readonly selected = input(false);
-  /** Optional info tooltip next to the label. */
   readonly infoTooltip = input('');
-  /** Set when this one panel's data failed to load — a page rarely fails all at once, and this
-   *  tile shouldn't take the rest of the screen with it. Swaps [value]/[trendPct]/[sub] for
-   *  [unavailableLabel] + this message + a retry link, and outlines the whole tile in red
-   *  (unlike [railTone], which only touches the left edge). */
   readonly errorMessage = input('');
   readonly unavailableLabel = input('Unavailable');
   readonly retryLabel = input('Retry this panel');
 
   readonly cardClick = output<void>();
-  /** Fired when the retry link is clicked in the error state. */
   readonly retry = output<void>();
 
   protected readonly railClass = computed(() => RAIL_CLASS[this.railTone()]);
@@ -464,10 +415,8 @@ export class BaseStatBarComponent {
 })
 export class BaseCardComponent {
   readonly title = input('');
-  /** Material Symbols name, e.g. 'show_chart' — shown in a small tinted square before the title. */
   readonly icon = input('');
   readonly iconTone = input<BaseTone>('action');
-  /** Makes the whole card one click target and enables (cardClick). */
   readonly clickable = input(false);
 
   readonly cardClick = output<void>();
@@ -512,7 +461,6 @@ export class BaseLoadingComponent {
   readonly message = input('Loading…');
   readonly variant = input<'spinner' | 'dots'>('spinner');
   readonly size = input<'sm' | 'md'>('md');
-  /** Drops the bordered panel wrapper for inline use. */
   readonly compact = input(false);
 
   protected readonly sizeClass = computed(() => this.size() === 'sm'
@@ -553,12 +501,8 @@ export class BaseEmptyStateComponent {
   readonly icon = input('');
   readonly title = input('');
   readonly hint = input('');
-  /** Optional call-to-action button label; enables (action). Rendered as [actionVariant]
-   *  (default 'secondary' — a recovery action, not a primary one) — pass 'primary' for a
-   *  genuine first-time setup action like "Register tool". */
   readonly actionLabel = input('');
   readonly actionVariant = input<'primary' | 'secondary'>('secondary');
-  /** Second, lower-emphasis action beside [actionLabel] — e.g. "Clear search" next to "Clear filters". */
   readonly secondaryActionLabel = input('');
 
   readonly action = output<void>();
@@ -603,15 +547,11 @@ export class BaseEmptyStateComponent {
   `
 })
 export class BaseSparklineComponent {
-  /** Series values, e.g. [92, 95, 91, 97]. */
   readonly data = input.required<number[]>();
   readonly width = input(96);
   readonly height = input(28);
-  /** Any CSS color; defaults to the Action token. */
   readonly color = input('var(--color-action)');
-  /** Shade the area under the line. */
   readonly fill = input(true);
-  /** Emphasize the most recent point. */
   readonly showLast = input(true);
 
   private readonly pts = computed(() => {
@@ -665,7 +605,6 @@ export class BaseSparklineComponent {
 })
 export class BaseListItemComponent {
   readonly label = input.required<string>();
-  /** Second line under [label] — a row becomes two-line the moment this is set. */
   readonly subLabel = input('');
   readonly icon = input('');
   readonly meta = input('');
@@ -705,7 +644,6 @@ export class BaseListItemComponent {
 export class BaseAccordionComponent {
   readonly title = input.required<string>();
   readonly icon = input('');
-  /** Two-way bound expanded state: [(open)]. */
   readonly open = model(false);
 
   toggle(): void { this.open.update(o => !o); }

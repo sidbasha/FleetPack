@@ -1,8 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseColorPickerComponent } from '../../app/base';
 
-/** Restricted to the design system's own token palette — free-form hex entry is deliberately
- *  absent, so a chosen color is always a token and always survives a theme switch. */
 const meta: Meta<BaseColorPickerComponent> = {
   title: 'Base/Forms/Color Picker',
   component: BaseColorPickerComponent,

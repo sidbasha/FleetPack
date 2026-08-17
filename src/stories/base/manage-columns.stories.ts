@@ -35,14 +35,8 @@ const meta: Meta<BaseManageColumnsComponent> = {
 export default meta;
 type Story = StoryObj<BaseManageColumnsComponent>;
 
-/**
- * Click the ⚙ icon in the canvas: search columns, Select All, drag (⠿ handle) to reorder,
- * checkbox to show/hide. `toolId`/`actions` are `locked: true` (sticky columns) - they render
- * with 🔒, no grip, and a permanently-checked disabled checkbox above the draggable list.
- */
 export const Default: Story = {};
 
-/** Only two non-locked columns visible - unchecking the last one is blocked (last-standing guard). */
 export const MostlyHidden: Story = {
   args: { visibleKeys: ['toolId', 'status', 'actions'] }
 };

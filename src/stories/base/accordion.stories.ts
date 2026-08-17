@@ -2,8 +2,6 @@ import { moduleMetadata } from '@storybook/angular';
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseAccordionComponent, BaseBadgeComponent } from '../../app/base';
 
-/** Collapsible section; siblings are independent, not single-open-only. Project a trailing
- *  status pill into `[status]` — typically a `<base-badge>` — it renders before the chevron. */
 const meta: Meta<BaseAccordionComponent> = {
   title: 'Base/Data Display/Accordion',
   component: BaseAccordionComponent,
@@ -24,7 +22,6 @@ type Story = StoryObj<BaseAccordionComponent>;
 export const Collapsed: Story = {};
 export const Open: Story = { args: { open: true } };
 
-/** Icon + status pill, as in the "Chamber A/B/C" pattern from the spec. */
 export const WithIconAndStatus: Story = {
   decorators: [moduleMetadata({ imports: [BaseBadgeComponent] })],
   render: () => ({

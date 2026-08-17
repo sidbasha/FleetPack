@@ -86,7 +86,6 @@ export class BaseNotificationsPanelComponent {
 export interface BaseSearchResult {
   id: string;
   label: string;
-  /** Shown as a tag on the right, e.g. "Tool" / "Module" / "Fleet" / "Alarm". */
   type: string;
 }
 

@@ -1,9 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BasePopoverComponent } from '../../app/base';
 
-/** A popover explains, and can contain controls (vs. a tooltip, which only labels). It opens on
- *  click and stays until dismissed — focus moves inside on open and returns to the trigger on
- *  close. */
 const meta: Meta<BasePopoverComponent> = {
   title: 'Base/Overlays/Popover',
   component: BasePopoverComponent,
@@ -31,7 +28,6 @@ type Story = StoryObj<BasePopoverComponent>;
 
 export const Default: Story = {};
 
-/** Column filters — a search box, a checkbox list, and a Clear/Apply footer. */
 export const FilterByState: Story = {
   render: () => ({
     template: `
@@ -63,7 +59,6 @@ export const FilterByState: Story = {
   })
 };
 
-/** A contextual explanation with a link out — no form, just detail. */
 export const InfoPopover: Story = {
   render: () => ({
     template: `

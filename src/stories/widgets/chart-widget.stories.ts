@@ -38,7 +38,6 @@ const BAR_WIDGET: ChartWidget = {
   options: { plugins: { legend: { display: false } } }
 };
 
-/** `fam-chart-widget` wraps `ng2-charts`' `<canvas baseChart>` with the widget-config API (data/options/legend/footnote). */
 const meta: Meta<ChartWidgetComponent> = {
   title: 'Widgets/Chart',
   component: ChartWidgetComponent,

@@ -1,8 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseTimePickerComponent } from '../../app/base';
 
-/** A dropdown list of preset time slots — pick one, don't type one. Reach for
- *  `<base-datepicker [showTime]="true">` instead when a free HH:MM entry is the better fit. */
 const meta: Meta<BaseTimePickerComponent> = {
   title: 'Base/Forms/Time Picker',
   component: BaseTimePickerComponent,

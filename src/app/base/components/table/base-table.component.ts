@@ -62,17 +62,11 @@ interface AdditionalHeaderCell {
   group: AdditionalHeaderGroup | null;
   span: number;
   blank: boolean;
-  /** Column key, set only on blank (ungrouped) cells — used to mirror that column's sticky state. */
   key?: string;
 }
 
-/** Below 720px wide, a right-frozen column group unfreezes (falls back into normal scroll) — a
- *  narrow viewport doesn't have room for two axes of pinned content at once. Left-frozen columns
- *  are unaffected; they're usually the row's own identity and stay put. */
 const NARROW_VIEWPORT_PX = 720;
 
-/** Rotating hue per merged-header group, from the semantic surface-tone palette (never re-uses
- *  the plain header row's neutral background, so grouped columns read as visually related). */
 const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-success-surface/60', 'bg-warning-surface/60', 'bg-info-surface/60'];
 
 /** Core reusable data table: dynamic columns, client- or server-side
@@ -92,8 +86,6 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
   selector: 'base-table',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  /** Exposes [density] as a CSS custom property that `.table-td`/`.table-th`
-   *  (styles.css) read, scoped to this table instance only. */
   host: { '[style.--bt-row-pad.px]': 'densityPad()' },
   imports: [
     NgTemplateOutlet,
@@ -463,131 +455,76 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
   `
 })
 export class BaseTableComponent<T = BaseRow> {
-  /** Dynamic column definitions — plain data; add/remove/reorder at runtime. */
   readonly columns = input.required<BaseColumnDef<T>[]>();
-  /** Row objects. In server-side mode, the current page only. */
   readonly rows = input.required<T[]>();
-  /** Row property used for tracking and selection identity. */
   readonly trackKey = input('id');
 
-  /** Server-side mode: table renders rows as-is and only emits events. */
   readonly serverSide = input(false);
-  /** Server-side mode: total record count for the paginator. 0/negative = unknown total (see [hasNextPage]). */
   readonly totalItems = input(0);
-  /** [serverSide] with an unknown total: does another page exist? null (default) = auto-derive from
-   *  whether the current page came back full ([pageSize] rows); pass explicitly once the host knows better. */
   readonly hasNextPage = input<boolean | null>(null);
 
-  /** Enable the footer paginator. Auto-hides on a single known page either way (spec: no controls to show). */
   readonly paginate = input(true);
   readonly initialPageSize = input(10);
   readonly pageSizeOptions = input<number[]>([10, 25, 50, 100]);
 
-  /** Row density: compact (26px), standard (36px), or comfortable (48px). Unset (default) falls
-   *  back to the app-wide density switcher via `BaseDensityService`, so most tables never need to
-   *  bind this at all — set it explicitly only when a table must ignore that global preference. */
   readonly density = input<'compact' | 'standard' | 'comfortable' | null>(null);
   private readonly densityService = inject(BaseDensityService);
-  /** @internal resolved density — explicit [density] input, else the global default. */
   protected readonly effectiveDensity = computed(() => this.density() ?? this.densityService.current());
-  /** @internal exposed for the [style.--bt-row-pad.px] host binding above. */
   protected readonly densityPad = computed(() => ({ compact: 3, standard: 8, comfortable: 14 }[this.effectiveDensity()]));
 
-  /** Show the built-in global search toolbar. */
   readonly showSearch = input(true);
   readonly searchPlaceholder = input('Search…');
-  /** Show the per-column filter row for text-filterable columns (columns with a richer filterKind get a header dropdown instead). */
   readonly showFilterRow = input(false);
 
-  /** Keep the header visible while scrolling vertically (pair with maxHeight). */
   readonly stickyHeader = input(false);
-  /** e.g. '420px' — enables vertical scrolling inside the table body. */
   readonly maxHeight = input('');
-  /** Force a min table width, e.g. '1100px', so sticky columns have room to matter. */
   readonly minWidth = input('');
 
-  /** Row selection: 'none' | 'single' (click row) | 'multiple' (checkboxes). Selection is keyed by
-   *  [trackKey] and lives independently of the current page/filter, so it survives paging, filtering
-   *  and a data refresh — it only clears when the host actually reassigns [rows] to drop that key. */
   readonly selectable = input<'none' | 'single' | 'multiple'>('none');
-  /** Disables the header "select all" checkbox (rows can still be selected individually). */
   readonly isDisableSelectAll = input(false);
 
-  /** Zebra striping. Skipped while [groupBy] is set (group header rows break simple index parity). */
   readonly striped = input(false);
-  /** Group rows under sub-header rows (e.g. events by day). Return null to leave a row ungrouped. */
   readonly groupBy = input<((row: T) => string | null) | null>(null);
-  /** When set, group headers get an action button emitting (groupAction). */
   readonly groupActionLabel = input('');
-  /** 'accent' (default): indigo header with row count. 'plain': muted uppercase section divider. 'light': white header, bold label, count pill, solid action button. */
   readonly groupHeaderStyle = input<'accent' | 'plain' | 'light'>('accent');
-  /** Unit label after the row count, e.g. 'row(s)' (default) or 'events'. */
   readonly groupCountLabel = input('row(s)');
-  /** Highlight the row whose trackKey value matches (external selection) and auto-scroll it into view.
-   *  Matched by value, not position, so it survives sort/filter/paging same as selection does. */
   readonly highlightKey = input<string | null>(null);
-  /** CSS classes applied to the highlighted row's background (paired with a fixed 3px accent marker). */
   readonly highlightClass = input('bg-action-surface');
   readonly emptyTitle = input('No matching records');
   readonly emptyHint = input('Try adjusting filters or search.');
-  /** Empty-state variant. null (default) auto-picks 'no-results' when filters/search are active, else 'no-data'. */
   readonly emptyKind = input<'no-results' | 'no-access' | 'no-data' | 'out-of-range' | 'not-configured' | 'custom' | null>(null);
 
-  /** Read-only / "library" mode: hides sort-click, filter dropdowns, and the manage-columns gear,
-   *  and REMOVES (not just disables) mutating row actions rather than leaving dead controls visible. */
   readonly readOnly = input(false);
 
-  /** Shows skeleton rows (no data yet) or, with rows already present, dims them to 60% during a
-   *  background refresh — the paginator/footer stays put either way. */
   readonly loading = input(false);
   readonly loadingRowCount = input(5);
-  /** Something actually failed to load (distinct from an empty result) — replaces the body with a
-   *  recoverable error state instead of the empty state. */
   readonly error = input(false);
   readonly errorMessage = input('');
   readonly retryLabel = input('Retry');
   readonly retry = output<void>();
 
-  /** Merged header row above the normal columns (grouped/spanning labels), one hue per group. */
   readonly additionalHeader = input<AdditionalHeaderGroup[] | null>(null);
 
-  /** Shows a gear-icon "Manage Columns" panel (visibility + drag reorder) on the first column header. */
   readonly manageColumns = input(false);
-  /** Initial visible column keys when Manage Columns is used. Defaults to all non-hidden columns. */
   readonly preselectedColumns = input<string[] | null>(null);
 
-  /** Infinite-scroll mode: emits (scrollEvent) as the [maxHeight] container nears its top/bottom edge. */
   readonly enableScroll = input(false);
-  /** Shows a spinner row while more data is being fetched. */
   readonly scrollLoading = input(false);
-  /** Where the loader/end-of-list row renders — 'bottom' (default, loading newer/more) or 'top' (loading older). */
   readonly scrollTriggerPosition = input<'top' | 'bottom'>('bottom');
-  /** No more data to fetch — replaces the loader with an end-of-list message once [scrollLoading] is false. */
   readonly scrollEnd = input(false);
   readonly scrollEndMessage = input("You've reached the end");
 
-  /** Show a first-column toggle button that expands a nested child <base-table> under the row. */
   readonly expandable = input(false);
-  /** Column defs for the nested child table. Required when [expandable] is used. */
   readonly childColumns = input<BaseColumnDef<any>[] | null>(null);
-  /** Return this row's child rows, or null/undefined/[] to hide the toggle for that row (no children). */
   readonly childRowsOf = input<((row: T) => any[] | null | undefined) | null>(null);
-  /** Enable the paginator inside nested child tables. Default off — child tables are usually short. */
   readonly childPaginate = input(false);
-  /** Show the search box inside nested child tables. Default off. */
   readonly childShowSearch = input(false);
 
-  /** Max inline row-action buttons before the rest collapse into a "⋯" overflow menu. */
   readonly maxVisibleActions = input(2);
 
-  /** Opt-in inline cell editing. A row renders its `editable` columns as live controls while
-   *  `row.isEditing` is true (host sets this, typically from a row action) — dirty state (`row.hasEditError`
-   *  on a failed save) and the actual save/cancel are the host's; the table only reflects and gates. */
   readonly editableRows = input(false);
-  /** Fired on every inline-edit control change. Display-only — never committed by the table itself. */
   readonly cellEdit = output<BaseCellEditEvent<T>>();
 
-  /** Pinned aggregate footer row (real `<tfoot>`), computed over the filtered (not just paged) rows. */
   readonly showSummary = input(false);
 
   readonly rowClick = output<BaseRowClickEvent<T>>();
@@ -596,22 +533,16 @@ export class BaseTableComponent<T = BaseRow> {
   readonly pageChange = output<BasePageEvent>();
   readonly filterChange = output<BaseFilterEvent>();
   readonly selectionChange = output<T[]>();
-  /** Fired with the group key when a group-header action button is clicked. */
   readonly groupAction = output<string>();
-  /** Fired when a row's expand toggle is clicked. */
   readonly expandChange = output<{ row: T; expanded: boolean }>();
-  /** Fired whenever any row action (typed or legacy) runs, in addition to its own `run(row)` callback. */
   readonly handleAction = output<BaseHandleActionEvent<T>>();
-  /** Fired with the new visible column keys after the Manage Columns panel's Apply button. */
   readonly manageColumn = output<string[]>();
-  /** Infinite-scroll position ('top' | 'mid' | 'bottom') while [enableScroll] is on. */
   readonly scrollEvent = output<BaseScrollEvent>();
 
   private readonly cellTemplates = contentChildren(BaseCellDirective<T>);
   private readonly headerTemplates = contentChildren(BaseHeaderCellDirective<T>);
   private readonly actionTemplates = contentChildren(BaseActionTemplateDirective<T>);
   private readonly childFooterTemplates = contentChildren(BaseChildFooterDirective<T>);
-  /** Custom cell templates for the nested child table's columns (see `BaseChildCellDirective`). */
   protected readonly childCellTemplates = contentChildren(BaseChildCellDirective<any>);
 
   readonly sortState = signal<BaseSortEvent>({ key: null, direction: null });
@@ -624,10 +555,8 @@ export class BaseTableComponent<T = BaseRow> {
   readonly pageSize = signal(10);
   private readonly selected = signal<Map<unknown, T>>(new Map());
   private readonly expandedKeys = signal<Set<unknown>>(new Set());
-  /** Manage Columns overrides. null = "not customized yet, use authoring order/visibility". */
   private readonly manageOrder = signal<string[] | null>(null);
   private readonly manageHidden = signal<Set<string> | null>(null);
-  /** Narrower than NARROW_VIEWPORT_PX — unfreezes right-sticky columns (see visibleColumns()). */
   protected readonly viewportNarrow = signal(false);
 
   private readonly host = inject(ElementRef<HTMLElement>);
@@ -635,14 +564,12 @@ export class BaseTableComponent<T = BaseRow> {
   private scrollTicking = false;
 
   constructor() {
-    // initialise page size / preselected columns from inputs once they resolve
     queueMicrotask(() => {
       this.pageSize.set(this.initialPageSize());
       const pre = this.preselectedColumns();
       if (pre) this.manageHidden.set(new Set(this.columns().map(c => c.key).filter(k => !pre.includes(k))));
     });
 
-    // auto-scroll the highlighted row into view when highlightKey changes to a match
     effect(() => {
       const key = this.highlightKey();
       if (key == null) return;
@@ -667,7 +594,6 @@ export class BaseTableComponent<T = BaseRow> {
     }
   }
 
-  // derived view pipeline: filter → sort → paginate
   readonly visibleColumns = computed(() => {
     const order = this.manageOrder();
     const hidden = this.manageHidden();
@@ -677,10 +603,7 @@ export class BaseTableComponent<T = BaseRow> {
       cols = order.map(k => byKey.get(k)).filter((c): c is BaseColumnDef<T> => !!c);
     }
     cols = cols.filter(c => hidden ? !hidden.has(c.key) : !c.hidden);
-    // narrow viewport: right-frozen columns fall back to normal (unpinned) scroll — no room for two axes at once.
     if (this.viewportNarrow()) cols = cols.map(c => c.sticky === 'right' ? { ...c, sticky: undefined } : c);
-    // keep authoring order, but pin left-sticky first / right-sticky last so
-    // offsets are always well-defined.
     const left = cols.filter(c => c.sticky === 'left');
     const mid = cols.filter(c => !c.sticky);
     const right = cols.filter(c => c.sticky === 'right');
@@ -700,31 +623,21 @@ export class BaseTableComponent<T = BaseRow> {
     || Object.keys(this.rangeFilters()).length > 0
   );
 
-  /** True while there's an active numeric-range filter — sort and every other filter kind are
-   *  exclusive with it (spec) and stay blocked until it's cleared. */
   readonly hasRangeFilterActive = computed(() => Object.keys(this.rangeFilters()).length > 0);
-  /** True while [editableRows] rows have unsaved edits — sort/filter/page/manage-columns block
-   *  entirely rather than risk losing track of a dirty row. */
   readonly editingCount = computed(() => this.editableRows() ? this.rows().filter(r => (r as BaseRow).isEditing).length : 0);
   readonly hasEditingRows = computed(() => this.editingCount() > 0);
-  /** Either blocking condition — drives the header's sort cursor/affordance. */
   readonly interactionBlocked = computed(() => this.hasEditingRows() || this.hasRangeFilterActive());
 
-  /** Merged/grouped header row entries, with colspans resolved against currently visible columns. */
   readonly additionalHeaderRow = computed(() => {
     const groups = this.additionalHeader();
     if (!groups || groups.length === 0) return null;
     const colKeys = this.visibleColumns().map(c => c.key);
 
-    // legacy/manual mode: no group uses `columnIds` — render exactly as authored.
     if (!groups.some(g => g.columnIds)) {
       const manual: AdditionalHeaderCell[] = groups.map(group => ({ group, span: group.colSpan ?? 1, blank: false }));
       return manual.length > 0 ? manual : null;
     }
 
-    // columnIds mode: anchor each group at its first visible column and fill
-    // uncovered columns with a blank cell (not rowspan — that would double-book
-    // the column's slot in the row below and shift every later header sideways).
     const startsAt = new Map<string, { group: AdditionalHeaderGroup; span: number }>();
     const consumed = new Set<string>();
     for (const group of groups) {
@@ -740,13 +653,12 @@ export class BaseTableComponent<T = BaseRow> {
     for (const key of colKeys) {
       const anchored = startsAt.get(key);
       if (anchored) { cells.push({ group: anchored.group, span: anchored.span, blank: false }); continue; }
-      if (consumed.has(key)) continue; // covered by a group anchored at an earlier column
+      if (consumed.has(key)) continue;
       cells.push({ group: null, span: 1, blank: true, key });
     }
     return cells.length > 0 ? cells : null;
   });
 
-  /** Full column list + lock state (sticky columns), in current order, for <base-manage-columns>. */
   readonly manageColumnItems = computed<ManageColumnItem[]>(() => {
     const order = this.manageOrder() ?? this.columns().map(c => c.key);
     const byKey = new Map(this.columns().map(c => [c.key, c]));
@@ -763,12 +675,10 @@ export class BaseTableComponent<T = BaseRow> {
     return order.filter(k => hidden ? !hidden.has(k) : !byKey.get(k)?.hidden);
   });
 
-  /** Combined px width of the leading expand-toggle/checkbox pseudo-columns. */
   private readonly leadingOffset = computed(() =>
     (this.expandable() ? 32 : 0) + (this.selectable() === 'multiple' ? 32 : 0)
   );
 
-  /** Cumulative px offsets for pinned columns. */
   readonly stickyMeta = computed<Record<string, StickyMeta>>(() => {
     const meta: Record<string, StickyMeta> = {};
     const cols = this.visibleColumns();
@@ -789,9 +699,6 @@ export class BaseTableComponent<T = BaseRow> {
     return meta;
   });
 
-  /** All rows passing every active filter EXCEPT the one named by `excludeKey` (any kind) — the
-   *  shared base for both the real filtered set (excludeKey = null) and a checkbox filter's
-   *  per-option counts (excludeKey = that column, so its own selection doesn't shrink its own list). */
   private rowsExcluding(excludeKey: string | null): T[] {
     if (this.serverSide()) return this.rows();
     const quick = this.quickText().toLowerCase();
@@ -834,7 +741,7 @@ export class BaseTableComponent<T = BaseRow> {
         const col = cols.find(c => c.key === key);
         if (!col) continue;
         const raw = this.cellValue(col, row);
-        if (raw === null || raw === undefined || raw === '') return false; // nulls excluded from range filters
+        if (raw === null || raw === undefined || raw === '') return false;
         const n = Number(raw);
         if (isNaN(n)) return false;
         if (v.from !== null && n < v.from) return false;
@@ -856,7 +763,6 @@ export class BaseTableComponent<T = BaseRow> {
     return [...this.filteredRows()].sort((a, b) => {
       const va = this.cellValue(col, a);
       const vb = this.cellValue(col, b);
-      // nulls sort last ascending, first descending — regardless of the compared type.
       if (va == null && vb == null) return 0;
       if (va == null) return dir === 1 ? 1 : -1;
       if (vb == null) return dir === 1 ? -1 : 1;
@@ -869,20 +775,15 @@ export class BaseTableComponent<T = BaseRow> {
     this.serverSide() ? this.totalItems() : this.filteredRows().length
   );
 
-  /** [serverSide] with no positive [totalItems] — the paginator switches to "Showing X–Y" + Next-only. */
   readonly unknownTotal = computed(() => this.serverSide() && this.totalItems() <= 0);
-  /** Auto-derives "is there a next page" for unknownTotal mode from a full-page heuristic, unless
-   *  the host overrides via [hasNextPage]. */
   readonly resolvedHasNext = computed(() => {
     const explicit = this.hasNextPage();
     if (explicit !== null) return explicit;
     return this.unknownTotal() ? this.rows().length >= this.pageSize() : this.page() < this.totalPageCount();
   });
   readonly totalPageCount = computed(() => Math.max(1, Math.ceil(this.filteredTotal() / this.pageSize())));
-  /** Single (known) page hides the whole paginator bar — nothing to control. */
   readonly showPaginator = computed(() => this.paginate() && (this.unknownTotal() || this.totalPageCount() > 1));
 
-  /** Existing rows dim to 60% (rather than being replaced by skeletons) during a background refresh. */
   readonly dimmed = computed(() => this.loading() && this.rows().length > 0);
   readonly skeletonRows = computed(() => Array.from({ length: this.loadingRowCount() }, (_, i) => i));
   readonly skeletonHeight = computed(() => ({ compact: '12px', standard: '14px', comfortable: '16px' }[this.effectiveDensity()]));
@@ -899,7 +800,6 @@ export class BaseTableComponent<T = BaseRow> {
     return this.sortedRows().slice(start, start + this.pageSize());
   });
 
-  /** pagedRows split into groups when [groupBy] is set. */
   readonly groupedRows = computed<{ key: string | null; rows: T[] }[]>(() => {
     const rows = this.pagedRows();
     const gb = this.groupBy();
@@ -915,7 +815,6 @@ export class BaseTableComponent<T = BaseRow> {
     return [...map.entries()].map(([key, rws]) => ({ key, rows: rws }));
   });
 
-  /** row trackKey → its 0-based index across all paged rows (for the 'sno' cell kind). */
   private readonly rowIndexMap = computed(() => {
     const map = new Map<unknown, number>();
     let i = 0;
@@ -936,14 +835,11 @@ export class BaseTableComponent<T = BaseRow> {
     return rows.length > 0 && rows.every(r => this.selected().has(this.rowTrack(r)));
   });
 
-  /** Header checkbox indeterminate state: some, but not all, of the current page is selected. */
   readonly someSelected = computed(() => {
     const rows = this.pagedRows();
     return rows.some(r => this.isSelected(r)) && !this.allSelected();
   });
 
-  /** Per-column footer aggregate text ("Total: 1,234"), keyed by column so it stays aligned even
-   *  if columns are reordered/hidden between renders. */
   readonly summaryByKey = computed<Record<string, string>>(() => {
     if (!this.showSummary()) return {};
     const rows = this.filteredRows();
@@ -1012,7 +908,6 @@ export class BaseTableComponent<T = BaseRow> {
     this.emitFilter();
   }
 
-  /** Numeric range filters are exclusive with all other filters/sorts, per spec. */
   onRangeFilter(key: string, v: BaseRangeFilterValue): void {
     if (this.hasEditingRows()) return;
     this.quickText.set('');
@@ -1037,9 +932,6 @@ export class BaseTableComponent<T = BaseRow> {
     this.emitFilter();
   }
 
-  /** Unique, sorted (value,label,count) options for a checkbox filter. `count` is computed against
-   *  every OTHER active filter (never this column's own), and a synthetic "(No value)" option is
-   *  appended when any row has a null/undefined/empty value for this column. */
   uniqueValuesFor(c: BaseColumnDef<T>): BaseFilterOption[] {
     const others = this.rowsExcluding(c.key);
     const counts = new Map<string, number>();
@@ -1063,20 +955,17 @@ export class BaseTableComponent<T = BaseRow> {
     return opts;
   }
 
-  /** All numeric values for a column across the full row set — powers the range filter's mini histogram. */
   rangeValuesFor(c: BaseColumnDef<T>): number[] {
     return this.rows()
       .map(r => Number(this.cellValue(c, r)))
       .filter(n => !isNaN(n));
   }
 
-  /** Applied-filter chip text for an active calendar filter (preset name, or a bounded/open-ended phrase). */
   calendarLabel(key: string): string {
     const v = this.calendarFilters()[key];
     return v ? calendarFilterLabel(v) : '';
   }
 
-  /** Rotating hue for a merged-header group, by its position in the authored [additionalHeader] list. */
   headerGroupClass(group: AdditionalHeaderGroup): string {
     const idx = (this.additionalHeader() ?? []).indexOf(group);
     return HEADER_GROUP_HUES[Math.max(0, idx) % HEADER_GROUP_HUES.length];
@@ -1123,7 +1012,6 @@ export class BaseTableComponent<T = BaseRow> {
   onCellClick(row: T, column: BaseColumnDef<T>, rowIndex: number, ev: Event): void {
     ev.stopPropagation();
     this.cellClick.emit({ row, column, value: this.cellValue(column, row), rowIndex });
-    // still bubble a row click for convenience
     this.onRowClick(row, rowIndex);
   }
 
@@ -1161,8 +1049,6 @@ export class BaseTableComponent<T = BaseRow> {
     return !!(row as BaseRow).isCheckboxDisable;
   }
 
-  /** Optional reason shown as the disabled checkbox's title, e.g. "Archived — cannot select". Set
-   *  `row.checkboxDisableReason` alongside `row.isCheckboxDisable`. */
   checkboxDisabledReason(row: T): string {
     return (row as BaseRow).checkboxDisableReason ?? '';
   }
@@ -1171,7 +1057,6 @@ export class BaseTableComponent<T = BaseRow> {
     return this.editableRows() && !!(row as BaseRow).isEditing;
   }
 
-  /** Left offset (sticky mode) for the leading expand-toggle / checkbox pseudo-columns. */
   leadingStickyLeft(kind: 'expand' | 'checkbox'): string | null {
     if (!this.hasLeftSticky()) return null;
     if (kind === 'expand') return '0px';
@@ -1213,7 +1098,6 @@ export class BaseTableComponent<T = BaseRow> {
     return this.headerTemplates().find(t => t.baseHeaderCell() === key)?.template ?? null;
   }
 
-  /** Arrow field (not a method) — passed by reference into `<base-table-cell>`, which calls it detached from `this`. */
   readonly actionTemplateFor = (type: string) => this.actionTemplates().find(t => t.baseActionTemplate() === type)?.template ?? null;
 
   cellContext(row: T, column: BaseColumnDef<T>, index: number) {
@@ -1250,16 +1134,12 @@ export class BaseTableComponent<T = BaseRow> {
     return rights[0] === c ? 'bt-sticky-right-edge' : '';
   }
 
-  /** CSS class for a blank additional-header-row cell — mirrors the sticky/edge
-   *  treatment of the real header below it so both rows stay aligned on scroll. */
   blankHeaderClass(key: string): string {
     const col = this.visibleColumns().find(c => c.key === key);
     if (!col?.sticky) return 'table-th';
     return `table-th bt-sticky-th ${this.stickyEdgeClass(col)}`.trim();
   }
 
-  /** Thin delegates to the shared table-cell utils, kept as instance methods
-   *  for the `this.cellValue(...)` call sites already used below. */
   cellValue(c: BaseColumnDef<T>, row: T): unknown {
     return getCellValue(c, row);
   }

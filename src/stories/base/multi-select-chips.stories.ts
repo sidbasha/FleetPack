@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseMultiSelectChipsComponent } from '../../app/base';
 
-/** Multi-select field; selected values render as removable chips inline. */
 const meta: Meta<BaseMultiSelectChipsComponent> = {
   title: 'Base/Forms/Multi-Select (Chips)',
   component: BaseMultiSelectChipsComponent,

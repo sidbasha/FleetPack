@@ -1,9 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseTextInputComponent } from '../../app/base';
 
-/** Twenty-one controls share this one 36px baseline, one focus treatment, and one validation
- *  grammar: an error/warning/success message never states only that something is wrong — it
- *  names the rule and the shape of a valid answer, and the signal is never colour alone. */
 const meta: Meta<BaseTextInputComponent> = {
   title: 'Base/Forms/Text Input',
   component: BaseTextInputComponent,
@@ -29,8 +26,6 @@ const meta: Meta<BaseTextInputComponent> = {
     suffix: '',
     maxLength: 0
   },
-  // See checkbox.stories.ts - avoids Storybook force-assigning inherited internal
-  // signal state (BaseControl's `formDisabled`) as if it were a plain input.
   render: (args) => ({
     props: args,
     template: `<base-text-input [label]="label" [placeholder]="placeholder" [value]="value" [type]="type"
@@ -68,7 +63,6 @@ export const Disabled: Story = {
   args: { value: 'SP7-04', disabled: true, hint: 'Locked while the tool is in qualification.' }
 };
 
-/** The full states matrix from the spec, side by side. */
 export const AllStates: Story = {
   render: () => ({
     template: `

@@ -67,20 +67,14 @@ import { focusDialogOpen, lockBodyScroll, trapTabKey, unlockBodyScroll } from '.
   `]
 })
 export class BaseDrawerComponent {
-  /** Two-way bound visibility: [(open)]. Emits (openChange). */
   readonly open = model(false);
   readonly title = input('');
-  /** Material Symbols name shown before the title. */
   readonly icon = input('');
-  /** Which edge the drawer slides in from — 'bottom' ignores [width] (always full width, capped
-   *  at 80vh) and adds a drag-handle affordance. */
   readonly side = input<'left' | 'right' | 'bottom'>('right');
-  /** CSS width for side drawers, e.g. '480px' or '32rem'. Ignored when side="bottom". */
   readonly width = input('480px');
   readonly closeOnBackdrop = input(true);
   readonly showClose = input(true);
 
-  /** Fired when the drawer closes; reason = 'button' | 'backdrop' | 'escape'. */
   readonly closed = output<string>();
 
   protected containerClass(): string {

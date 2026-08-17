@@ -15,8 +15,6 @@ export const appConfig: ApplicationConfig = {
       withComponentInputBinding(),
       withInMemoryScrolling({ scrollPositionRestoration: 'top' })
     ),
-    // Mock API — remove this interceptor (or swap for auth/error interceptors)
-    // when integrating a real backend. See the developer guide, §API integration.
     provideHttpClient(withInterceptors([authInterceptor, mockApiInterceptor])),
     provideCharts(withDefaultRegisterables()),
     provideAppInitializer(() => registerBuiltInWidgets())

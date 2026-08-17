@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseSplitButtonComponent } from '../../app/base';
 
-/** Default action plus a chevron menu of related variants. */
 const meta: Meta<BaseSplitButtonComponent> = {
   title: 'Base/Actions/Split Button',
   component: BaseSplitButtonComponent,
@@ -27,8 +26,6 @@ type Story = StoryObj<BaseSplitButtonComponent>;
 
 export const Default: Story = {};
 
-/** Bordered/white — a default action plus related variants where a solid primary would
- *  out-rank the view's actual primary action. */
 export const Secondary: Story = { args: { variant: 'secondary' } };
 
 export const BothVariants: Story = {

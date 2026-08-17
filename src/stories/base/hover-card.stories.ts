@@ -2,11 +2,6 @@ import { moduleMetadata } from '@storybook/angular';
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseAvatarComponent, BaseBadgeComponent, BaseHoverCardComponent } from '../../app/base';
 
-/**
- * A preview of an entity — a tool, an operator — reachable from a dense table without leaving
- * it. Hover-triggered like a tooltip, but (unlike a tooltip) can hold controls, sparingly. The
- * hide delay lets the pointer travel from trigger to panel without the card flickering shut.
- */
 const meta: Meta<BaseHoverCardComponent> = {
   title: 'Base/Overlays/Hover Card',
   component: BaseHoverCardComponent,

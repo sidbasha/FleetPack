@@ -23,7 +23,6 @@ import { BaseTeleportDirective } from '../base-overlay.components';
 export interface ManageColumnItem {
   key: string;
   header: string;
-  /** Sticky/frozen columns: always visible, cannot be hidden or reordered. */
   locked: boolean;
 }
 
@@ -91,13 +90,10 @@ export interface ManageColumnItem {
   `
 })
 export class BaseManageColumnsComponent {
-  /** All columns in their current display order (locked = sticky/frozen). */
   readonly items = input.required<ManageColumnItem[]>();
-  /** Currently visible non-locked keys (locked keys are implicitly always visible). */
   readonly visibleKeys = input<string[]>([]);
   readonly align = input<'left' | 'right'>('left');
 
-  /** Fired on Apply with the new order + visible-key list. */
   readonly apply = output<BaseManageColumnsEvent>();
 
   protected readonly open = signal(false);
@@ -106,14 +102,12 @@ export class BaseManageColumnsComponent {
   protected readonly draftOrder = signal<string[]>([]);
   protected readonly panelPos = signal<FixedPopupPosition>({ top: 0 });
   private readonly host = inject(ElementRef<HTMLElement>);
-  /** Panel is teleported to document.body, so outside-click checks must test it directly too. */
   @ViewChild('panel') private panelRef?: ElementRef<HTMLElement>;
 
   private isInside(target: Node): boolean {
     return this.host.nativeElement.contains(target) || (this.panelRef?.nativeElement.contains(target) ?? false);
   }
 
-  /** Ignores scroll events from within the panel (its own list, or CDK auto-scroll during drag). */
   private readonly closeOnScrollOrResize = (ev: Event) => {
     if (!this.isInside(ev.target as Node)) this.close();
   };

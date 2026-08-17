@@ -6,12 +6,6 @@ import {
   BaseTrendComponent
 } from '../../base';
 
-/**
- * Legacy shared components — thin wrappers over the base module. The
- * selectors (fam-kpi, fam-loading, fam-trend) are kept so existing feature
- * templates still compile, but rendering is fully delegated to the base
- * library. New code should import from src/app/base directly.
- */
 
 /** @deprecated Use <base-kpi-card> from the base module. */
 @Component({

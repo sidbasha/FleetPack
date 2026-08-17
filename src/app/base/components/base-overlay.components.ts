@@ -82,24 +82,17 @@ const ICON_TONE_CLASS: Record<'action' | 'accent' | 'success' | 'warning' | 'err
   `
 })
 export class BaseModalComponent {
-  /** Two-way bound visibility: [(open)]. Emits (openChange). */
   readonly open = model(false);
   readonly title = input('');
-  /** Second line under the title, e.g. "Step 2 of 4 · Placement". */
   readonly subtitle = input('');
-  /** Material Symbols name shown in a small tinted square before the title. */
   readonly icon = input('');
   readonly iconTone = input<'action' | 'accent' | 'success' | 'warning' | 'error' | 'neutral'>('action');
   readonly size = input<'sm' | 'md' | 'lg' | 'xl' | 'full'>('md');
   readonly closeOnBackdrop = input(true);
   readonly showClose = input(true);
-  /** Forces backdrop-dismiss off regardless of [closeOnBackdrop], and focuses the heading
-   *  instead of the first control on open, for destructive confirmations. */
   readonly destructive = input(false);
-  /** Disables Escape while a submit is in flight; the backdrop is unaffected. */
   readonly processing = input(false);
 
-  /** Fired when the modal closes; reason = 'button' | 'backdrop' | 'escape'. */
   readonly closed = output<string>();
 
   protected readonly ICON_TONE_CLASS = ICON_TONE_CLASS;
@@ -153,10 +146,8 @@ const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:n
  *  instead the moment the content needs to be clickable. */
 @Directive({ selector: '[baseTooltip]', standalone: true })
 export class BaseTooltipDirective {
-  /** Tooltip text — the body when [tooltipTitle] is set, the whole message otherwise. */
   readonly baseTooltip = input.required<string>();
   readonly tooltipPosition = input<'top' | 'bottom' | 'left' | 'right'>('top');
-  /** Optional heading — switches to the wider, wrapping "rich tooltip" layout. */
   readonly tooltipTitle = input('');
 
   private readonly host = inject(ElementRef<HTMLElement>);
@@ -284,8 +275,6 @@ export class BasePopoverComponent {
     this.triggerEl?.focus();
   }
 
-  /** Manual focus-wrap: Tab past the last focusable element cycles to the
-   *  first (and Shift+Tab past the first cycles to the last). */
   onTab(ev: Event): void {
     const kev = ev as KeyboardEvent;
     const panel = kev.currentTarget as HTMLElement;
@@ -324,7 +313,6 @@ export class BasePopoverComponent {
 })
 export class BaseHoverCardComponent {
   readonly align = input<'left' | 'right'>('left');
-  /** Delay before the card appears — deliberately the same order of magnitude as a tooltip. */
   readonly delayMs = input(400);
 
   protected readonly open = signal(false);
@@ -422,25 +410,15 @@ export class BaseTeleportDirective implements OnInit {
 export class BaseAlertComponent {
   readonly kind = input<'info' | 'success' | 'warning' | 'error' | 'neutral'>('info');
   readonly title = input('');
-  /** Message text (or project content instead). */
   readonly message = input('');
   readonly dismissible = input(false);
-  /** Optional call-to-action button, e.g. "Resolve now" on a critical alert. */
   readonly actionLabel = input('');
-  /** Second, lower-emphasis button beside [actionLabel] — e.g. "Discard my change" next to "Reload and compare". */
   readonly secondaryActionLabel = input('');
-  /** Renders [actionLabel] as a single bordered button vertically centered at the trailing edge
-   *  instead of stacked under the message — the "This tool is archived → Restore" shape. */
   readonly actionInline = input(false);
-  /** Denser, single-line layout for table toolbars / card footers — no title, no stacked
-   *  buttons; [actionLabel] renders as an inline text link instead. */
   readonly compact = input(false);
 
-  /** Fired when the ✕ is clicked — host removes the alert. */
   readonly dismissed = output<void>();
-  /** Fired when the primary action button (or, in compact mode, the link) is clicked. */
   readonly action = output<void>();
-  /** Fired when the secondary action button is clicked. */
   readonly secondaryAction = output<void>();
 
   protected readonly kindClass = computed(() => ({
@@ -491,14 +469,11 @@ export class BaseAlertComponent {
 export class BaseBannerComponent {
   readonly kind = input<'info' | 'warning' | 'critical' | 'accent'>('info');
   readonly title = input('');
-  /** Message text (or project content instead). */
   readonly message = input('');
   readonly actionLabel = input('');
   readonly dismissible = input(false);
 
-  /** Fired when the ✕ is clicked — host removes the banner. */
   readonly dismissed = output<void>();
-  /** Fired when the action button/link is clicked. */
   readonly action = output<void>();
 
   protected readonly kindClass = computed(() => ({
@@ -508,8 +483,6 @@ export class BaseBannerComponent {
     accent: 'bg-accent text-neutral-0'
   }[this.kind()]));
 
-  /** Light kinds get a plain text link; dark (solid-fill) kinds get a small white button so the
-   *  action still pops against the fill. */
   protected readonly actionClass = computed(() => ({
     info: 'text-info font-semibold underline underline-offset-2 hover:no-underline',
     warning: 'text-[11px] font-semibold bg-neutral-0 border border-neutral-200 text-ink-700 rounded-r-sm px-sp-3 py-1.5 hover:border-warning hover:text-warning transition-colors',
@@ -563,17 +536,12 @@ export class BaseBannerComponent {
   `
 })
 export class BaseProgressBarComponent {
-  /** 0–100. Ignored (and not required) when [indeterminate] is set. */
   readonly value = input<number>(0);
-  /** Operation name shown above the bar, e.g. "Exporting service_activity.xlsx". */
   readonly label = input('');
-  /** Semantic fill color; ignored when [color] is set. */
   readonly tone = input<'action' | 'success' | 'warning' | 'error'>('action');
-  /** Arbitrary CSS color override, takes precedence over [tone]. */
   readonly color = input('');
   readonly height = input(6);
   readonly showLabel = input(true);
-  /** A sliding fill and an em dash instead of a percentage — the duration/end point isn't known yet. */
   readonly indeterminate = input(false);
 
   protected readonly clamped = computed(() => Math.min(100, Math.max(0, Math.round(this.value()))));
@@ -682,21 +650,14 @@ export class BaseSkeletonComponent {
   `
 })
 export class BaseErrorPageComponent {
-  /** e.g. '404' / '403' / '500'. Ignored when [offline] is set (a "you're offline" state uses
-   *  an icon instead — there's no HTTP status code for a dead connection). */
   readonly code = input('');
-  /** 'error' reads the code in red — reserve for something actually broken (5xx), not a 4xx
-   *  the operator can route around. */
   readonly tone = input<'neutral' | 'error'>('neutral');
   readonly title = input.required<string>();
   readonly message = input('');
   readonly actionLabel = input('');
   readonly secondaryActionLabel = input('');
-  /** Swaps the numeric code for a disconnect icon, drops to one centered text-link action, and
-   *  adds an optional [statusNote] pill (e.g. "Cached view · 214 tools"). */
   readonly offline = input(false);
   readonly statusNote = input('');
-  /** Mono, click-to-copy trace/correlation id — the one thing support will ask for. */
   readonly traceId = input('');
 
   readonly action = output<void>();
@@ -719,13 +680,10 @@ export interface BaseToast {
   kind: 'info' | 'success' | 'warning' | 'error';
   title: string;
   message?: string;
-  /** Inline action link, e.g. "Undo" — pairs with `onAction`. */
   actionLabel?: string;
-  /** Invoked when [actionLabel] is clicked, before the toast dismisses. */
   onAction?: () => void;
 }
 
-/** Options for the third argument of info/success/warning/error(). */
 export interface BaseToastOptions {
   actionLabel?: string;
   onAction?: () => void;
@@ -753,7 +711,6 @@ export class BaseToastService {
   info(title: string, message?: string, opts?: BaseToastOptions): number { return this.push({ kind: 'info', title, message, ...opts }); }
   success(title: string, message?: string, opts?: BaseToastOptions): number { return this.push({ kind: 'success', title, message, ...opts }); }
   warning(title: string, message?: string, opts?: BaseToastOptions): number { return this.push({ kind: 'warning', title, message, ...opts }); }
-  /** Never auto-dismisses; the caller (or the user) must call dismiss(). */
   error(title: string, message?: string, opts?: BaseToastOptions): number { return this.push({ kind: 'error', title, message, ...opts }); }
 
   push(t: Omit<BaseToast, 'id'>): number {
@@ -778,14 +735,12 @@ export class BaseToastService {
     }
   }
 
-  /** Clears the whole stack immediately — visible and queued alike. Wired to Esc. */
   dismissAll(): void {
     this._toasts().forEach(t => this.clearTimer(t.id));
     this._toasts.set([]);
     this.queue.length = 0;
   }
 
-  /** Hover-in: freeze the remaining time. */
   pause(id: number): void {
     const timer = this.timers.get(id);
     const started = this.startedAt.get(id);
@@ -797,7 +752,6 @@ export class BaseToastService {
     }
   }
 
-  /** Hover-out: resume the frozen remaining time. */
   resume(id: number): void {
     if (this.timers.has(id)) return;
     const toast = this._toasts().find(t => t.id === id);
@@ -807,13 +761,11 @@ export class BaseToastService {
     this.timers.set(id, setTimeout(() => this.dismiss(id), ms));
   }
 
-  /** Pauses every visible toast at once — used while focus sits anywhere inside the stack. */
   pauseAll(): void { this._toasts().forEach(t => this.pause(t.id)); }
-  /** Resumes every visible toast at once. */
   resumeAll(): void { this._toasts().forEach(t => this.resume(t.id)); }
 
   private schedule(t: BaseToast): void {
-    if (t.kind === 'error') return; // explicit dismissal only
+    if (t.kind === 'error') return;
     this.remaining.set(t.id, TOAST_DURATION_MS);
     this.startedAt.set(t.id, Date.now());
     this.timers.set(t.id, setTimeout(() => this.dismiss(t.id), TOAST_DURATION_MS));
@@ -860,7 +812,6 @@ export class BaseToastService {
 export class BaseToastHostComponent {
   protected readonly svc = inject(BaseToastService);
 
-  /** Esc clears the whole stack while any toast is visible. */
   @HostListener('document:keydown.escape')
   onEscape(): void {
     if (this.svc.toasts().length) this.svc.dismissAll();
@@ -875,8 +826,6 @@ export class BaseToastHostComponent {
     return { info: 'info', success: 'check_circle', warning: 'warning', error: 'error' }[kind];
   }
 
-  /** Semantic colors are tuned for light surfaces; mixed toward white here so they stay
-   *  legible on the toast's dark (surface-inverse) background. */
   protected iconColor(kind: BaseToast['kind']): string {
     const token = { info: 'var(--color-info)', success: 'var(--color-success)', warning: 'var(--color-warning)', error: 'var(--color-error)' }[kind];
     return `color-mix(in srgb, ${token} 55%, white)`;

@@ -74,8 +74,6 @@ import {
 
 const SHARED_GROUPS = ['Shared · UI Atoms', 'Shared · Dynamic Widgets'];
 const BASE_MODULE_GROUP_PREFIX = 'Base Module';
-/** Where every Base Module catalog card's "Open in app →" link points — the
- *  fully interactive playground for these components. */
 const BASE_PLAYGROUND_ROUTE = '/dev/base';
 
 /**
@@ -330,7 +328,6 @@ export class ComponentCatalogComponent {
   readonly baseModuleEntries = COMPONENT_CATALOG.filter(c => c.group.startsWith(BASE_MODULE_GROUP_PREFIX))
     .map(c => ({ ...c, route: c.route ?? BASE_PLAYGROUND_ROUTE }));
 
-  /** Search + group-by-`group`, shared by the Base Module and Layout/Feature listings. */
   private groupBySearch(entries: ComponentCatalogEntry[]): { name: string; items: ComponentCatalogEntry[] }[] {
     const q = this.search().trim().toLowerCase();
     const matches = q
@@ -353,8 +350,6 @@ export class ComponentCatalogComponent {
   readonly groupedBaseModule = computed(() => this.groupBySearch(this.baseModuleEntries));
   readonly groupedFeatures = computed(() => this.groupBySearch(this.featureEntries));
 
-  // ── Base Module · Charts & Timeline sample data (typed, to keep the union-typed
-  //    `state` fields — BaseMachineState — sound under strict template checking) ──
   readonly heatmapColumnsSample = ['00:00', '04:00', '08:00'];
   readonly heatmapRowsSample: BaseHeatmapRow[] = [
     { label: 'CH-1', cells: [{ col: '00:00', state: 'production' }, { col: '04:00', state: 'standby' }, { col: '08:00', state: 'unscheduled-dt' }] }

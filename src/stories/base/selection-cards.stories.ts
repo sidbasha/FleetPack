@@ -1,8 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseSelectionCardComponent } from '../../app/base';
 
-/** One of N, presented as cards instead of `<base-radio-group>`'s dot+label row — reach for
- *  this when each option needs room for a description to be chosen with confidence. */
 const meta: Meta<BaseSelectionCardComponent> = {
   title: 'Base/Forms/Selection Cards',
   component: BaseSelectionCardComponent,

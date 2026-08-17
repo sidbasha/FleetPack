@@ -1,8 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseAvatarComponent } from '../../app/base';
 
-/** Person identity chip — initials on a deterministic tint derived from the name, so the same
- *  person always renders the same color across the app. */
 const meta: Meta<BaseAvatarComponent> = {
   title: 'Base/Data Display/Avatar',
   component: BaseAvatarComponent,

@@ -12,21 +12,10 @@ import {
   BaseTextareaComponent
 } from '../../app/base';
 
-/**
- * Interrupts and blocks until the operator resolves it — reach for `<base-drawer>` instead the
- * moment the task doesn't need to leave the view; use the smallest size that does the job.
- * `open` is a two-way `model()`, defaulted to `true` here so the dialog's anatomy is visible
- * directly in the canvas.
- */
 const meta: Meta<BaseModalComponent> = {
   title: 'Base/Overlays/Modal',
   component: BaseModalComponent,
   tags: ['autodocs'],
-  // Every story here defaults open, and each is `position: fixed inset-0` — inline on the Docs
-  // page (which renders every story on one scrollable page at once) that's N stacked backdrops
-  // and N competing scroll-locks/focus-traps fighting each other. `inline: false` puts each
-  // story preview in its own iframe on the Docs page instead, scoping all of that per-story.
-  // The standalone "Canvas" view for one story is unaffected either way.
   parameters: { docs: { story: { inline: false, height: '480px' } } },
   argTypes: {
     size: { control: 'select', options: ['sm', 'md', 'lg', 'xl', 'full'] },
@@ -73,8 +62,6 @@ export const WithIconAndSubtitle: Story = {
   args: { icon: 'add_circle', subtitle: 'Step 2 of 4 · Placement', title: 'Register tool' }
 };
 
-/** A split footer — a low-emphasis link on the left, the button group on the right — needs no
- *  special API: give your own `<div footer>` `class="w-full flex items-center justify-between"`. */
 export const SplitFooter: Story = {
   render: (args) => ({
     props: args,

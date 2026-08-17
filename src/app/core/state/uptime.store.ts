@@ -4,8 +4,6 @@ import { FilterStore } from './filter.store';
 import { createPagination, createQuery } from './base.store';
 import { deriveEvents, deriveGantt, deriveGanttSummary } from './segment-derivation.util';
 
-// Wide enough to cover the mock's full generated history when correlating
-// segment activities against state segments for Gantt/Event enrichment.
 const FULL_RANGE_START = '1970-01-01T00:00:00.000Z';
 const FULL_RANGE_END = '2999-01-01T00:00:00.000Z';
 
@@ -42,7 +40,6 @@ export class UptimeStore {
     { cacheTtlMs: 300_000 }
   );
 
-  // Back-compat selectors used by components
   readonly analysis = this.analysisQuery.data;
   readonly analysisLoading = this.analysisQuery.loading;
   readonly trend = this.trendQuery.data;
@@ -58,8 +55,6 @@ export class UptimeStore {
 
   readonly selectedTool = signal<string>('Axion_T2500');
 
-  // Gantt bars + Event Details rows share the raw state-segments feed,
-  // enriched with the correlated segment-activities feed.
   readonly stateSegments = computed(() => this.segmentsQuery.data()?.stateSegments ?? []);
   readonly segmentActivities = computed(() => this.segmentActivitiesQuery.data()?.result ?? []);
   readonly gantt = computed(() => deriveGantt(this.stateSegments(), this.segmentActivities()));
@@ -71,14 +66,12 @@ export class UptimeStore {
   readonly eventPage = this.eventsPager.page;
   readonly eventPageCount = this.eventsPager.pageCount;
 
-  // segment-activities paging is client-side over the fetched page
   readonly segmentActivitiesPager = createPagination(this.segmentActivities, 20);
   readonly pagedSegmentActivities = this.segmentActivitiesPager.paged;
   readonly segmentActivitiesPage = this.segmentActivitiesPager.page;
   readonly segmentActivitiesPageCount = this.segmentActivitiesPager.pageCount;
 
   constructor() {
-    // Refetch active queries when the global fleet filter changes.
     effect(() => {
       const fleet = this.filterStore.fleet();
       untracked(() => {
@@ -88,7 +81,6 @@ export class UptimeStore {
       });
     });
 
-    // Refetch state segments + segment activities when the selected tool changes.
     effect(() => {
       const toolId = this.selectedTool();
       untracked(() => {

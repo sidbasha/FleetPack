@@ -3,8 +3,6 @@ const DEFAULT_CATEGORY_PALETTE = [
   'bg-teal-600', 'bg-pink-500', 'bg-slate-400'
 ];
 
-// Kept as literal strings (not derived from DEFAULT_CATEGORY_PALETTE via string
-// replacement) so Tailwind's JIT scanner can see every class name at build time.
 const DEFAULT_CATEGORY_TEXT_PALETTE = [
   'text-red-500', 'text-orange-700', 'text-violet-500', 'text-blue-500',
   'text-teal-600', 'text-pink-500', 'text-slate-400'
@@ -19,12 +17,10 @@ function buildMap(categories: string[], palette: string[]): Record<string, strin
   return map;
 }
 
-/** Assigns a stable Tailwind background color class to each distinct category, in first-seen order. */
 export function buildCategoryColorMap(categories: string[], palette: string[] = DEFAULT_CATEGORY_PALETTE): Record<string, string> {
   return buildMap(categories, palette);
 }
 
-/** Same category → color assignment as `buildCategoryColorMap`, but as text-color classes. */
 export function buildCategoryTextColorMap(categories: string[], palette: string[] = DEFAULT_CATEGORY_TEXT_PALETTE): Record<string, string> {
   return buildMap(categories, palette);
 }

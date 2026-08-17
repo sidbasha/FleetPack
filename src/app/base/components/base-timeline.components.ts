@@ -1,23 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 
-/** Seven-state Machine State color scale (see Foundations → Color). These are
- *  generic, presentational versions for the base library — the live app
- *  screens (`state-heatmap.component.ts`, `activity-gantt.component.ts` in
- *  `features/uptime-availability`) read from real stores and aren't replaced
- *  by these.
- *
- *  'non-scheduled' vs 'gap' — both render neutral/dotted, but mean different
- *  things: non-scheduled is a real, known state (a tool intentionally
- *  powered down for an unstaffed shift, excluded from every availability
- *  figure); gap means telemetry is simply missing, which is not a state. */
 export type BaseMachineState =
   | 'production' | 'engineering' | 'standby'
   | 'scheduled-dt' | 'unscheduled-dt' | 'non-scheduled' | 'gap';
 
-/** Three-layer differentiation per Foundations → Color → State Differentiation: hue alone isn't
- *  enough (adjacent pairs like Standby↔Engineering sit as low as 1.4:1), so every state also
- *  carries a fill pattern (solid up-time / hatched-45° planned DT / hatched-135° unplanned DT /
- *  dotted non-state) and its own glyph wherever it renders as a badge or legend entry. */
 export type BaseStatePattern = 'solid' | 'hatch-45' | 'hatch-135' | 'dotted';
 
 export const BASE_MACHINE_STATE_META: Record<BaseMachineState, { label: string; colorVar: string; icon: string; pattern: BaseStatePattern }> = {
@@ -30,9 +16,6 @@ export const BASE_MACHINE_STATE_META: Record<BaseMachineState, { label: string; 
   gap: { label: 'Gap / no data', colorVar: 'var(--color-state-gap)', icon: 'help', pattern: 'dotted' }
 };
 
-/** CSS `background` value implementing a state's pattern layer — solid states are just the color;
- *  hatched/dotted states are a `repeating-linear-gradient` so the fill reads correctly even when
- *  color perception shifts (cleanroom lighting, color-blindness, grayscale printing). */
 function statePattern(colorVar: string, pattern: BaseStatePattern): string {
   switch (pattern) {
     case 'hatch-45':
@@ -106,7 +89,6 @@ export interface BaseHeatmapRow { label: string; cells: BaseHeatmapCell[]; }
 export class BaseStateHeatmapComponent {
   readonly rows = input.required<BaseHeatmapRow[]>();
   readonly columns = input.required<string[]>();
-  /** Which states to show in the legend; defaults to all seven. */
   readonly legendStates = input<BaseMachineState[]>(['production', 'engineering', 'standby', 'scheduled-dt', 'unscheduled-dt', 'non-scheduled', 'gap']);
 
   protected readonly hover = signal<{ row: string; col: string } | null>(null);
@@ -119,17 +101,12 @@ export interface BaseGanttSegment {
   startHour: number;
   endHour: number;
   state: BaseMachineState;
-  /** Custom tooltip line, e.g. an alarm/event name — "Chamber interlock" — shown above the
-   *  duration instead of the bare state label. */
   label?: string;
 }
 export interface BaseGanttRow {
   label: string;
   segments: BaseGanttSegment[];
   badge?: string;
-  /** Renders a solid, full-row "No telemetry" state instead of [segments] — the tool reported
-   *  nothing for this window, which is a different fact than a Gap segment (no state *change*
-   *  inside a window where telemetry still arrived). */
   noData?: boolean;
 }
 
@@ -207,8 +184,6 @@ export class BaseGanttTimelineComponent {
     return seg ? { row: h.row, seg } : null;
   });
 
-  /** Row-relative center %, used as the tooltip's [left] within the shared row-index container —
-   *  approximate (doesn't know the exact label-column width in px), close enough for a hover hint. */
   protected hoverCenterPct(): number {
     const h = this.hover();
     if (!h) return 0;
@@ -234,12 +209,10 @@ export class BaseGanttTimelineComponent {
     return `${hh}:${mm}`;
   }
 
-  /** Duration, not a time-of-day — "9h" rather than "09:00". */
   durationLabel(hours: number): string {
     return Number.isInteger(hours) ? `${hours}h` : `${hours.toFixed(1)}h`;
   }
 
-  /** Availability badges read as success/warning/error, same as a KPI trend. */
   badgeTone(badge: string): string {
     const pct = parseFloat(badge);
     if (Number.isNaN(pct)) return 'text-ink-600';

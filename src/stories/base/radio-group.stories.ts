@@ -23,8 +23,6 @@ const meta: Meta<BaseRadioGroupComponent> = {
     error: '',
     disabled: false
   },
-  // See checkbox.stories.ts - avoids Storybook force-assigning inherited internal
-  // signal state (BaseControl's `formDisabled`) as if it were a plain input.
   render: (args) => ({
     props: args,
     template: `<base-radio-group [label]="label" [options]="options" [value]="value"

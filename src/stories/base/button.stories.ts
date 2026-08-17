@@ -1,11 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseButtonComponent } from '../../app/base';
 
-/**
- * FleetPack's command surface. A button triggers one immediate action: save, run, export,
- * delete. It never navigates (that's a link) and never discloses (that's an expander).
- * One primary per view; everything else steps down — secondary, tertiary, ghost, outline, text.
- */
 const meta: Meta<BaseButtonComponent> = {
   title: 'Base/Actions/Button',
   component: BaseButtonComponent,
@@ -53,7 +48,6 @@ export const Warning: Story = { args: { variant: 'warning' } };
 export const Loading: Story = { args: { loading: true } };
 export const Disabled: Story = { args: { disabled: true } };
 
-/** Every variant, as it appears in the component's preview strip. */
 export const AllVariants: Story = {
   render: () => ({
     template: `
@@ -82,7 +76,6 @@ export const AllSizes: Story = {
   })
 };
 
-/** Square, label-hidden sizing for a single icon — always pair with [ariaLabel]. */
 export const IconOnly: Story = {
   render: () => ({
     template: `
@@ -95,8 +88,6 @@ export const IconOnly: Story = {
   })
 };
 
-/** The single persistent action on a full-bleed monitoring surface with no toolbar — rare by
- *  design. `shape="pill"` fully rounds the corners and adds elevation. */
 export const FloatingActionButton: Story = {
   name: 'Floating action button',
   render: () => ({
@@ -109,8 +100,6 @@ export const FloatingActionButton: Story = {
   })
 };
 
-/** Loading + disabled per variant — hover/focus/active are pointer/keyboard-driven and are best
- *  inspected live on the swatches above rather than faked with competing utility classes. */
 export const LoadingAndDisabled: Story = {
   render: () => ({
     template: `

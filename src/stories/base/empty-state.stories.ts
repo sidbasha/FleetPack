@@ -1,9 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseEmptyStateComponent } from '../../app/base';
 
-/** Three different situations that are often collapsed into one generic screen — they need
- *  different words and different actions. Empty is not an error: neutral tone, an inviting
- *  action; red is reserved for `<base-error-page>`. */
 const meta: Meta<BaseEmptyStateComponent> = {
   title: 'Base/Feedback/Empty State',
   component: BaseEmptyStateComponent,
@@ -26,12 +23,10 @@ export default meta;
 type Story = StoryObj<BaseEmptyStateComponent>;
 
 export const Default: Story = {};
-/** This is the fallback rendered inside `<base-table>` when the row list is empty - same component, same props. */
 export const NoMatchingRecords: Story = {
   args: { title: 'No matching records', hint: 'Try adjusting filters or search.' }
 };
 
-/** Nothing has been registered yet — a genuine first-time setup action, so it's [actionVariant]="'primary'". */
 export const NoDataYet: Story = {
   args: {
     kind: 'no-data', title: 'No tools registered', hint: 'Register your first tool to start collecting state telemetry.',
@@ -39,7 +34,6 @@ export const NoDataYet: Story = {
   }
 };
 
-/** A search/filter that matched nothing — two recovery actions, both secondary. */
 export const NoResultsWithFilters: Story = {
   args: {
     kind: 'no-results', title: 'No tools match "surfscan xr"',

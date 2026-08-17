@@ -1,9 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseTagComponent } from '../../app/base';
 
-/** Records a label a *person* applied — square-cornered on purpose, so at a glance it's obvious
- *  whether a label came from the system (`<base-badge>`, pill-shaped) or from a person. Not
- *  clickable; [removable] only withdraws the applied label. */
 const meta: Meta<BaseTagComponent> = {
   title: 'Base/Data Display/Tag',
   component: BaseTagComponent,

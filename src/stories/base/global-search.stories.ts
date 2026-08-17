@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseGlobalSearchComponent } from '../../app/base';
 
-/** Header-anchored command-style global search; results show their type as a tag. */
 const meta: Meta<BaseGlobalSearchComponent> = {
   title: 'Base/Navigation/Global Search',
   component: BaseGlobalSearchComponent,

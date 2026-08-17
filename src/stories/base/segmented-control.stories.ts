@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { BaseSegmentedControlComponent } from '../../app/base';
 
-/** 2–4 mutually exclusive view options that fit one line — use `<base-select>` beyond that. */
 const meta: Meta<BaseSegmentedControlComponent> = {
   title: 'Base/Actions/Segmented Control',
   component: BaseSegmentedControlComponent,
