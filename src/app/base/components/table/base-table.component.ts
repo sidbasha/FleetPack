@@ -76,21 +76,6 @@ const NARROW_VIEWPORT_PX = 720;
 
 const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-success-surface/60', 'bg-warning-surface/60', 'bg-info-surface/60'];
 
-/** Core reusable data table: dynamic columns, client- or server-side
- *  pagination/filter/sort, per-column custom cell templates
- *  (`<ng-template baseCell="key">`) or built-in cell kinds, sticky
- *  header/columns (both axes at once, unfreezing the right group under
- *  720px), drag reorder + show/hide via Manage Columns (its "Columns" trigger
- *  lives in the table's own toolbar — see [tableTitle]/[tableIcon] below to
- *  give that toolbar a label, which also surfaces a live "X of Y columns"
- *  count next to it), typed row actions (max [maxVisibleActions] inline +
- *  overflow), merged header rows (one hue per group), row highlight/
- *  auto-scroll, infinite scroll (top or bottom trigger, with an end-of-list
- *  state), loading/error/empty states, a column summary footer, and opt-in
- *  inline cell editing that blocks sort/filter/page while rows are dirty. In
- *  server-side mode ([serverSide]="true") the table only emits
- *  (filterChange)/(sortChange)/(pageChange) — the host fetches and passes
- *  back the current page. See src/app/base/README.md for the full feature list. */
 @Component({
   selector: 'base-table',
   standalone: true,
@@ -114,8 +99,6 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
   ],
   styles: [`
     .bt-sticky-th { position: sticky; z-index: 12; background: #f8fafc; }
-    /* Below .bt-head-sticky/.bt-sticky-th (10/12) on purpose — a frozen body column must stay
-       UNDER the sticky header while scrolling vertically, not outrank it. */
     .bt-sticky-td { position: sticky; z-index: 1; background: #ffffff; }
     .bt-sticky-left-edge::after, .bt-sticky-right-edge::after {
       content: ''; position: absolute; top: 0; bottom: 0; width: 6px; pointer-events: none;
@@ -407,7 +390,6 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
                       [baseTooltip]="rowTooltipText(c, row)" [tooltipPosition]="c.tooltipPosition ?? 'top'"
                       (click)="onCellClick(row, c, i, $event)">
 
-                    <!-- custom template ALWAYS wins -->
                     @if (templateFor(c.key); as tpl) {
                       <ng-container *ngTemplateOutlet="tpl; context: cellContext(row, c, i)" />
                     } @else {
@@ -433,7 +415,6 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
                         [showSearch]="childShowSearch()"
                         (rowClick)="rowClick.emit($event)"
                         (cellClick)="cellClick.emit($event)">
-                        <!-- forward any baseChildCell templates so the nested table supports fully custom cells too -->
                         @for (t of childCellTemplates(); track t.baseChildCell()) {
                           <ng-template [baseCell]="t.baseChildCell()" let-childRow let-value="value" let-column="column" let-index="index">
                             <ng-container *ngTemplateOutlet="t.template; context: { $implicit: childRow, value: value, column: column, index: index }" />

@@ -1,8 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { BasePageEvent } from '../../models/table.model';
 
-/** Standalone pagination control, used internally by `<base-table>` and
- *  reusable elsewhere. Fully controlled — parent owns [page]. */
 @Component({
   selector: 'base-paginator',
   standalone: true,

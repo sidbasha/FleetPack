@@ -45,10 +45,7 @@ import { BaseTeleportDirective, BaseTooltipDirective } from '../base-overlay.com
 
 const SAFE_ACTION_TYPES = new Set(['view', 'click', 'copy', 'download', 'run', 'history', 'more']);
 
-/** Renders one `<base-table>` cell for its column's built-in `kind`. A
- *  custom `baseCell` template on the column still wins over this. When the
- *  host table is in inline-edit mode and both the row and this column opt
- *  in, the display swaps for a live control instead. */
+
 @Component({
   selector: 'base-table-cell',
   standalone: true,

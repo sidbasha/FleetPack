@@ -1,30 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { BaseTableView } from '../../models/table.model';
 
-/**
- * Saved-views tab rail for `<base-table>`. Fully controlled and framework-thin by design,
- * matching every other table sub-component here: the host owns the view list, which one is
- * active, and — critically — what "modified" means. `<base-table-views>` never inspects a
- * view's `state`; the host diffs its own live filter/sort/column snapshot against the active
- * view's saved one and passes the boolean in. This component only renders the rail and emits
- * intent (save/update/reset/copy link/switch) — nothing here persists anything.
- *
- * Two rows: an underline tab strip (so it reads as navigation, not a bank of buttons competing
- * visually with the filter chips below it) plus a "+ Save view" trigger that's always available,
- * and — for whichever view is active — a detail bar naming it, showing the Modified badge, and
- * offering Copy link always, Update/Reset only while modified.
- *
- * "All" (`isDefault: true`) always renders first and is never editable. Up to [maxPinned]
- * further views pin next to it; everything else collapses into a "More views" menu. Both limits
- * are enforced visually only (disabling "+ Save view" / hiding the pin affordance past the cap)
- * — the host's store is the real source of truth for what's actually allowed.
- *
- * Unstyled edge-to-edge: no outer border/radius/background of its own — every row is full-bleed
- * with only a bottom hairline to separate it. That's deliberate so the host can drop this directly
- * above a `<base-table>` inside one shared `.panel` wrapper (`<div class="panel overflow-hidden">`)
- * and have the tab rail, detail bar, filter chips, and table body read as a single joined card with
- * no gap — see `WithSavedViewsRail` in `table.stories.ts` for the reference pairing.
- */
 @Component({
   selector: 'base-table-views',
   standalone: true,

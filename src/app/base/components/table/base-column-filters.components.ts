@@ -31,9 +31,6 @@ export function computeFixedPopupPosition(el: HTMLElement, align: 'left' | 'righ
 
 export const NO_VALUE = '__no_value__';
 
-/** Per-column value-filter dropdown for `<base-table>`: search, checkbox
- *  list, optional sort radios. Self-contained trigger + panel — the host owns
- *  filter/sort state via [selected]/[currentSort]. */
 @Component({
   selector: 'base-checkbox-filter',
   standalone: true,
@@ -185,7 +182,6 @@ export class BaseCheckboxFilterComponent {
   }
 }
 
-/** Per-column date-range filter dropdown — Start/End via two `<base-datepicker>`. */
 @Component({
   selector: 'base-calendar-filter',
   standalone: true,
@@ -328,7 +324,6 @@ export function calendarFilterLabel(v: BaseCalendarFilterValue): string {
   return '';
 }
 
-/** Per-column numeric range filter dropdown — From/To with inline validation. */
 @Component({
   selector: 'base-range-filter',
   standalone: true,
