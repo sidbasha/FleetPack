@@ -21,51 +21,68 @@ import { PlaceholderComponent } from '../placeholder/placeholder.component';
 import {
   BaseAccordionComponent,
   BaseAlertComponent,
+  BaseAvatarComponent,
+  BaseAvatarGroupComponent,
   BaseBadgeComponent,
+  BaseBannerComponent,
   BaseBarChartComponent,
   BaseBreadcrumbsComponent,
   BaseButtonComponent,
+  BaseButtonGroupComponent,
   BaseCalendarFilterComponent,
+  BaseCardComponent,
+  BaseChartFrameComponent,
   BaseChipComponent,
   BaseCheckboxComponent,
   BaseCheckboxFilterComponent,
+  BaseCheckboxGroupComponent,
+  BaseColorPickerComponent,
   BaseComboboxComponent,
   BaseDatepickerComponent,
   BaseDateRangePickerComponent,
   BaseDividerComponent,
   BaseDropdownMenuComponent,
   BaseEmptyStateComponent,
+  BaseErrorPageComponent,
   BaseFileUploadComponent,
   BaseGanttRow,
   BaseGanttTimelineComponent,
   BaseGlobalSearchComponent,
   BaseHeatmapRow,
   BaseHistogramComponent,
+  BaseHoverCardComponent,
   BaseKpiCardComponent,
   BaseListItemComponent,
   BaseLoadingComponent,
   BaseManageColumnsComponent,
   BaseMultiSelectChipsComponent,
   BaseNotificationsPanelComponent,
+  BaseNumericStepperComponent,
+  BaseOtpInputComponent,
   BasePaginatorComponent,
   BasePopoverComponent,
   BaseProgressBarComponent,
   BaseRadioGroupComponent,
   BaseRangeFilterComponent,
+  BaseRangeSliderComponent,
   BaseScatterChartComponent,
   BaseSearchInputComponent,
   BaseSegmentedControlComponent,
   BaseSelectComponent,
+  BaseSelectionCardComponent,
   BaseSkeletonComponent,
   BaseSliderComponent,
   BaseSparklineComponent,
   BaseSplitButtonComponent,
   BaseStatBarComponent,
   BaseStateHeatmapComponent,
+  BaseTableView,
+  BaseTableViewsComponent,
   BaseTabsComponent,
   BaseTagComponent,
   BaseTextInputComponent,
   BaseTextareaComponent,
+  BaseTimePickerComponent,
   BaseToggleComponent,
   BaseTooltipDirective,
   BaseTrendChartComponent,
@@ -97,18 +114,26 @@ const BASE_PLAYGROUND_ROUTE = '/dev/base';
     EventDetailsComponent, SegmentActivitiesComponent,
     AlarmHomeComponent, FleetDetailComponent, ToolAlarmsComponent, AlarmEventsComponent,
     PlaceholderComponent,
-    BaseAccordionComponent, BaseAlertComponent, BaseBadgeComponent, BaseBarChartComponent,
-    BaseBreadcrumbsComponent, BaseButtonComponent, BaseCalendarFilterComponent, BaseChipComponent,
-    BaseCheckboxComponent, BaseCheckboxFilterComponent, BaseComboboxComponent, BaseDatepickerComponent,
+    BaseAccordionComponent, BaseAlertComponent, BaseAvatarComponent, BaseAvatarGroupComponent, BaseBadgeComponent,
+    BaseBannerComponent, BaseBarChartComponent,
+    BaseBreadcrumbsComponent, BaseButtonComponent, BaseButtonGroupComponent, BaseCalendarFilterComponent,
+    BaseCardComponent, BaseChartFrameComponent, BaseChipComponent,
+    BaseCheckboxComponent, BaseCheckboxFilterComponent, BaseCheckboxGroupComponent, BaseColorPickerComponent,
+    BaseComboboxComponent, BaseDatepickerComponent,
     BaseDateRangePickerComponent, BaseDividerComponent, BaseDropdownMenuComponent, BaseEmptyStateComponent,
-    BaseFileUploadComponent, BaseGanttTimelineComponent, BaseGlobalSearchComponent, BaseHistogramComponent,
+    BaseErrorPageComponent, BaseFileUploadComponent, BaseGanttTimelineComponent, BaseGlobalSearchComponent,
+    BaseHistogramComponent, BaseHoverCardComponent,
     BaseKpiCardComponent, BaseListItemComponent, BaseLoadingComponent, BaseManageColumnsComponent,
-    BaseMultiSelectChipsComponent, BaseNotificationsPanelComponent, BasePaginatorComponent, BasePopoverComponent,
-    BaseProgressBarComponent, BaseRadioGroupComponent, BaseRangeFilterComponent, BaseScatterChartComponent,
-    BaseSearchInputComponent, BaseSegmentedControlComponent, BaseSelectComponent, BaseSkeletonComponent,
+    BaseMultiSelectChipsComponent, BaseNotificationsPanelComponent, BaseNumericStepperComponent, BaseOtpInputComponent,
+    BasePaginatorComponent, BasePopoverComponent,
+    BaseProgressBarComponent, BaseRadioGroupComponent, BaseRangeFilterComponent, BaseRangeSliderComponent,
+    BaseScatterChartComponent,
+    BaseSearchInputComponent, BaseSegmentedControlComponent, BaseSelectComponent, BaseSelectionCardComponent,
+    BaseSkeletonComponent,
     BaseSliderComponent, BaseSparklineComponent, BaseSplitButtonComponent, BaseStatBarComponent,
-    BaseStateHeatmapComponent, BaseTabsComponent, BaseTagComponent, BaseTextInputComponent,
-    BaseTextareaComponent, BaseToggleComponent, BaseTooltipDirective, BaseTrendChartComponent, BaseTrendComponent
+    BaseStateHeatmapComponent, BaseTableViewsComponent, BaseTabsComponent, BaseTagComponent, BaseTextInputComponent,
+    BaseTextareaComponent, BaseTimePickerComponent, BaseToggleComponent, BaseTooltipDirective, BaseTrendChartComponent,
+    BaseTrendComponent
   ],
   template: `
     <div class="flex flex-wrap items-center gap-3">
@@ -174,6 +199,7 @@ const BASE_PLAYGROUND_ROUTE = '/dev/base';
                     @case ('BaseButtonComponent') { <base-button variant="primary">Save changes</base-button> }
                     @case ('BaseSplitButtonComponent') { <base-split-button [items]="[{id:'a',label:'Duplicate',icon:'⧉'},{id:'b',label:'Archive',danger:true}]">More</base-split-button> }
                     @case ('BaseSegmentedControlComponent') { <base-segmented-control [options]="[{label:'Day',value:'day'},{label:'Week',value:'week'}]" [value]="'week'" /> }
+                    @case ('BaseButtonGroupComponent') { <base-button-group [items]="[{id:'trend',label:'Trend'},{id:'table',label:'Table'},{id:'gantt',label:'Gantt'}]" [activeId]="'table'" /> }
 
                     @case ('BaseTextInputComponent') { <base-text-input label="Tool ID" placeholder="e.g. KLA-1042" /> }
                     @case ('BaseTextareaComponent') { <base-textarea label="Notes" placeholder="Handover notes…" [rows]="2" /> }
@@ -187,6 +213,13 @@ const BASE_PLAYGROUND_ROUTE = '/dev/base';
                     @case ('BaseSliderComponent') { <base-slider label="Threshold" unit="%" [value]="65" /> }
                     @case ('BaseDatepickerComponent') { <base-datepicker label="Maintenance date" /> }
                     @case ('BaseDateRangePickerComponent') { <base-date-range-picker /> }
+                    @case ('BaseNumericStepperComponent') { <base-numeric-stepper label="Retry limit" [value]="12" [min]="0" [max]="30" /> }
+                    @case ('BaseOtpInputComponent') { <base-otp-input label="Verification code" [length]="6" value="481019" /> }
+                    @case ('BaseColorPickerComponent') { <base-color-picker label="Segment color" value="action" /> }
+                    @case ('BaseCheckboxGroupComponent') { <base-checkbox-group label="Machine states" [options]="[{label:'Production',value:'production'},{label:'Standby',value:'standby'}]" [value]="['production']" /> }
+                    @case ('BaseSelectionCardComponent') { <base-selection-cards [columns]="1" [options]="[{label:'Rolling 30 days',value:'rolling30',description:'Recalculated nightly.'}]" [value]="'rolling30'" /> }
+                    @case ('BaseTimePickerComponent') { <base-time-picker label="Shift start" value="06:00" /> }
+                    @case ('BaseRangeSliderComponent') { <base-range-slider label="Maintenance window" unit="h" [value]="{from:6,to:18}" [max]="24" /> }
 
                     @case ('BaseBadgeComponent') { <base-badge label="PRODUCTION" colorClass="bg-emerald-50 text-emerald-600" [dot]="true" /> }
                     @case ('BaseTagComponent') { <base-tag label="Fleet A" /> }
@@ -201,6 +234,14 @@ const BASE_PLAYGROUND_ROUTE = '/dev/base';
                     @case ('BaseLoadingComponent') { <base-loading message="Loading fleet snapshot…" /> }
                     @case ('BaseSkeletonComponent') { <base-skeleton width="70%" /> }
                     @case ('BaseEmptyStateComponent') { <base-empty-state kind="no-results" /> }
+                    @case ('BaseErrorPageComponent') { <base-error-page code="404" title="Tool not found" message="It may have been decommissioned." /> }
+                    @case ('BaseAvatarComponent') { <base-avatar name="Maria Chen" /> }
+                    @case ('BaseAvatarGroupComponent') { <base-avatar-group [items]="[{name:'Maria Chen'},{name:'J Lee'},{name:'A Patel'}]" [max]="3" /> }
+                    @case ('BaseCardComponent') {
+                      <base-card title="Chamber A" icon="settings">
+                        Rolling 30-day availability with the current qualification window highlighted.
+                      </base-card>
+                    }
 
                     @case ('BaseBreadcrumbsComponent') { <base-breadcrumbs [items]="[{label:'Home',url:'/'},{label:'Fleet Availability'}]" /> }
                     @case ('BaseTabsComponent') { <base-tabs [tabs]="[{id:'a',label:'Table'},{id:'b',label:'Forms',badge:9}]" [activeId]="'a'" /> }
@@ -223,6 +264,16 @@ const BASE_PLAYGROUND_ROUTE = '/dev/base';
                       </base-popover>
                     }
                     @case ('BaseAlertComponent') { <base-alert kind="info" message="CDC sync runs every 5 minutes." /> }
+                    @case ('BaseBannerComponent') { <base-banner kind="warning" message="Scheduled maintenance window: 02:00–04:00 UTC." /> }
+                    @case ('BaseHoverCardComponent') {
+                      <base-hover-card>
+                        <a trigger class="text-indigo-600 font-semibold cursor-pointer">SP7-04</a>
+                        <div card>
+                          <p class="font-semibold text-ink-900 text-xs">SP7-04</p>
+                          <p class="text-[11px] text-neutral-400 mt-1">Fab 12 · Chamber A · 98.4% up-time</p>
+                        </div>
+                      </base-hover-card>
+                    }
                     @case ('BaseProgressBarComponent') { <base-progress-bar [value]="72" /> }
                     @case ('BaseTooltipDirective') { <button class="btn-secondary" baseTooltip="I am a tooltip" tooltipPosition="top">Hover me</button> }
 
@@ -232,6 +283,11 @@ const BASE_PLAYGROUND_ROUTE = '/dev/base';
                     @case ('BaseHistogramComponent') { <base-histogram [bins]="[{label:'0-1h',count:12},{label:'1-2h',count:18},{label:'2-4h',count:9}]" [height]="90" /> }
                     @case ('BaseStateHeatmapComponent') { <base-state-heatmap [rows]="heatmapRowsSample" [columns]="heatmapColumnsSample" /> }
                     @case ('BaseGanttTimelineComponent') { <base-gantt-timeline [rows]="ganttRowsSample" /> }
+                    @case ('BaseChartFrameComponent') {
+                      <base-chart-frame title="Uptime trend" subtitle="Rolling 30 days" [showTableToggle]="false">
+                        <base-sparkline chart [data]="[3,7,4,9,6,11,8,14]" color="#0ea5e9" />
+                      </base-chart-frame>
+                    }
 
                     @case ('BasePaginatorComponent') { <base-paginator [page]="1" [total]="42" /> }
                     @case ('BaseSearchInputComponent') { <base-search-input placeholder="Search tools…" /> }
@@ -239,6 +295,7 @@ const BASE_PLAYGROUND_ROUTE = '/dev/base';
                     @case ('BaseCheckboxFilterComponent') { <base-checkbox-filter header="Status" [options]="[{value:'PRODUCTION',label:'Production'},{value:'DOWN',label:'Down'}]" /> }
                     @case ('BaseCalendarFilterComponent') { <base-calendar-filter header="Last Maint." /> }
                     @case ('BaseRangeFilterComponent') { <base-range-filter header="Alarms" /> }
+                    @case ('BaseTableViewsComponent') { <base-table-views [views]="tableViewsSample" activeViewId="all" /> }
 
                     @default {
                       <p class="text-xs text-slate-500">{{ c.description }}</p>
@@ -353,6 +410,11 @@ export class ComponentCatalogComponent {
   readonly heatmapColumnsSample = ['00:00', '04:00', '08:00'];
   readonly heatmapRowsSample: BaseHeatmapRow[] = [
     { label: 'CH-1', cells: [{ col: '00:00', state: 'production' }, { col: '04:00', state: 'standby' }, { col: '08:00', state: 'unscheduled-dt' }] }
+  ];
+  readonly tableViewsSample: BaseTableView[] = [
+    { id: 'all', label: 'All', isDefault: true },
+    { id: 'down', label: 'Down tools', pinned: true },
+    { id: 'shared', label: 'Fab-A only', pinned: true, shared: true, readOnly: true }
   ];
   readonly ganttRowsSample: BaseGanttRow[] = [
     { label: 'Tool', segments: [
