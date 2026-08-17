@@ -3,6 +3,8 @@ import type { Meta, StoryObj } from '@storybook/angular';
 import { moduleMetadata } from '@storybook/angular';
 import {
   AdditionalHeaderGroup,
+  BaseBadgeComponent,
+  BaseCellDirective,
   BaseChildCellDirective,
   BaseChildFooterDirective,
   BaseColumnDef,
@@ -434,46 +436,95 @@ export const NestedRowsWithCustomCell: Story = {
   })
 };
 
+const STATE_DOT_MAP: Record<string, string> = {
+  PRODUCTION: 'bg-emerald-500', ENGINEERING: 'bg-sky-500', STANDBY: 'bg-violet-500', DOWN: 'bg-red-500'
+};
+
+const UPTIME_HEAT_THRESHOLDS = [
+  { max: 84, className: 'bg-error-surface text-error-hover' },
+  { max: 94, className: 'bg-warning-surface text-warning-hover' },
+  { max: 100, className: 'bg-success-surface text-success-hover' }
+];
+
+const SAVED_VIEWS_DEMO_COLUMNS: BaseColumnDef<ToolRow>[] = [
+  { key: 'toolId', header: 'Tool', sortable: true, width: '110px' },
+  { key: 'fab', header: 'Fab', filterable: true, filterKind: 'checkbox', width: '90px' },
+  {
+    key: 'status', header: 'State', kind: 'dot', width: '140px',
+    dotClassMap: STATE_DOT_MAP, textColorClassMap: STATUS_TEXT_MAP,
+    filterable: true, filterKind: 'checkbox'
+  },
+  {
+    key: 'uptime', header: 'Up-time %', kind: 'heat-cell', align: 'center', width: '110px',
+    heatThresholds: UPTIME_HEAT_THRESHOLDS, format: (_r, v) => `${v}%`,
+    sortable: true, filterable: true, filterKind: 'range'
+  },
+  { key: 'alarms', header: 'Alarms', align: 'center', width: '90px' },
+  {
+    key: 'lastMaint', header: 'Last Maintenance', kind: 'date', width: '160px',
+    sortable: true, filterable: true, filterKind: 'calendar'
+  }
+];
+
 /**
- * "New in v2.0" — `<base-table-views>` paired with a real `<base-table>`. Sort a column, filter,
- * or search below and watch the active tab pick up a "Modified" badge; Update/Reset/Save-as-new
- * light up on the rail. The rail is fully controlled (see its own class doc) — this demo's host
- * component owns the view list and derives "modified" off the table's own (sortChange)/
+ * `<base-table-views>` paired with a real `<base-table>`, its filter-chips summary row, and a
+ * mixed set of styled cells (threshold heat-cell, badge count, dot + colored text) — sort a
+ * column, filter, or search below and watch the active tab pick up a "Modified" badge; Update/
+ * Reset light up on the rail's detail bar, and every checkbox/calendar/range filter you set
+ * appears as a removable chip beneath the toolbar alongside a non-removable sort chip.
+ *
+ * The rail and the chip row are both fully controlled (see their own class docs) — this demo's
+ * host component owns the view list and derives "modified" off the table's own (sortChange)/
  * (filterChange)/(manageColumn) events, since those are the only pieces of filter/sort state the
  * table currently exposes outward; it does not re-apply a selected view's filters onto the table
  * (that needs the table's internal filter/sort signals to become host-controlled inputs, which is
  * a bigger API change than this component pair takes on today).
+ *
+ * `<base-table-views>` and `<base-table>` sit inside one shared `.panel overflow-hidden` wrapper
+ * with no gap between them, so the tab rail, detail bar, filter chips, and table body read as a
+ * single joined card — the pairing pattern to copy wherever a saved-views rail sits above a table.
  */
 @Component({
   selector: 'story-table-with-views-demo',
   standalone: true,
-  imports: [BaseTableComponent, BaseTableViewsComponent],
+  imports: [BaseTableComponent, BaseTableViewsComponent, BaseBadgeComponent, BaseCellDirective],
   template: `
     <div class="space-y-3">
-      <div class="panel px-2">
+      <div class="panel overflow-hidden">
         <base-table-views [views]="views()" [activeViewId]="activeViewId()" [modified]="modified()"
                            (activeViewIdChange)="onSwitch($event)" (save)="onSave($event)"
                            (update)="onUpdate()" (reset)="onReset()" (copyLink)="log.set('Copied link to current view')" />
+        <base-table class="block"
+          [columns]="columns" [rows]="rows" trackKey="toolId" maxHeight="420px" minWidth="900px"
+          (sortChange)="onStateChanged()" (filterChange)="onStateChanged()" (manageColumn)="onStateChanged()">
+          <ng-template baseCell="alarms" let-row>
+            <base-badge [count]="row.alarms" [tone]="alarmTone(row.alarms)" />
+          </ng-template>
+        </base-table>
       </div>
-      <base-table class="panel block overflow-hidden"
-        [columns]="columns" [rows]="rows" trackKey="toolId" maxHeight="360px" minWidth="900px"
-        (sortChange)="onStateChanged()" (filterChange)="onStateChanged()" (manageColumn)="onStateChanged()" />
       <p class="text-[11px] text-neutral-400 px-1">{{ log() }}</p>
     </div>
   `
 })
 class StoryTableWithViewsDemoComponent {
-  readonly columns = BASIC_COLUMNS;
+  readonly columns = SAVED_VIEWS_DEMO_COLUMNS;
   readonly rows = ROWS;
 
   readonly views = signal<BaseTableView[]>([
-    { id: 'all', label: 'All', isDefault: true },
-    { id: 'down', label: 'Down tools', pinned: true },
-    { id: 'shared-fab-a', label: 'Fab-A only', pinned: true, shared: true, readOnly: true }
+    { id: 'all', label: 'All tools', isDefault: true, count: ROWS.length },
+    { id: 'down', label: 'Down tools', pinned: true, count: ROWS.filter((r) => r.status === 'DOWN').length },
+    {
+      id: 'shared-fab-a', label: 'Fab-A only', pinned: true, shared: true, readOnly: true,
+      count: ROWS.filter((r) => r.fab === 'Fab-A').length
+    }
   ]);
   readonly activeViewId = signal('all');
   readonly modified = signal(false);
-  readonly log = signal('Sort, filter, or search the table below — watch the rail react.');
+  readonly log = signal('Sort, filter, or search the table below — watch the rail and the filter chips react.');
+
+  alarmTone(count: number): 'error' | 'warning' | 'neutral' {
+    return count >= 20 ? 'error' : count >= 8 ? 'warning' : 'neutral';
+  }
 
   onStateChanged(): void {
     if (this.modified()) return;
@@ -520,6 +571,20 @@ export const AbbreviatedAndNegativeNumbers: Story = {
 };
 
 export const HeatCells: Story = { args: { columns: HEAT_CELL_COLUMNS, showSearch: false } };
+
+const HEAT_THRESHOLD_COLUMNS: BaseColumnDef<ToolRow>[] = [
+  { key: 'toolId', header: 'Tool', sortable: true },
+  { key: 'fab', header: 'Fab' },
+  {
+    key: 'uptime', header: 'Up-time %', kind: 'heat-cell', align: 'center', sortable: true,
+    heatThresholds: UPTIME_HEAT_THRESHOLDS, format: (_r, v) => `${v}%`
+  }
+];
+
+export const HeatCellsThresholds: Story = {
+  name: 'Heat cell (threshold bands)',
+  args: { columns: HEAT_THRESHOLD_COLUMNS, showSearch: false }
+};
 
 export const RowActionsOverflow: Story = {
   args: { columns: MANY_ACTION_COLUMNS, maxVisibleActions: 2, showSearch: false }

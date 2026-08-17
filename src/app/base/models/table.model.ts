@@ -72,6 +72,7 @@ export interface BaseTableView<S = unknown> {
   shared?: boolean;
   readOnly?: boolean;
   isDefault?: boolean;
+  count?: number;
   state?: S;
 }
 
@@ -112,6 +113,7 @@ export interface BaseColumnDef<T = BaseRow> {
   barValue?: (row: T) => number;
   rowActions?: (BaseRowAction<T> | BaseLegacyRowAction<T>)[];
   heatClassMap?: Record<string, string>;
+  heatThresholds?: { max: number; className: string }[];
 
   abbreviateNumbers?: boolean;
 

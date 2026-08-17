@@ -65,6 +65,13 @@ interface AdditionalHeaderCell {
   key?: string;
 }
 
+interface FilterChip {
+  key: string;
+  kind: 'checkbox' | 'calendar' | 'range';
+  icon: string;
+  label: string;
+}
+
 const NARROW_VIEWPORT_PX = 720;
 
 const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-success-surface/60', 'bg-warning-surface/60', 'bg-info-surface/60'];
@@ -120,12 +127,33 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
       <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-neutral-100">
         <base-search-input [placeholder]="searchPlaceholder()" (search)="onQuickSearch($event)" />
         <span class="flex items-center gap-3">
-          @if (hasActiveFilters() && !readOnly()) {
+          @if (hasActiveFilters() && !readOnly() && !showFilterChips()) {
             <button type="button" class="text-[11px] font-semibold text-action hover:text-action-hover"
                     (click)="clearAllFilters()">Clear All Filters</button>
           }
           <span class="text-[11px] text-neutral-400">{{ filteredTotal() }} record(s)</span>
         </span>
+      </div>
+    }
+
+    @if (showFilterChips() && !readOnly() && (filterChips().length > 0 || sortState().key)) {
+      <div class="flex items-center gap-2 flex-wrap px-4 py-2 border-b border-neutral-100 bg-neutral-0">
+        @for (chip of filterChips(); track chip.kind + chip.key) {
+          <span class="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-600 bg-neutral-100 rounded-full pl-2.5 pr-1.5 py-1">
+            <span class="icon-outline text-neutral-400" style="font-size:13px;" aria-hidden="true">{{ chip.icon }}</span>
+            {{ chip.label }}
+            <button type="button" class="inline-flex items-center justify-center w-4 h-4 rounded-full hover:bg-neutral-200 text-neutral-400 hover:text-neutral-600"
+                    [attr.aria-label]="'Remove filter ' + chip.label" (click)="removeChip(chip)">✕</button>
+          </span>
+        }
+        @if (sortState().key) {
+          <span class="inline-flex items-center gap-1.5 text-[11px] font-medium text-action-hover bg-action-surface rounded-full pl-2.5 pr-2.5 py-1">
+            <span class="icon-outline" style="font-size:13px;" aria-hidden="true">swap_vert</span>
+            Sorted by {{ sortColumnHeader() }}, {{ sortState().direction === 'asc' ? 'ascending' : 'descending' }}
+          </span>
+        }
+        <button type="button" class="text-[11px] font-semibold text-action hover:text-action-hover ml-1"
+                (click)="clearAllFilters()">Clear all</button>
       </div>
     }
 
@@ -232,7 +260,7 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
                       }
                     }
                   }
-                  @if (last && hasActiveFilters() && !readOnly()) {
+                  @if (last && hasActiveFilters() && !readOnly() && !showFilterChips()) {
                     <button type="button" class="text-[9px] text-action hover:text-action-hover" title="Clear all filters"
                             (click)="$event.stopPropagation(); clearAllFilters()">⟲</button>
                   }
@@ -475,6 +503,7 @@ export class BaseTableComponent<T = BaseRow> {
   readonly showSearch = input(true);
   readonly searchPlaceholder = input('Search…');
   readonly showFilterRow = input(false);
+  readonly showFilterChips = input(true);
 
   readonly stickyHeader = input(false);
   readonly maxHeight = input('');
@@ -624,6 +653,35 @@ export class BaseTableComponent<T = BaseRow> {
   );
 
   readonly hasRangeFilterActive = computed(() => Object.keys(this.rangeFilters()).length > 0);
+
+  readonly filterChips = computed<FilterChip[]>(() => {
+    const cols = this.visibleColumns();
+    const headerOf = (key: string) => cols.find(c => c.key === key)?.header ?? key;
+    const chips: FilterChip[] = [];
+
+    for (const [key, v] of Object.entries(this.checkboxFilters())) {
+      if (!v.selected.length) continue;
+      const values = v.selected.map(s => s === NO_VALUE ? '(No value)' : s);
+      const shown = values.length > 2 ? `${values.slice(0, 2).join(', ')} +${values.length - 2} more` : values.join(', ');
+      chips.push({ key, kind: 'checkbox', icon: 'filter_alt', label: `${headerOf(key)}: ${shown}` });
+    }
+    for (const [key, v] of Object.entries(this.calendarFilters())) {
+      chips.push({ key, kind: 'calendar', icon: 'event', label: `${headerOf(key)}: ${calendarFilterLabel(v)}` });
+    }
+    for (const [key, v] of Object.entries(this.rangeFilters())) {
+      const header = headerOf(key);
+      const label = v.from !== null && v.to !== null ? `${header}: ${v.from}–${v.to}`
+        : v.from !== null ? `${header}: ≥ ${v.from}`
+        : v.to !== null ? `${header}: ≤ ${v.to}`
+        : header;
+      chips.push({ key, kind: 'range', icon: 'tune', label });
+    }
+    return chips;
+  });
+
+  readonly sortColumnHeader = computed(() =>
+    this.visibleColumns().find(c => c.key === this.sortState().key)?.header ?? this.sortState().key ?? ''
+  );
   readonly editingCount = computed(() => this.editableRows() ? this.rows().filter(r => (r as BaseRow).isEditing).length : 0);
   readonly hasEditingRows = computed(() => this.editingCount() > 0);
   readonly interactionBlocked = computed(() => this.hasEditingRows() || this.hasRangeFilterActive());
@@ -916,6 +974,27 @@ export class BaseTableComponent<T = BaseRow> {
     this.calendarFilters.set({});
     this.sortState.set({ key: null, direction: null });
     this.rangeFilters.set(v.from === null && v.to === null ? {} : { [key]: v });
+    this.pageState.set(1);
+    this.emitFilter();
+  }
+
+  removeChip(chip: FilterChip): void {
+    if (this.interactionBlocked()) return;
+    if (chip.kind === 'checkbox') {
+      this.checkboxFilters.update(f => {
+        const next = { ...f };
+        delete next[chip.key];
+        return next;
+      });
+    } else if (chip.kind === 'calendar') {
+      this.calendarFilters.update(f => {
+        const next = { ...f };
+        delete next[chip.key];
+        return next;
+      });
+    } else {
+      this.rangeFilters.set({});
+    }
     this.pageState.set(1);
     this.emitFilter();
   }

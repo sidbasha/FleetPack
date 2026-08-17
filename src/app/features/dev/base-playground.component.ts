@@ -740,78 +740,79 @@ function mockRows(n: number): ToolRow[] {
         <button class="btn-ghost" (click)="simulateError()">Simulate load error</button>
       </div>
 
-      <!-- Saved Views & Filter Rail (New in v2.0) — fully controlled: this component only renders
-           the rail and emits intent. "Modified" here is a proxy driven off sortChange/filterChange/
-           manageColumn (see onTableStateChanged) since re-applying a saved view's filter/sort state
-           onto the live table needs those to be host-controlled inputs, which is a natural next
-           step beyond this pass — see the summary for why that's out of scope here. -->
-      <div class="panel px-2">
+      <!-- Saved Views & Filter Rail — fully controlled: this component only renders the rail and
+           emits intent. "Modified" here is a proxy driven off sortChange/filterChange/manageColumn
+           (see onTableStateChanged) since re-applying a saved view's filter/sort state onto the
+           live table needs those to be host-controlled inputs — a natural next step, not done here.
+           The filter-chips row below the table's search bar (on by default) shows every active
+           checkbox/calendar/range filter as a removable chip plus a non-removable sort chip. -->
+      <div class="panel overflow-hidden">
         <base-table-views [views]="tableViews()" [activeViewId]="activeViewId()" [modified]="viewModified()"
                            (activeViewIdChange)="onViewSwitch($event)" (save)="onViewSave($event)"
                            (update)="onViewUpdate()" (reset)="onViewReset()" (copyLink)="onViewCopyLink()" />
+
+        <base-table class="block"
+          [columns]="columns()"
+          [rows]="rows()"
+          trackKey="toolId"
+          [showFilterRow]="true"
+          [stickyHeader]="true"
+          maxHeight="440px"
+          minWidth="1550px"
+          selectable="multiple"
+          [striped]="true"
+          [initialPageSize]="10"
+          [manageColumns]="true"
+          [additionalHeader]="additionalHeader"
+          [expandable]="true"
+          [childColumns]="childColumns()"
+          [childRowsOf]="alarmEventsOf"
+          [highlightKey]="highlightedToolId()"
+          [readOnly]="tableReadOnly()"
+          [loading]="tableLoading()"
+          [error]="tableError()"
+          errorMessage="The fleet service timed out — the last known page is still shown above."
+          [editableRows]="tableEditable()"
+          [maxVisibleActions]="2"
+          [showSummary]="true"
+          (rowClick)="log('rowClick', $event.row.toolId)"
+          (cellClick)="log('cellClick', $event.column.key + ' → ' + $event.row.toolId)"
+          (sortChange)="onSort($event); onTableStateChanged()"
+          (pageChange)="onPage($event)"
+          (filterChange)="onFilter($event); onTableStateChanged()"
+          (selectionChange)="selectedCount.set($event.length)"
+          (expandChange)="log('expandChange', $event.row.toolId + ' → ' + $event.expanded)"
+          (manageColumn)="log('manageColumn', $event.join(', ')); onTableStateChanged()"
+          (handleAction)="onHandleAction($event)"
+          (cellEdit)="onCellEdit($event)"
+          (retry)="tableError.set(false); log('table retry', 'reloaded')">
+
+          <!-- CUSTOM CELL TEMPLATE #1: composite cell (image + text + badge) -->
+          <ng-template baseCell="toolId" let-row let-value="value">
+            <span class="inline-flex items-center gap-2 font-semibold text-slate-700">
+              {{ value }}
+              @if (row.status === 'DOWN') { <base-badge label="!" colorClass="bg-red-100 text-red-600" /> }
+            </span>
+          </ng-template>
+
+          <!-- CUSTOM CHILD CELL TEMPLATE: nested table columns accept baseChildCell templates too -->
+          <ng-template baseChildCell="event" let-row let-value="value">
+            <span class="inline-flex items-center gap-1.5 font-medium text-slate-700">
+              @if (row.severity === 'High') { <i class="inline-block w-1.5 h-1.5 rounded-full bg-red-500"></i> }
+              {{ value }}
+            </span>
+          </ng-template>
+
+          <!-- CUSTOM CELL TEMPLATE #2: action buttons -->
+          <ng-template baseCell="actions" let-row>
+            <span class="inline-flex gap-1">
+              <button class="btn-ghost" (click)="log('edit', row.toolId)">Edit</button>
+              <button class="btn-ghost text-red-500 hover:text-red-700 hover:bg-red-50"
+                      (click)="removeRow(row.toolId)">Delete</button>
+            </span>
+          </ng-template>
+        </base-table>
       </div>
-
-      <base-table class="panel block overflow-hidden"
-        [columns]="columns()"
-        [rows]="rows()"
-        trackKey="toolId"
-        [showFilterRow]="true"
-        [stickyHeader]="true"
-        maxHeight="440px"
-        minWidth="1550px"
-        selectable="multiple"
-        [striped]="true"
-        [initialPageSize]="10"
-        [manageColumns]="true"
-        [additionalHeader]="additionalHeader"
-        [expandable]="true"
-        [childColumns]="childColumns()"
-        [childRowsOf]="alarmEventsOf"
-        [highlightKey]="highlightedToolId()"
-        [readOnly]="tableReadOnly()"
-        [loading]="tableLoading()"
-        [error]="tableError()"
-        errorMessage="The fleet service timed out — the last known page is still shown above."
-        [editableRows]="tableEditable()"
-        [maxVisibleActions]="2"
-        [showSummary]="true"
-        (rowClick)="log('rowClick', $event.row.toolId)"
-        (cellClick)="log('cellClick', $event.column.key + ' → ' + $event.row.toolId)"
-        (sortChange)="onSort($event); onTableStateChanged()"
-        (pageChange)="onPage($event)"
-        (filterChange)="onFilter($event); onTableStateChanged()"
-        (selectionChange)="selectedCount.set($event.length)"
-        (expandChange)="log('expandChange', $event.row.toolId + ' → ' + $event.expanded)"
-        (manageColumn)="log('manageColumn', $event.join(', ')); onTableStateChanged()"
-        (handleAction)="onHandleAction($event)"
-        (cellEdit)="onCellEdit($event)"
-        (retry)="tableError.set(false); log('table retry', 'reloaded')">
-
-        <!-- CUSTOM CELL TEMPLATE #1: composite cell (image + text + badge) -->
-        <ng-template baseCell="toolId" let-row let-value="value">
-          <span class="inline-flex items-center gap-2 font-semibold text-slate-700">
-            {{ value }}
-            @if (row.status === 'DOWN') { <base-badge label="!" colorClass="bg-red-100 text-red-600" /> }
-          </span>
-        </ng-template>
-
-        <!-- CUSTOM CHILD CELL TEMPLATE: nested table columns accept baseChildCell templates too -->
-        <ng-template baseChildCell="event" let-row let-value="value">
-          <span class="inline-flex items-center gap-1.5 font-medium text-slate-700">
-            @if (row.severity === 'High') { <i class="inline-block w-1.5 h-1.5 rounded-full bg-red-500"></i> }
-            {{ value }}
-          </span>
-        </ng-template>
-
-        <!-- CUSTOM CELL TEMPLATE #2: action buttons -->
-        <ng-template baseCell="actions" let-row>
-          <span class="inline-flex gap-1">
-            <button class="btn-ghost" (click)="log('edit', row.toolId)">Edit</button>
-            <button class="btn-ghost text-red-500 hover:text-red-700 hover:bg-red-50"
-                    (click)="removeRow(row.toolId)">Delete</button>
-          </span>
-        </ng-template>
-      </base-table>
 
       <div class="panel">
         <div class="panel-header">
@@ -860,9 +861,9 @@ export class BasePlaygroundComponent {
   }
 
   readonly tableViews = signal<BaseTableView[]>([
-    { id: 'all', label: 'All', isDefault: true },
-    { id: 'down-tools', label: 'Down tools', pinned: true },
-    { id: 'shared-fab-a', label: 'Fab-A only', pinned: true, shared: true, readOnly: true }
+    { id: 'all', label: 'All', isDefault: true, count: this.rows().length },
+    { id: 'down-tools', label: 'Down tools', pinned: true, count: this.rows().filter(r => r.status === 'DOWN').length },
+    { id: 'shared-fab-a', label: 'Fab-A only', pinned: true, shared: true, readOnly: true, count: this.rows().filter(r => r.fab === 'Fab-A').length }
   ]);
   readonly activeViewId = signal('all');
   readonly viewModified = signal(false);

@@ -147,7 +147,16 @@ export function downloadProgress<T>(row: T): number | null {
 }
 
 export function heatClass<T>(c: BaseColumnDef<T>, row: T): string {
-  return c.heatClassMap?.[String(cellValue(c, row))] ?? 'bg-neutral-100 text-ink-500';
+  const raw = cellValue(c, row);
+  if (c.heatThresholds) {
+    const n = Number(raw);
+    if (!isNaN(n)) {
+      const sorted = [...c.heatThresholds].sort((a, b) => a.max - b.max);
+      const hit = sorted.find(t => n <= t.max);
+      return (hit ?? sorted[sorted.length - 1])?.className ?? 'bg-neutral-100 text-ink-500';
+    }
+  }
+  return c.heatClassMap?.[String(raw)] ?? 'bg-neutral-100 text-ink-500';
 }
 
 function summaryNumbers<T>(c: BaseColumnDef<T>, rows: T[]): number[] {

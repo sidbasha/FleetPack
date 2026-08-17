@@ -95,7 +95,7 @@ const SAFE_ACTION_TYPES = new Set(['view', 'click', 'copy', 'download', 'run', '
           <span class="text-[10px] font-bold rounded-r-full px-2 py-0.5" [class]="badge()">{{ display() }}</span>
         }
         @case ('dot') {
-          <span class="inline-flex items-center gap-1.5">
+          <span class="inline-flex items-center gap-1.5" [class]="column().textColorClassMap ? statusClass() : ''">
             @if (dotVisible()) { <i class="inline-block w-2.5 h-2.5 rounded-r-full" [class]="dot()"></i> }
             {{ display() }}
           </span>

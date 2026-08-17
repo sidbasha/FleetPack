@@ -4,13 +4,13 @@ import { moduleMetadata } from '@storybook/angular';
 import { BaseTableView, BaseTableViewsComponent } from '../../app/base';
 
 const VIEWS: BaseTableView[] = [
-  { id: 'all', label: 'All', isDefault: true },
-  { id: 'down', label: 'Down tools', pinned: true },
-  { id: 'mine', label: 'My fleet segment', pinned: true },
-  { id: 'shared-qual', label: 'Qual due this week', pinned: true, shared: true, readOnly: true },
-  { id: 'archive', label: 'Archived (2025)' },
-  { id: 'fab21', label: 'Fab 21 only' },
-  { id: 'low-uptime', label: 'Uptime < 90%' }
+  { id: 'all', label: 'All tools', isDefault: true, count: 214 },
+  { id: 'down', label: 'Down tools', pinned: true, count: 9 },
+  { id: 'mine', label: 'My fleet segment', pinned: true, count: 42 },
+  { id: 'shared-qual', label: 'Qual due this week', pinned: true, shared: true, readOnly: true, count: 18 },
+  { id: 'archive', label: 'Archived (2025)', count: 61 },
+  { id: 'fab21', label: 'Fab 21 only', count: 30 },
+  { id: 'low-uptime', label: 'Uptime < 90%', count: 6 }
 ];
 
 const meta: Meta<BaseTableViewsComponent> = {
@@ -49,7 +49,7 @@ export const AtSavedViewsLimit: Story = {
   }
 };
 
-/** Full interactive demo — clicking "Save as new view" opens the inline name field; Update/Reset/
+/** Full interactive demo — clicking "+ Save view" opens the inline name field; Update/Reset/
  *  Copy link/switching tabs all just log to the story's own state so you can see every event fire. */
 @Component({
   selector: 'story-table-views-demo',
