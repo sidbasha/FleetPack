@@ -4,10 +4,10 @@ import { APP_BRAND, APP_ROUTES, NAV_GROUPS, NavGroup, SIDEBAR_TEXT } from '../co
 
 /** The application shell is a fixed dark surface in every theme — an exception to the semantic
  *  layer, matching the shipped product; everything inside it re-themes normally. The rail
- *  collapses to 60px below 1024px, or on demand via the footer toggle. Collapsed items keep a
- *  native `title` so the label is still reachable — an icon alone is not a name. A disabled item
- *  stays visible rather than disappearing, so the operator learns the shape of the product even
- *  where their role has no access.
+ *  collapses to 80px below 1024px, or on demand via the toggle beside the title. Collapsed items
+ *  keep a native `title` so the label is still reachable — an icon alone is not a name. A
+ *  disabled item stays visible rather than disappearing, so the operator learns the shape of the
+ *  product even where their role has no access.
  *
  *  Pure presentation over `[groups]`/`[brand]`/`[routes]`/`[sidebar]`, all defaulted from
  *  `app.constants.ts` — real usage (`<fam-sidebar />`) needs no inputs at all; only Storybook
@@ -20,16 +20,23 @@ import { APP_BRAND, APP_ROUTES, NAV_GROUPS, NavGroup, SIDEBAR_TEXT } from '../co
   template: `
     <aside class="shrink-0 h-screen sticky top-0 bg-surface-inverse text-neutral-300 flex flex-col transition-all"
            style="transition-duration: var(--mo-slow);"
-           [class]="collapsed() ? 'w-[60px]' : 'w-[60px] lg:w-60'">
-      <a [routerLink]="routes().home" class="flex items-center gap-2.5 px-4 h-14 border-b border-white/10 shrink-0" [attr.title]="brand().name">
-        <span class="w-8 h-8 rounded-r-sm bg-brand grid place-items-center text-neutral-0 font-extrabold text-sm shrink-0">
-          {{ brand().mark }}
-        </span>
-        <span class="leading-tight" [class]="labelVisibility()">
-          <span class="block text-sm font-bold text-neutral-0 tracking-wide whitespace-nowrap">{{ brand().name }}</span>
-          <span class="block text-[10px] text-neutral-400 whitespace-nowrap">{{ brand().company }}</span>
-        </span>
-      </a>
+           [class]="collapsed() ? 'w-20' : 'w-20 lg:w-60'">
+      <div class="flex items-center gap-1.5 px-3 h-14 border-b border-white/10 shrink-0">
+        <a [routerLink]="routes().home" class="flex items-center gap-2.5 min-w-0 flex-1" [attr.title]="brand().name">
+          <span class="w-8 h-8 rounded-r-sm bg-brand grid place-items-center text-neutral-0 font-extrabold text-sm shrink-0">
+            {{ brand().mark }}
+          </span>
+          <span class="leading-tight min-w-0" [class]="labelVisibility()">
+            <span class="block text-sm font-bold text-neutral-0 tracking-wide whitespace-nowrap">{{ brand().name }}</span>
+            <span class="block text-[10px] text-neutral-400 whitespace-nowrap">{{ brand().company }}</span>
+          </span>
+        </a>
+        <button type="button"
+                class="shrink-0 w-6 h-6 grid place-items-center rounded-r-xs hover:bg-white/10 text-neutral-300 hover:text-neutral-0 transition-colors"
+                [attr.title]="collapsed() ? 'Expand' : 'Collapse'" (click)="collapsed.set(!collapsed())">
+          <span class="icon-outline" style="font-size:16px;" aria-hidden="true">{{ collapsed() ? 'chevron_right' : 'chevron_left' }}</span>
+        </button>
+      </div>
 
       <nav class="flex-1 overflow-y-auto overflow-x-hidden px-2.5 py-4 space-y-5">
         <div>
@@ -91,10 +98,6 @@ import { APP_BRAND, APP_ROUTES, NAV_GROUPS, NavGroup, SIDEBAR_TEXT } from '../co
           <span class="nav-ico">{{ sidebar().settingsIcon }}</span>
           <span [class]="labelVisibility()">{{ sidebar().settingsLabel }}</span>
         </a>
-        <button type="button" class="nav-link w-full" [attr.title]="collapsed() ? 'Expand' : 'Collapse'" (click)="collapsed.set(!collapsed())">
-          <span class="nav-ico">{{ collapsed() ? '▶' : '◀' }}</span>
-          <span [class]="labelVisibility()">{{ collapsed() ? 'Expand' : 'Collapse' }}</span>
-        </button>
         <p class="mt-2 text-[9px] leading-relaxed text-neutral-400 whitespace-nowrap overflow-hidden" [class]="labelVisibility()">
           {{ brand().copyright }}<br />{{ brand().version }}
         </p>
