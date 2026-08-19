@@ -114,12 +114,22 @@ All form controls expose a two-way `[(value)]` / `[(checked)]` model **and** imp
 | `<base-histogram>` | Distribution of one metric into touching bars/buckets |
 | `<base-chart-frame>` | Chart panel chrome — title/subtitle, export button, optional table/chart view toggle |
 | `<base-state-heatmap>` | Day × hour grid colored by dominant machine state, for spotting recurring patterns |
-| `<base-gantt-timeline>` | 24h per-row state segments — the detail view a heatmap cell expands into |
+| `<base-gantt-timeline>` | Per-row state segments over `[totalHours]` (24h by default, any span — e.g. 168 for a week) — the detail view a heatmap cell expands into |
 
 Machine-state color (`BaseMachineState`, `base-timeline.components.ts`) differentiates by hue,
 fill pattern (solid up-time / hatched planned-vs-unplanned downtime / dotted non-state), and a
 legend glyph together — never hue alone. `non-scheduled` (a real, known state) and `gap`
 (telemetry missing) render distinctly even though both are neutral.
+
+`<base-gantt-timeline>` draws each row to a `<canvas>` instead of one DOM node per segment, so
+DOM size stays constant no matter how many segments a row holds. Segments are bucketed to one
+slot per device pixel; when several land in the same pixel the most severe state wins
+(`unscheduled-dt` > `scheduled-dt` > `engineering` > `non-scheduled` > `standby` > `production` >
+`gap`), so a brief unplanned-downtime blip is never silently averaged away by a longer
+neighboring segment. This keeps 100,000+ segments (a week of dense per-tool telemetry) smooth to
+render and hover — see `HighVolumeWeek` in `gantt-timeline.stories.ts` for a live 50-row ×
+2,000-segment stress case. Hover still resolves to the winning segment per pixel via the same
+bucket array, so tooltips stay O(1) regardless of the raw segment count.
 
 ### Table
 
@@ -129,7 +139,7 @@ legend glyph together — never hue alone. `non-scheduled` (a real, known state)
 | `<base-table-views>` | Saved/filtered view tab rail — pinned "All" plus saved views, Modified badge, Save/Update/Reset/Copy link |
 | `<base-paginator>` | Standalone, fully-controlled pagination control (also used internally by the table); supports an unknown-total server mode |
 | `<base-search-input>` | Debounced quick-filter text input |
-| `<base-manage-columns>` | Gear-icon panel to show/hide and drag-reorder table columns; frozen columns lock at the top |
+| `<base-manage-columns>` | "Columns" toolbar button opening a panel to show/hide and drag-reorder table columns; frozen columns lock at the top |
 | `<base-checkbox-filter>` | Per-column value-filter dropdown: search, per-option record counts, "(No value)" row, optional sort |
 | `<base-calendar-filter>` | Per-column date-range filter dropdown, with one-click relative presets (Last shift/24h/7d/30d) |
 | `<base-range-filter>` | Per-column numeric range filter dropdown with a mini distribution histogram |

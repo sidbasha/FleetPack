@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/angular';
-import { BaseGanttRow, BaseGanttTimelineComponent } from '../../app/base';
+import { BaseGanttRow, BaseGanttSegment, BaseGanttTimelineComponent, BaseMachineState } from '../../app/base';
 
 const rows: BaseGanttRow[] = [
   {
@@ -78,5 +78,36 @@ export const WithNoTelemetryRow: Story = {
       ] },
       { label: 'VOY-19', segments: [], noData: true }
     ]
+  }
+};
+
+const HEAVY_ROTATION_STATES: BaseMachineState[] = ['production', 'standby', 'engineering', 'scheduled-dt', 'non-scheduled'];
+const WEEK_HOURS = 168;
+
+function buildHeavyRows(rowCount: number, segmentsPerRow: number): BaseGanttRow[] {
+  return Array.from({ length: rowCount }, (_, r) => {
+    const segments: BaseGanttSegment[] = [];
+    let hour = 0;
+    for (let i = 0; i < segmentsPerRow && hour < WEEK_HOURS; i++) {
+      const duration = (WEEK_HOURS / segmentsPerRow) * (0.4 + Math.random() * 1.2);
+      const end = Math.min(WEEK_HOURS, hour + duration);
+      const isBlip = i % 137 === 0;
+      const state: BaseMachineState = isBlip ? 'unscheduled-dt' : HEAVY_ROTATION_STATES[(r + i) % HEAVY_ROTATION_STATES.length];
+      segments.push({ startHour: hour, endHour: end, state, label: isBlip ? 'Interlock trip' : undefined });
+      hour = end;
+    }
+    return {
+      label: `TOOL-${(r + 1).toString().padStart(3, '0')}`,
+      badge: `${(70 + Math.random() * 29).toFixed(1)}%`,
+      segments
+    };
+  });
+}
+
+export const HighVolumeWeek: Story = {
+  name: 'High volume · 100k+ segments across a week',
+  args: {
+    totalHours: WEEK_HOURS,
+    rows: buildHeavyRows(50, 2000)
   }
 };
