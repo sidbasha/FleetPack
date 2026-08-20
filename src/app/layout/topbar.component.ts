@@ -206,6 +206,6 @@ export class TopbarComponent implements OnInit {
 
   logout(): void {
     this.auth.logout();
-    void this.router.navigate([APP_ROUTES.login]);
+    void this.router.navigate([APP_ROUTES.home]);
   }
 }

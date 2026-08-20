@@ -102,7 +102,7 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
   { name: 'TopbarComponent', selector: 'fam-topbar', group: 'Layout', file: 'layout/topbar.component.ts', description: 'Fleet/duration filters, breadcrumbs, notifications, session menu.' },
   { name: 'SidebarComponent', selector: 'fam-sidebar', group: 'Layout', file: 'layout/sidebar.component.ts', description: 'Primary navigation, grouped by NAV_GROUPS.' },
 
-  { name: 'LoginComponent', selector: 'fam-login', group: 'Auth', file: 'features/auth/login.component.ts', route: '/login', description: 'Reactive-form sign-in against AuthService.login().' },
+  { name: 'LoginComponent', selector: 'fam-login', group: 'Auth', file: 'features/auth/login.component.ts', description: 'Reactive-form sign-in against AuthService.login().' },
 
   { name: 'UptimeAnalysisComponent', selector: 'fam-uptime-analysis', group: 'Up+Time Analysis', file: 'features/uptime-analysis/uptime-analysis.component.ts', route: '/fleet-availability/up-time/analysis', description: 'Trend chart, rolling/tool/SW breakdown table, top-unavailable chart, downtime table.' },
 

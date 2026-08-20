@@ -1,20 +1,11 @@
 import { Routes } from '@angular/router';
-import { authChildGuard, authGuard } from './core/auth/auth.guard';
 import { APP_ROUTE_PATHS, PLACEHOLDER_ROUTE_PATHS, ROUTE_TITLES } from './core/constants/app.constants';
 import { ShellComponent } from './layout/shell.component';
 
 export const routes: Routes = [
   {
-    path: APP_ROUTE_PATHS.login,
-    title: ROUTE_TITLES.login,
-    loadComponent: () =>
-      import('./features/auth/login.component').then(m => m.LoginComponent)
-  },
-  {
     path: APP_ROUTE_PATHS.root,
     component: ShellComponent,
-    canActivate: [authGuard],
-    canActivateChild: [authChildGuard],
     children: [
       { path: APP_ROUTE_PATHS.root, pathMatch: 'full', redirectTo: APP_ROUTE_PATHS.fleetAvailabilityAnalysis },
       {
