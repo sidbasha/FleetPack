@@ -21,3 +21,4 @@ export * from './components/base-timeline.components';
 export * from './components/base-notification.components';
 export * from './services/base-theme.service';
 export * from './services/base-density.service';
+export * from './services/base-edit-draft.service';

@@ -1,14 +1,17 @@
-import { Component, signal } from '@angular/core';
+import { Component, ViewChild, signal } from '@angular/core';
 import type { Meta, StoryObj } from '@storybook/angular';
 import { moduleMetadata } from '@storybook/angular';
 import {
   AdditionalHeaderGroup,
   BaseBadgeComponent,
   BaseCellDirective,
+  BaseCellEditEvent,
   BaseChildCellDirective,
   BaseChildFooterDirective,
   BaseColumnDef,
   BaseRowAction,
+  BaseRowSaveRequest,
+  BaseRowSaveResult,
   BaseTableComponent,
   BaseTableView,
   BaseTableViewsComponent
@@ -238,11 +241,12 @@ const EDITABLE_COLUMNS: BaseColumnDef<ToolRow>[] = [
   { key: 'fab', header: 'Fab', editable: true, editType: 'select', editOptions: FABS.map((f) => ({ label: f, value: f })) },
   { key: 'uptime', header: 'Uptime %', kind: 'number', align: 'right', editable: true, editType: 'number' },
   {
+    // No per-row Save action — saving is a whole-table control (the save bar's
+    // "Save N changes"), one of the five controls in the edit-state spec.
     key: 'actions', header: '', align: 'right', width: '90px', kind: 'row-actions',
     rowActions: [
       { type: 'edit', title: 'Edit row', isHidden: (r: any) => !!r.isEditing, run: (r: any) => { r.isEditing = true; } },
-      { type: 'apply', title: 'Save', isHidden: (r: any) => !r.isEditing, run: (r: any) => { r.isEditing = false; } },
-      { type: 'cancel', title: 'Cancel', isHidden: (r: any) => !r.isEditing, run: (r: any) => { r.isEditing = false; } }
+      { type: 'cancel', title: 'Exit edit', isHidden: (r: any) => !r.isEditing, run: (r: any) => { r.isEditing = false; } }
     ]
   }
 ];
@@ -628,8 +632,49 @@ export const SummaryFooter: Story = {
   args: { columns: SUMMARY_COLUMNS, showSummary: true, showSearch: false }
 };
 
+/**
+ * A real, stateful host for the edit-state demo below — Storybook args are
+ * plain read-only objects, but Revert/Clear/Discard/Save need somewhere to
+ * actually apply to, the same way `onCellEdit` does in the dev playground.
+ * Row 1's save is scripted to fail, so the partial-failure path (error
+ * fill, values kept, still dirty) is there to see without extra clicks.
+ */
+@Component({
+  selector: 'story-editable-table',
+  standalone: true,
+  imports: [BaseTableComponent],
+  template: `
+    <base-table class="panel block overflow-hidden"
+      [columns]="columns" [rows]="rows()" trackKey="toolId"
+      [editableRows]="true" [paginate]="false" [showSearch]="false"
+      (cellEdit)="onCellEdit($event)" (saveChanges)="onSaveChanges($event)" #table />
+  `
+})
+class StoryEditableTable {
+  @ViewChild('table') tableRef?: BaseTableComponent<ToolRow>;
+
+  readonly columns = EDITABLE_COLUMNS;
+  readonly rows = signal<ToolRow[]>(EDITABLE_ROWS.map((r, i) => (i === 0 ? { ...r, isEditing: true } : r)));
+
+  onCellEdit(e: BaseCellEditEvent<ToolRow>): void {
+    this.rows.update((rows) => rows.map((r) => (r.toolId === e.row.toolId ? { ...r, [e.column.key]: e.value } : r)));
+  }
+
+  /** Row index 1 in whatever batch gets saved always fails, so the partial-failure path (error fill, values kept, still dirty) is easy to see without hand-crafting a specific edit sequence. */
+  onSaveChanges(requests: BaseRowSaveRequest<ToolRow>[]): void {
+    setTimeout(() => {
+      const results: BaseRowSaveResult[] = requests.map((r, i) =>
+        i === 1 ? { key: r.key, success: false, error: 'Server rejected the value' } : { key: r.key, success: true }
+      );
+      this.tableRef?.reportSaveResult(results);
+    }, 700);
+  }
+}
+
 export const InlineEdit: Story = {
-  args: { columns: EDITABLE_COLUMNS, rows: EDITABLE_ROWS, showSearch: false, paginate: false }
+  name: 'Inline edit · Revert / Clear / Save bar',
+  decorators: [moduleMetadata({ imports: [StoryEditableTable] })],
+  render: () => ({ template: `<story-editable-table />` })
 };
 
 export const UnknownTotalServerSide: Story = {

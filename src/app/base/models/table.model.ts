@@ -190,3 +190,32 @@ export interface BaseManageColumnsEvent {
   /** Keys the user pinned left/right from the Manage Columns panel, on top of any column's static `sticky` default. */
   pinned: Record<string, 'left' | 'right'>;
 }
+
+/**
+ * One row's worth of pending edits, sent to the host in a `saveChanges`
+ * batch. `changes` holds only the columns that actually differ from the
+ * last server-confirmed snapshot — never the whole row.
+ */
+export interface BaseRowSaveRequest<T = BaseRow> {
+  key: unknown;
+  row: T;
+  changes: Record<string, unknown>;
+}
+
+/** What the host reports back via `BaseTableComponent.reportSaveResult()` once a save settles. */
+export interface BaseRowSaveResult {
+  key: unknown;
+  success: boolean;
+  error?: string;
+}
+
+/** The four outcomes of `BaseTableComponent.confirmLeave()` — see the "Leaving with work pending" section in the Base README. */
+export type BaseLeaveOutcome = 'stay' | 'save-and-leave' | 'keep-draft' | 'discard';
+
+/** One field where a restored draft's value disagrees with the row's current (server) value. */
+export interface BaseDraftConflict<T = BaseRow> {
+  row: T;
+  column: BaseColumnDef<T>;
+  draftValue: unknown;
+  serverValue: unknown;
+}

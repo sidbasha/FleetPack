@@ -26,6 +26,7 @@ import {
   BaseCellEditEvent,
   BaseCheckboxFilterValue,
   BaseColumnDef,
+  BaseDraftConflict,
   BaseFilterEvent,
   BaseFilterOption,
   BaseHandleActionEvent,
@@ -34,6 +35,8 @@ import {
   BaseRangeFilterValue,
   BaseRow,
   BaseRowClickEvent,
+  BaseRowSaveRequest,
+  BaseRowSaveResult,
   BaseScrollEvent,
   BaseSortEvent
 } from '../../models/table.model';
@@ -47,8 +50,9 @@ import {
 } from '../../utils/table-cell.utils';
 import { BaseCalendarFilterComponent, BaseCheckboxFilterComponent, BaseRangeFilterComponent, calendarFilterLabel, NO_VALUE } from './base-column-filters.components';
 import { BaseManageColumnsComponent, ManageColumnItem } from './base-manage-columns.component';
-import { BaseSkeletonComponent, BaseTooltipDirective } from '../base-overlay.components';
+import { BaseModalComponent, BaseSkeletonComponent, BaseTooltipDirective } from '../base-overlay.components';
 import { BaseDensityService } from '../../services/base-density.service';
+import { BaseDraft, BaseDraftRow, BaseEditDraftService } from '../../services/base-edit-draft.service';
 import { BasePaginatorComponent, BaseSearchInputComponent } from './base-paginator.component';
 import { BaseTableCellComponent } from './base-table-cell.component';
 import { BaseEmptyStateComponent, BaseLoadingComponent } from '../base-ui.components';
@@ -94,6 +98,7 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
     BaseCalendarFilterComponent,
     BaseRangeFilterComponent,
     BaseManageColumnsComponent,
+    BaseModalComponent,
     BaseTableComponent,
     BaseCellDirective
   ],
@@ -108,6 +113,33 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
     .bt-head-sticky { position: sticky; top: 0; z-index: 10; }
   `],
   template: `
+    @if (draftBanner(); as banner) {
+      <div class="border-b border-info/20 bg-info-surface">
+        <div class="flex items-center gap-3 px-4 py-3 text-[11px] text-ink-900">
+          <span class="icon-outline shrink-0 text-info" style="font-size:16px;" aria-hidden="true">history</span>
+          <span class="flex-1 min-w-0">
+            <b>Unsaved changes from your last visit,</b> {{ banner.rowCount }} row{{ banner.rowCount === 1 ? '' : 's' }} on this table.
+            <span class="block text-neutral-400 mt-0.5">Saved {{ formatDraftTime(banner.savedAt) }} · Expires in {{ draftDaysLeft(banner.savedAt) }} days</span>
+          </span>
+          <button type="button" class="shrink-0 text-[11px] font-semibold text-ink-600 hover:text-ink-900" (click)="toggleDraftReview()">Review changes</button>
+          <button type="button" class="shrink-0 text-[11px] font-semibold text-error hover:text-error-hover" (click)="discardParkedDraft()">Discard</button>
+          <button type="button" class="shrink-0 btn-primary py-1! px-2.5! text-[11px]" (click)="restoreDraft()">
+            <span class="icon-outline" style="font-size:13px;" aria-hidden="true">restore</span> Restore
+          </button>
+        </div>
+        @if (reviewOpen()) {
+          <div class="px-4 pb-3 text-[11px] text-ink-600">
+            <p class="text-neutral-400 mb-1.5">The table is showing saved values. Nothing is applied until Restore.</p>
+            <ul class="space-y-1">
+              @for (r of pendingDraft()?.rows ?? []; track r.key) {
+                <li>Row {{ r.key }} — {{ draftChangeSummary(r) }}</li>
+              }
+            </ul>
+          </div>
+        }
+      </div>
+    }
+
     @if (tableTitle() || showSearch() || (manageColumns() && !readOnly())) {
       <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-neutral-100">
         @if (tableTitle()) {
@@ -165,10 +197,18 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
       </div>
     }
 
-    @if (hasEditingRows()) {
-      <div class="flex items-center gap-2 px-4 py-2 bg-warning-surface border-b border-warning/30 text-[11px] text-warning-hover font-medium">
-        <span class="icon-outline" style="font-size:14px;" aria-hidden="true">edit_note</span>
-        {{ editingCount() }} row{{ editingCount() === 1 ? '' : 's' }} being edited — save or cancel before sorting, filtering, or changing pages.
+    @if (hasDirtyRows()) {
+      <div class="flex items-center gap-3 px-4 py-2.5 bg-warning-surface border-b border-warning/30 text-[11px] text-warning-hover font-medium">
+        <span class="icon-outline shrink-0" style="font-size:14px;" aria-hidden="true">edit_note</span>
+        <span class="flex-1">{{ dirtyCount() }} row{{ dirtyCount() === 1 ? '' : 's' }} edited, not saved</span>
+        <button type="button" class="shrink-0 text-[11px] font-semibold text-ink-600 hover:text-ink-900"
+                (click)="confirmLeave()">Navigate away</button>
+        <button type="button" class="shrink-0 text-[11px] font-semibold text-error hover:text-error-hover"
+                (click)="discardAll()">Discard changes</button>
+        <button type="button" class="shrink-0 btn-primary py-1! px-2.5! text-[11px]" (click)="saveAll()">
+          <span class="icon-outline" style="font-size:13px;" aria-hidden="true">check</span>
+          Save {{ dirtyCount() }} change{{ dirtyCount() === 1 ? '' : 's' }}
+        </button>
       </div>
     } @else if (hasRangeFilterActive()) {
       <div class="flex items-center gap-2 px-4 py-2 bg-action-surface border-b border-action/20 text-[11px] text-action-hover font-medium">
@@ -403,6 +443,8 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
                                         [actionTemplateFor]="actionTemplateFor"
                                         [maxVisible]="maxVisibleActions()" [readOnly]="readOnly()"
                                         [editingRow]="isRowEditing(row)"
+                                        [fieldDirty]="isFieldDirty(row, c)" [revertValue]="revertTargetFor(row, c)"
+                                        [saving]="isRowSaving(row)"
                                         (actionRun)="handleAction.emit($event)"
                                         (cellEdit)="cellEdit.emit($event)" />
                     }
@@ -475,6 +517,14 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
       </table>
     </div>
 
+    @if (hasDirtyRows()) {
+      <div class="flex items-center gap-1.5 px-4 py-1.5 text-[10px] text-neutral-400 border-t border-neutral-100">
+        <span class="icon-outline" style="font-size:12px;" aria-hidden="true">lock</span>
+        Sorting, filtering, paging and view switching are blocked while {{ dirtyCount() }} change{{ dirtyCount() === 1 ? '' : 's' }}
+        {{ dirtyCount() === 1 ? 'is' : 'are' }} pending.
+      </div>
+    }
+
     @if (showPaginator()) {
       <div class="px-4 py-3 border-t border-neutral-100">
         <base-paginator
@@ -487,6 +537,61 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
           [hasNext]="resolvedHasNext()"
           (pageChange)="onPage($event)" />
       </div>
+    }
+
+    @if (conflicts()[0]; as conflict) {
+      <base-modal [open]="true" icon="flag" iconTone="warning" size="sm"
+                  title="This row changed while your draft was parked"
+                  [subtitle]="'Row ' + rowTrack(conflict.row) + ' · ' + conflict.column.header"
+                  [showClose]="false" [closeOnBackdrop]="false" [destructive]="true">
+        <div class="grid grid-cols-2 gap-2.5 mb-3">
+          <div class="border border-action/30 rounded-r-sm p-2.5 bg-action-surface">
+            <div class="text-[9px] font-bold uppercase tracking-wide text-action-hover mb-1">Your draft</div>
+            <div class="text-xs text-ink-900 wrap-break-word">{{ formatConflictValue(conflict, conflict.draftValue) }}</div>
+          </div>
+          <div class="border border-neutral-200 rounded-r-sm p-2.5 bg-neutral-50">
+            <div class="text-[9px] font-bold uppercase tracking-wide text-neutral-400 mb-1">
+              Server{{ draftAuthorOf() && draftAuthorOf()!(conflict.row) ? ' · ' + draftAuthorOf()!(conflict.row) : '' }}
+            </div>
+            <div class="text-xs text-ink-900 wrap-break-word">{{ formatConflictValue(conflict, conflict.serverValue) }}</div>
+          </div>
+        </div>
+        <p class="text-[11px] text-neutral-500">
+          Restoring keeps your value in the editor as an unsaved change. It does not overwrite the server until you press Save.
+        </p>
+        <div footer class="flex gap-2 w-full">
+          <button type="button" class="flex-1 text-xs font-semibold text-ink-600 hover:bg-neutral-50 rounded-r-sm px-3 py-1.5
+                                        border border-neutral-200 transition-colors"
+                  (click)="resolveConflict(false)">Keep the server value</button>
+          <button type="button" class="flex-1 btn-primary justify-center" (click)="resolveConflict(true)">Restore mine as an edit</button>
+        </div>
+      </base-modal>
+    }
+
+    @if (leaveDialogOpen()) {
+      <base-modal [open]="true" icon="warning" iconTone="warning" size="sm" [destructive]="true" [showClose]="false"
+                  [title]="'Leave with ' + dirtyCount() + ' unsaved change' + (dirtyCount() === 1 ? '' : 's') + '?'"
+                  [subtitle]="tableTitle()" (closed)="onLeaveDialogClosed($event)">
+        <p>Your edits have not been sent to the server.
+          @if (draftId()) { Keeping them stores a draft on this device for 7 days and offers it back the next time you open this table. }
+        </p>
+        @if (leaveSaveFailed()) {
+          <p class="mt-2 text-error-text font-semibold">Save failed — fix the highlighted rows and try again, or choose another option.</p>
+        }
+        <div footer class="flex flex-wrap gap-2 w-full justify-end">
+          <button type="button" class="text-xs font-semibold text-action hover:text-action-hover px-3 py-1.5"
+                  (click)="chooseLeave('stay')">Stay on page</button>
+          @if (draftId()) {
+            <button type="button" class="text-xs font-semibold text-ink-600 hover:bg-neutral-50 rounded-r-sm px-3 py-1.5
+                                          border border-neutral-200 transition-colors"
+                    (click)="chooseLeave('keep-draft')">Keep draft</button>
+          }
+          <button type="button" class="text-xs font-semibold text-error hover:bg-error-surface rounded-r-sm px-3 py-1.5
+                                        border border-error/30 transition-colors"
+                  (click)="chooseLeave('discard')">Discard</button>
+          <button type="button" class="btn-primary py-1.5! px-3! text-xs" (click)="chooseLeave('save-and-leave')">Save and leave</button>
+        </div>
+      </base-modal>
     }
   `
 })
@@ -566,6 +671,14 @@ export class BaseTableComponent<T = BaseRow> {
 
   readonly editableRows = input(false);
   readonly cellEdit = output<BaseCellEditEvent<T>>();
+  /** Enables the whole-table save bar (Discard/Save), the leave guard, and — set — "Keep draft" persistence. Must be stable and unique per table on the page. */
+  readonly draftId = input<string | null>(null);
+  /** Optional display label for who last changed a row on the server (e.g. "J. Reyes, 09:12"), shown in the draft-conflict dialog. */
+  readonly draftAuthorOf = input<((row: T) => string | null) | null>(null);
+  readonly saveChanges = output<BaseRowSaveRequest<T>[]>();
+  readonly discardAllChanges = output<void>();
+  readonly draftRestored = output<void>();
+  readonly draftDiscarded = output<void>();
 
   readonly showSummary = input(false);
 
@@ -606,6 +719,33 @@ export class BaseTableComponent<T = BaseRow> {
   protected readonly showLeftEdgeShadow = signal(false);
   protected readonly showRightEdgeShadow = signal(false);
 
+  // --- Edit state (see "The eight-state machine" in the Base README) ---
+  // Plain (non-signal) fields, not `signal<Map<...>>` — row edit flags like
+  // `isEditing`/`hasEditError` are mutated in place on host-owned row
+  // objects, the same established pattern this file already used before
+  // this feature (see isRowEditing/rowStateBg below). A computed() keyed
+  // off `rows()` would go stale the instant a row is mutated without a
+  // fresh array reference, so dirty/saving/failed tracking below reads
+  // these with plain methods, evaluated fresh on every template pass.
+  private readonly editSnapshots = new Map<unknown, Record<string, unknown>>();
+  private readonly savingKeys = new Set<unknown>();
+  private readonly saveErrorMessages = new Map<unknown, string>();
+
+  private readonly draftService = inject(BaseEditDraftService);
+  protected readonly pendingDraft = signal<BaseDraft | null>(null);
+  protected readonly reviewOpen = signal(false);
+  protected readonly draftBanner = computed(() => {
+    const d = this.pendingDraft();
+    return d ? { savedAt: d.savedAt, rowCount: d.rows.length } : null;
+  });
+
+  protected readonly leaveDialogOpen = signal(false);
+  protected readonly leaveSaveFailed = signal(false);
+  private leaveResolve: ((canLeave: boolean) => void) | null = null;
+  private leaveAfterSavePending = false;
+
+  protected readonly conflicts = signal<BaseDraftConflict<T>[]>([]);
+
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly destroyRef = inject(DestroyRef);
   private scrollTicking = false;
@@ -615,6 +755,12 @@ export class BaseTableComponent<T = BaseRow> {
       this.pageSize.set(this.initialPageSize());
       const pre = this.preselectedColumns();
       if (pre) this.manageHidden.set(new Set(this.columns().map(c => c.key).filter(k => !pre.includes(k))));
+
+      const id = this.draftId();
+      if (id) {
+        const draft = this.draftService.load(id);
+        if (draft && draft.rows.length > 0) this.pendingDraft.set(draft);
+      }
     });
 
     effect(() => {
@@ -724,9 +870,68 @@ export class BaseTableComponent<T = BaseRow> {
   readonly sortColumnHeader = computed(() =>
     this.visibleColumns().find(c => c.key === this.sortState().key)?.header ?? this.sortState().key ?? ''
   );
-  readonly editingCount = computed(() => this.editableRows() ? this.rows().filter(r => (r as BaseRow).isEditing).length : 0);
-  readonly hasEditingRows = computed(() => this.editingCount() > 0);
-  readonly interactionBlocked = computed(() => this.hasEditingRows() || this.hasRangeFilterActive());
+  // Plain methods, not computed() — `isEditing`/dirty state live on mutated
+  // row objects (see the block comment above the edit-state fields), so a
+  // memoized computed() keyed off the `rows()` signal reference would miss
+  // those mutations. Called fresh from the template on every CD pass.
+  editingCount(): number {
+    return this.editableRows() ? this.rows().filter(r => (r as BaseRow).isEditing).length : 0;
+  }
+  hasEditingRows(): boolean {
+    return this.editingCount() > 0;
+  }
+  interactionBlocked(): boolean {
+    return this.hasEditingRows() || this.hasDirtyRows() || this.hasRangeFilterActive();
+  }
+
+  private readonly editableColumns = computed(() => this.columns().filter(c => c.editable));
+
+  private ensureSnapshot(row: T): void {
+    const key = this.rowTrack(row);
+    if (this.editSnapshots.has(key)) return;
+    const snap: Record<string, unknown> = {};
+    for (const c of this.editableColumns()) snap[c.key] = this.cellValue(c, row);
+    this.editSnapshots.set(key, snap);
+  }
+
+  /** Whether this field currently differs from its last-saved value. Gates the per-field Revert button. */
+  isFieldDirty(row: T, c: BaseColumnDef<T>): boolean {
+    const snap = this.editSnapshots.get(this.rowTrack(row));
+    if (!snap || !(c.key in snap)) return false;
+    return !Object.is(this.cellValue(c, row), snap[c.key]);
+  }
+
+  /** The value Revert would restore this field to. */
+  revertTargetFor(row: T, c: BaseColumnDef<T>): unknown {
+    return this.editSnapshots.get(this.rowTrack(row))?.[c.key];
+  }
+
+  /** Whether any editable field on this row differs from its snapshot — independent of whether the row's editor is currently open, so Exit Edit doesn't clean a dirty row. */
+  isDirty(row: T): boolean {
+    const snap = this.editSnapshots.get(this.rowTrack(row));
+    if (!snap) return false;
+    return this.editableColumns().some(c => !Object.is(this.cellValue(c, row), snap[c.key]));
+  }
+
+  dirtyRows(): T[] {
+    return this.editableRows() ? this.rows().filter(r => this.isDirty(r)) : [];
+  }
+  dirtyCount(): number {
+    return this.dirtyRows().length;
+  }
+  hasDirtyRows(): boolean {
+    return this.dirtyCount() > 0;
+  }
+
+  isRowSaving(row: T): boolean {
+    return this.savingKeys.has(this.rowTrack(row));
+  }
+  isRowFailed(row: T): boolean {
+    return this.saveErrorMessages.has(this.rowTrack(row));
+  }
+  rowSaveError(row: T): string {
+    return this.saveErrorMessages.get(this.rowTrack(row)) ?? '';
+  }
 
   readonly additionalHeaderRow = computed(() => {
     const groups = this.additionalHeader();
@@ -1189,7 +1394,9 @@ export class BaseTableComponent<T = BaseRow> {
   }
 
   isRowEditing(row: T): boolean {
-    return this.editableRows() && !!(row as BaseRow).isEditing;
+    const editing = this.editableRows() && !!(row as BaseRow).isEditing;
+    if (editing) this.ensureSnapshot(row);
+    return editing;
   }
 
   leadingStickyLeft(kind: 'expand' | 'checkbox'): string | null {
@@ -1248,9 +1455,9 @@ export class BaseTableComponent<T = BaseRow> {
     const highlighted = this.highlightKey() != null && String(this.rowTrack(row)) === this.highlightKey();
     if (highlighted) return this.highlightClass();
     if (this.isSelected(row)) return 'bg-action-surface';
-    const hasEditError = this.editableRows() && !!(row as BaseRow).hasEditError;
+    const hasEditError = this.editableRows() && (!!(row as BaseRow).hasEditError || this.isRowFailed(row));
     if (hasEditError) return 'bg-error-surface';
-    if (this.isRowEditing(row)) return 'bg-warning-surface';
+    if (this.editableRows() && this.isDirty(row)) return 'bg-warning-surface';
     if (this.striped() && !this.groupBy() && index % 2 === 1) return 'bg-neutral-50/60';
     return '';
   }
@@ -1260,7 +1467,8 @@ export class BaseTableComponent<T = BaseRow> {
     const highlighted = this.highlightKey() != null && String(this.rowTrack(row)) === this.highlightKey();
     const bg = this.rowStateBg(row, index);
     const bgWithBorder = highlighted ? `${bg} border-l-[3px] border-l-action` : bg;
-    return `transition-colors hover:bg-action-surface/50 ${clickable} ${bgWithBorder}`.trim();
+    const saving = this.isRowSaving(row) ? 'opacity-60 pointer-events-none' : '';
+    return `transition-colors hover:bg-action-surface/50 ${clickable} ${bgWithBorder} ${saving}`.trim();
   }
 
   /** Same background as the row itself, defaulting to opaque white — sticky cells need an explicit, opaque background (they sit over scrolled-away siblings), so `''` from rowStateBg would leave them see-through. */
@@ -1314,5 +1522,224 @@ export class BaseTableComponent<T = BaseRow> {
   private widthPx(c: BaseColumnDef<T>): number {
     const n = parseInt(c.width ?? '', 10);
     return isNaN(n) ? 120 : n;
+  }
+
+  // --- Whole-table save / discard (the two "whole table, save bar" controls) ---
+
+  /** Emits one `saveChanges` request per dirty row; each row's cells go read-only until `reportSaveResult()` is called. */
+  saveAll(): void {
+    const dirty = this.dirtyRows();
+    if (dirty.length === 0) return;
+    const requests: BaseRowSaveRequest<T>[] = dirty.map(row => {
+      const key = this.rowTrack(row);
+      const snap = this.editSnapshots.get(key) ?? {};
+      const changes: Record<string, unknown> = {};
+      for (const c of this.editableColumns()) {
+        const cur = this.cellValue(c, row);
+        if (!Object.is(cur, snap[c.key])) changes[c.key] = cur;
+      }
+      this.savingKeys.add(key);
+      this.saveErrorMessages.delete(key);
+      return { key, row, changes };
+    });
+    this.saveChanges.emit(requests);
+  }
+
+  /**
+   * Called by the host once a `saveChanges` batch settles. Succeeded rows
+   * become the new "Saved" baseline (their current values are the next
+   * revert target) and exit edit mode; failed rows keep their values and
+   * their dirty state, get the error fill, and stay editable so the user
+   * can retry — partial failure never loses or reverts anything.
+   */
+  reportSaveResult(results: BaseRowSaveResult[]): void {
+    let anyFailed = false;
+    for (const r of results) {
+      this.savingKeys.delete(r.key);
+      if (r.success) {
+        this.editSnapshots.delete(r.key);
+        this.saveErrorMessages.delete(r.key);
+        const row = this.rows().find(x => this.rowTrack(x) === r.key);
+        if (row) (row as BaseRow).isEditing = false;
+      } else {
+        anyFailed = true;
+        this.saveErrorMessages.set(r.key, r.error ?? 'Save failed');
+      }
+    }
+    if (this.leaveAfterSavePending) {
+      this.leaveAfterSavePending = false;
+      if (anyFailed) {
+        this.leaveSaveFailed.set(true);
+      } else {
+        this.leaveDialogOpen.set(false);
+        this.leaveResolve?.(true);
+        this.leaveResolve = null;
+      }
+    }
+  }
+
+  /** Emits a `cellEdit` per touched field to restore it to its snapshot, then clears edit/dirty/error state for every dirty row. Shared by Discard and by Keep-draft (which parks the values first). */
+  private revertAllLiveEdits(): void {
+    for (const row of this.dirtyRows()) {
+      const key = this.rowTrack(row);
+      const snap = this.editSnapshots.get(key);
+      if (snap) {
+        for (const c of this.editableColumns()) {
+          if (!Object.is(this.cellValue(c, row), snap[c.key])) {
+            this.cellEdit.emit({ row, column: c, value: snap[c.key] });
+          }
+        }
+      }
+      this.editSnapshots.delete(key);
+      this.saveErrorMessages.delete(key);
+      (row as BaseRow).isEditing = false;
+    }
+  }
+
+  /** Returns every dirty row to its saved state and clears the draft — the only control that destroys work. */
+  discardAll(): void {
+    this.revertAllLiveEdits();
+    const id = this.draftId();
+    if (id) this.draftService.clear(id);
+    this.discardAllChanges.emit();
+  }
+
+  private parkDraft(): void {
+    const id = this.draftId();
+    if (!id) {
+      // Nowhere to park it — Keep draft degrades to Discard rather than silently pretending to save.
+      this.discardAll();
+      return;
+    }
+    const draftRows: BaseDraftRow[] = this.dirtyRows().map(row => {
+      const key = this.rowTrack(row);
+      const snap = this.editSnapshots.get(key) ?? {};
+      const changes: Record<string, unknown> = {};
+      for (const c of this.editableColumns()) {
+        const cur = this.cellValue(c, row);
+        if (!Object.is(cur, snap[c.key])) changes[c.key] = cur;
+      }
+      return { key: String(key), changes, baseline: { ...snap } };
+    });
+    this.draftService.save(id, { savedAt: Date.now(), rows: draftRows });
+    this.revertAllLiveEdits();
+  }
+
+  // --- Leaving with work pending (the four-outcome guard) ---
+
+  /**
+   * Call from a router `CanDeactivate`/`beforeunload` handler (or any other
+   * "may I navigate away" check). Resolves `true` immediately if nothing is
+   * dirty; otherwise opens the leave dialog and resolves once the user
+   * picks an outcome — `false` for Stay (or a failed Save and leave),
+   * `true` for every outcome that actually clears the pending work.
+   */
+  confirmLeave(): Promise<boolean> {
+    if (!this.hasDirtyRows()) return Promise.resolve(true);
+    this.leaveSaveFailed.set(false);
+    this.leaveDialogOpen.set(true);
+    return new Promise<boolean>(resolve => {
+      this.leaveResolve = resolve;
+    });
+  }
+
+  protected chooseLeave(outcome: 'stay' | 'save-and-leave' | 'keep-draft' | 'discard'): void {
+    if (outcome === 'stay') {
+      this.leaveDialogOpen.set(false);
+      this.leaveResolve?.(false);
+      this.leaveResolve = null;
+      return;
+    }
+    if (outcome === 'save-and-leave') {
+      this.leaveAfterSavePending = true;
+      this.saveAll();
+      return;
+    }
+    if (outcome === 'keep-draft') this.parkDraft(); else this.discardAll();
+    this.leaveDialogOpen.set(false);
+    this.leaveResolve?.(true);
+    this.leaveResolve = null;
+  }
+
+  /** Escape/backdrop close the dialog without picking a button — treat that the same as Stay, the only outcome that can't lose anything. */
+  protected onLeaveDialogClosed(reason: string): void {
+    if ((reason === 'escape' || reason === 'backdrop') && this.leaveDialogOpen()) this.chooseLeave('stay');
+  }
+
+  // --- Draft recovery banner + conflict resolution ---
+
+  protected toggleDraftReview(): void {
+    this.reviewOpen.update(v => !v);
+  }
+
+  /**
+   * Applies a parked draft back onto the live rows as unsaved edits. Any
+   * field whose current (server) value no longer matches the value the
+   * draft was taken against is held back as a conflict instead of applied
+   * outright — see `resolveConflict()`.
+   */
+  restoreDraft(): void {
+    const draft = this.pendingDraft();
+    if (!draft) return;
+    const byKey = new Map(this.rows().map(r => [String(this.rowTrack(r)), r]));
+    const newConflicts: BaseDraftConflict<T>[] = [];
+    for (const dr of draft.rows) {
+      const row = byKey.get(dr.key);
+      if (!row) continue;
+      (row as BaseRow).isEditing = true;
+      this.ensureSnapshot(row);
+      for (const c of this.editableColumns()) {
+        if (!(c.key in dr.changes)) continue;
+        const serverNow = this.cellValue(c, row);
+        const baselineThen = dr.baseline[c.key];
+        if (!Object.is(serverNow, baselineThen)) {
+          newConflicts.push({ row, column: c, draftValue: dr.changes[c.key], serverValue: serverNow });
+        } else {
+          this.cellEdit.emit({ row, column: c, value: dr.changes[c.key] });
+        }
+      }
+    }
+    const id = this.draftId();
+    if (id) this.draftService.clear(id);
+    this.pendingDraft.set(null);
+    this.reviewOpen.set(false);
+    if (newConflicts.length > 0) this.conflicts.set(newConflicts);
+    this.draftRestored.emit();
+  }
+
+  discardParkedDraft(): void {
+    const id = this.draftId();
+    if (id) this.draftService.clear(id);
+    this.pendingDraft.set(null);
+    this.reviewOpen.set(false);
+    this.draftDiscarded.emit();
+  }
+
+  /** Resolves the oldest queued conflict — applies the draft's value as an edit if `useMine`, otherwise leaves the server's current value in place. */
+  protected resolveConflict(useMine: boolean): void {
+    const [current, ...rest] = this.conflicts();
+    if (current && useMine) this.cellEdit.emit({ row: current.row, column: current.column, value: current.draftValue });
+    this.conflicts.set(rest);
+  }
+
+  protected formatDraftTime(savedAt: number): string {
+    const d = new Date(savedAt);
+    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return new Date().toDateString() === d.toDateString() ? `${time} Today` : `${time} ${d.toLocaleDateString()}`;
+  }
+
+  protected draftDaysLeft(savedAt: number): number {
+    return Math.max(0, 7 - Math.floor((Date.now() - savedAt) / 86_400_000));
+  }
+
+  protected draftChangeSummary(r: BaseDraftRow): string {
+    const n = Object.keys(r.changes).length;
+    return `${n} field${n === 1 ? '' : 's'} changed`;
+  }
+
+  protected formatConflictValue(conflict: BaseDraftConflict<T>, value: unknown): string {
+    if (value === null || value === undefined || value === '') return '(empty)';
+    const c = conflict.column;
+    return c.editType === 'select' ? (c.editOptions ?? []).find(o => o.value === value)?.label ?? String(value) : String(value);
   }
 }

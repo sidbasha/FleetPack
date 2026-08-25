@@ -53,24 +53,40 @@ const SAFE_ACTION_TYPES = new Set(['view', 'click', 'copy', 'download', 'run', '
   imports: [NgTemplateOutlet, BaseTrendComponent, BaseSparklineComponent, BaseTeleportDirective, BaseTooltipDirective],
   template: `
     @if (isEditingCell()) {
-      @switch (column().editType ?? 'text') {
-        @case ('number') {
-          <input type="number" [value]="value()" (input)="onEdit($event)" (click)="$event.stopPropagation()"
-                 class="w-full border border-warning rounded-r-sm px-2 py-1 text-xs bg-neutral-0
-                        focus:outline-none focus:ring-1 focus:ring-action-surface" />
+      <span class="inline-flex items-center gap-1 w-full">
+        @switch (column().editType ?? 'text') {
+          @case ('number') {
+            <input type="number" [value]="value()" (input)="onEdit($event)" (click)="$event.stopPropagation()"
+                   class="w-full min-w-0 border border-warning rounded-r-sm px-2 py-1 text-xs bg-neutral-0
+                          focus:outline-none focus:ring-1 focus:ring-action-surface" />
+          }
+          @case ('select') {
+            <select [value]="value()" (change)="onEdit($event)" (click)="$event.stopPropagation()"
+                    class="w-full min-w-0 border border-warning rounded-r-sm px-2 py-1 text-xs bg-neutral-0">
+              @for (o of column().editOptions ?? []; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+            </select>
+          }
+          @default {
+            <input type="text" [value]="display()" (input)="onEdit($event)" (click)="$event.stopPropagation()"
+                   class="w-full min-w-0 border border-warning rounded-r-sm px-2 py-1 text-xs bg-neutral-0
+                          focus:outline-none focus:ring-1 focus:ring-action-surface" />
+          }
         }
-        @case ('select') {
-          <select [value]="value()" (change)="onEdit($event)" (click)="$event.stopPropagation()"
-                  class="w-full border border-warning rounded-r-sm px-2 py-1 text-xs bg-neutral-0">
-            @for (o of column().editOptions ?? []; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
-          </select>
-        }
-        @default {
-          <input type="text" [value]="display()" (input)="onEdit($event)" (click)="$event.stopPropagation()"
-                 class="w-full border border-warning rounded-r-sm px-2 py-1 text-xs bg-neutral-0
-                        focus:outline-none focus:ring-1 focus:ring-action-surface" />
-        }
-      }
+        <button type="button" class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-r-xs
+                                      text-neutral-400 hover:text-action hover:bg-neutral-100
+                                      disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                [disabled]="!fieldDirty()" [attr.aria-label]="'Revert ' + column().header + ' to ' + revertDisplay()"
+                [title]="fieldDirty() ? 'Revert to ' + revertDisplay() : 'Unchanged'"
+                (click)="$event.stopPropagation(); revert()">
+          <span class="icon-outline" style="font-size:14px;" aria-hidden="true">refresh</span>
+        </button>
+        <button type="button" class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-r-xs
+                                      text-neutral-400 hover:text-error hover:bg-error-surface"
+                [attr.aria-label]="'Clear ' + column().header" title="Clear"
+                (click)="$event.stopPropagation(); clear()">
+          <span class="icon-outline" style="font-size:14px;" aria-hidden="true">close</span>
+        </button>
+      </span>
     } @else {
       @switch (column().kind ?? 'text') {
         @case ('number') {
@@ -192,6 +208,12 @@ export class BaseTableCellComponent<T = BaseRow> {
   readonly maxVisible = input(0);
   readOnly = input(false);
   readonly editingRow = input(false);
+  /** Whether this specific field currently differs from its last-saved value — gates the Revert button and its label. */
+  readonly fieldDirty = input(false);
+  /** The value Revert would restore — shown in its label/tooltip so the difference is readable before it's pressed. */
+  readonly revertValue = input<unknown>(undefined);
+  /** True while this row's pending changes are being saved — freezes the cell to read-only for the duration, per the edit-state machine. */
+  readonly saving = input(false);
 
   readonly actionRun = output<BaseHandleActionEvent<T>>();
   readonly cellEdit = output<BaseCellEditEvent<T>>();
@@ -221,22 +243,37 @@ export class BaseTableCellComponent<T = BaseRow> {
   protected readonly barClass = computed(() => progressBarClass(this.column(), this.row()));
   protected readonly progLabel = computed(() => progressLabel(this.column(), this.row()));
   protected readonly spark = computed(() => sparkData(this.column(), this.row()));
-  protected readonly isEditingCell = computed(() => this.editingRow() && !!this.column().editable);
+  protected readonly isEditingCell = computed(() => this.editingRow() && !this.saving() && !!this.column().editable);
+  protected readonly revertDisplay = computed(() => {
+    const v = this.revertValue();
+    if (v === null || v === undefined || v === '') return '(empty)';
+    const c = this.column();
+    return c.editType === 'select' ? (c.editOptions ?? []).find(o => o.value === v)?.label ?? String(v) : String(v);
+  });
 
-  private readonly rawActions = computed<ResolvedRowAction<T>[]>(() => resolvedActions(this.column(), this.row()));
-  protected readonly actionsWithTemplate = computed(() => {
+  // Plain methods, not computed() — isHidden/isDisabled on a row action
+  // read mutable flags (isEditing, etc.) that hosts commonly toggle by
+  // mutating the row object in place (see the row-action examples in the
+  // dev playground). A computed() keyed on `row()`'s reference would only
+  // re-run resolvedActions() when the row *object* changes, not when one
+  // of its properties is mutated — exactly the bug that made "Exit edit"
+  // appear to do nothing (it flips `isEditing` in place, no new object).
+  private rawActions(): ResolvedRowAction<T>[] {
+    return resolvedActions(this.column(), this.row());
+  }
+  protected actionsWithTemplate() {
     const resolve = this.actionTemplateFor();
     const withTpl = this.rawActions().map(a => ({ ...a, template: resolve ? resolve(a.type) : null }));
     return this.readOnly() ? withTpl.filter(a => SAFE_ACTION_TYPES.has(a.type)) : withTpl;
-  });
-  protected readonly shownActions = computed(() => {
+  }
+  protected shownActions() {
     const all = this.actionsWithTemplate(), max = this.maxVisible();
     return max > 0 && all.length > max ? all.slice(0, max) : all;
-  });
-  protected readonly overflowActions = computed(() => {
+  }
+  protected overflowActions() {
     const all = this.actionsWithTemplate(), max = this.maxVisible();
     return max > 0 && all.length > max ? all.slice(max) : [];
-  });
+  }
   protected readonly dlProgress = computed(() => downloadProgress(this.row()));
   protected readonly linkHref = computed(() => this.column().linkHref?.(this.row()) ?? '#');
   protected readonly linkTarget = computed(() => (this.column().linkExternal ?? true) ? '_blank' : '_self');
@@ -280,5 +317,15 @@ export class BaseTableCellComponent<T = BaseRow> {
     const raw = target.value;
     const value = this.column().editType === 'number' ? (raw === '' ? null : Number(raw)) : raw;
     this.cellEdit.emit({ row: this.row(), column: this.column(), value });
+  }
+
+  /** Restores this field to `revertValue()` — an edit like any other, routed through the same `cellEdit` channel the host already handles. Row stays in edit mode. */
+  protected revert(): void {
+    this.cellEdit.emit({ row: this.row(), column: this.column(), value: this.revertValue() });
+  }
+
+  /** Empties this field so a new value can be typed — a change, not an undo, so it dirties the row rather than cleaning it. */
+  protected clear(): void {
+    this.cellEdit.emit({ row: this.row(), column: this.column(), value: this.column().editType === 'number' ? null : '' });
   }
 }

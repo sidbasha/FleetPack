@@ -60,6 +60,8 @@ import {
   BaseRangeSliderComponent,
   BaseRangeValue,
   BaseRowAction,
+  BaseRowSaveRequest,
+  BaseRowSaveResult,
   BaseScatterChartComponent,
   BaseScatterPoint,
   BaseSearchResult,
@@ -736,6 +738,7 @@ function mockRows(n: number): ToolRow[] {
         <button class="btn-ghost" (click)="toggleTableReadOnly()">
           {{ tableReadOnly() ? 'Disable' : 'Enable' }} read-only mode
         </button>
+        <button class="btn-ghost" (click)="simulateRouteLeave()">Simulate route leave (canDeactivate)</button>
         <button class="btn-ghost" (click)="simulateLoading()">Simulate refresh</button>
         <button class="btn-ghost" (click)="simulateError()">Simulate load error</button>
       </div>
@@ -773,8 +776,11 @@ function mockRows(n: number): ToolRow[] {
           [error]="tableError()"
           errorMessage="The fleet service timed out — the last known page is still shown above."
           [editableRows]="tableEditable()"
+          draftId="playground-tool-table"
+          [draftAuthorOf]="draftAuthorOf"
           [maxVisibleActions]="2"
           [showSummary]="true"
+          #editableTable
           (rowClick)="log('rowClick', $event.row.toolId)"
           (cellClick)="log('cellClick', $event.column.key + ' → ' + $event.row.toolId)"
           (sortChange)="onSort($event); onTableStateChanged()"
@@ -785,6 +791,10 @@ function mockRows(n: number): ToolRow[] {
           (manageColumn)="log('manageColumn', $event.join(', ')); onTableStateChanged()"
           (handleAction)="onHandleAction($event)"
           (cellEdit)="onCellEdit($event)"
+          (saveChanges)="onSaveChanges($event)"
+          (discardAllChanges)="log('discardAllChanges', '')"
+          (draftRestored)="log('draftRestored', '')"
+          (draftDiscarded)="log('draftDiscarded', '')"
           (retry)="tableError.set(false); log('table retry', 'reloaded')">
 
           <!-- CUSTOM CELL TEMPLATE #1: composite cell (image + text + badge) -->
@@ -900,6 +910,26 @@ export class BasePlaygroundComponent {
     this.log('cellEdit', `${e.column.key} → ${e.value}`);
   }
 
+  /** Who last touched a row on the "server" — purely for the draft-conflict dialog's demo; a real host would look this up from its own audit data. */
+  readonly draftAuthorOf = (row: ToolRow): string | null => `J. Reyes, ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+  /** Simulates a server round-trip: succeeds after a short delay, except the second row in the batch always fails, so the partial-failure path (error fill, values kept, still dirty) is easy to see. */
+  onSaveChanges(requests: BaseRowSaveRequest<ToolRow>[]): void {
+    this.log('saveChanges', `${requests.length} row(s)`);
+    setTimeout(() => {
+      const results: BaseRowSaveResult[] = requests.map((r, i) => i === 1
+        ? { key: r.key, success: false, error: 'Server rejected Uptime: value out of range' }
+        : { key: r.key, success: true });
+      this.editableTableRef?.reportSaveResult(results);
+      this.log('reportSaveResult', results.map(r => r.success ? 'ok' : 'FAILED').join(', '));
+    }, 900);
+  }
+
+  /** Stand-in for a router `CanDeactivate` guard calling `confirmLeave()` before an actual navigation. */
+  simulateRouteLeave(): void {
+    this.editableTableRef?.confirmLeave().then(canLeave => this.log('confirmLeave', canLeave ? 'navigation allowed' : 'navigation blocked (Stay on page)'));
+  }
+
   readonly additionalHeader: AdditionalHeaderGroup[] = [
     { displayName: 'Identity', columnIds: ['toolId', 'photo', 'fab', 'chamber'] },
     { displayName: 'Health', columnIds: ['status', 'healthHeat', 'uptime', 'alarms', 'trendPct', 'history'] }
@@ -945,10 +975,11 @@ export class BasePlaygroundComponent {
             if (this.tableEditable()) { r.isEditing = true; this.log('edit start', r.toolId); }
             else this.log('edit', r.toolId);
           } },
-        { type: 'apply', title: 'Save', isHidden: r => !r.isEditing,
-          run: r => { r.isEditing = false; r.hasEditError = false; this.log('edit save', r.toolId); } },
-        { type: 'cancel', title: 'Cancel', isHidden: r => !r.isEditing,
-          run: r => { r.isEditing = false; this.log('edit cancel', r.toolId); } },
+        // No per-row Save action — saving is a whole-table control now (the save bar's
+        // "Save N changes"), one of the five controls in the edit-state spec. Exit edit
+        // only closes the controls; a dirty row stays dirty and keeps its flagged fill.
+        { type: 'cancel', title: 'Exit edit', isHidden: r => !r.isEditing,
+          run: r => { r.isEditing = false; this.log('exit edit', r.toolId); } },
         { type: 'download', title: 'Download', isHidden: r => !!r.isEditing, run: r => this.log('download', r.toolId) },
         { type: 'delete', title: 'Delete', isHidden: r => !!r.isEditing || r.status === 'PRODUCTION', run: r => this.removeRow(r.toolId) }
       ] satisfies BaseRowAction<ToolRow>[] },
@@ -1113,6 +1144,7 @@ export class BasePlaygroundComponent {
   }
 
   @ViewChild('contextMenu') contextMenuRef?: BaseContextMenuComponent;
+  @ViewChild('editableTable') editableTableRef?: BaseTableComponent<ToolRow>;
   readonly drawerOpen = signal(false);
   readonly bulkActionsOpen = signal(false);
   readonly contextMenuItems: BaseMenuItem[] = [
