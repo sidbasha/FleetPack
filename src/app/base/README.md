@@ -299,6 +299,35 @@ and emits `(cellEdit)` on every change; it never commits anything itself. While 
 editing, sort/filter/page/Manage Columns all block with a dirty-count banner rather than risk
 losing track of an unsaved row.
 
+### The three kinds of percentage
+
+A bare `45%` doesn't say whether it's rising, falling, or what it belongs to. This module
+never reuses one visual mark for two different meanings — pick the `kind` that matches what
+the number actually *is*:
+
+| Kind | Means | Rendered as |
+|---|---|---|
+| Task progress | Something the operator started and can cancel (e.g. "45% of a download") | `kind: 'task-progress'` — ring + value + noun, live, typically beside row actions. Whole number; only rises. |
+| Measurement | A property of the tool read against a threshold (e.g. "94.1% up-time") | `kind: 'heat-cell'` — right-aligned, tabular, never animated; keeps the column's own precision and can fall as well as rise. |
+| Share of a set | This row's part of a whole (e.g. "2.15% of downtime") | `kind: 'progress'` or `'text-bar'` — a bar against the column maximum. |
+
+`task-progress` takes a `taskProgress: (row) => BaseTaskProgress | null` accessor
+(`{ percent, label, status }`, `status` one of `'running' | 'success' | 'failed' | 'queued'`
+— omit `percent` for `'queued'`, rendered as a muted ring and "–" rather than "0%"). `label`
+is required: the ring's accessible name is built from the value *and* the noun, so it never
+reads as a bare number again. Pair it with a `'row-actions'` column whose `isHidden`
+predicates key off the same row's task `status` (e.g. show Cancel only while `'running'`) —
+see the `TaskProgressTransfersInFlight` story. Set `taskProgressWidth` to widen the column
+only while something's actually in flight on the visible page (e.g. `88px` → `152px`).
+
+If a row action on a *different* column clears a task by mutating `row.task` in place
+(rather than replacing the row via an immutable update), pass the derived value through
+explicitly rather than reading it off the row inside the cell — `BaseTableComponent` already
+does this (`taskProgressFor(c, row)`, recomputed every check and passed as the cell's
+`[taskProgress]` input). A plain `row.task = null` mutation alone won't reach a sibling
+cell whose own `row`/`column` inputs didn't change reference; the freshly-computed
+`[taskProgress]` input is what makes OnPush actually re-check it.
+
 ### Column summary footer
 
 `[showSummary]="true"` pins a real `<tfoot>` row over the currently **filtered** (not just

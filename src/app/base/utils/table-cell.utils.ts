@@ -1,4 +1,4 @@
-import { BaseColumnDef, BaseLegacyRowAction, BaseRow, BaseRowAction, BaseSummaryFn, ROW_ACTION_ICON } from '../models/table.model';
+import { BaseColumnDef, BaseLegacyRowAction, BaseRow, BaseRowAction, BaseSummaryFn, BaseTaskProgress, ROW_ACTION_ICON } from '../models/table.model';
 
 
 export interface ResolvedRowAction<T> {
@@ -157,6 +157,36 @@ export function heatClass<T>(c: BaseColumnDef<T>, row: T): string {
     }
   }
   return c.heatClassMap?.[String(raw)] ?? 'bg-neutral-100 text-ink-500';
+}
+
+export function taskProgressOf<T>(c: BaseColumnDef<T>, row: T): BaseTaskProgress | null {
+  return c.taskProgress?.(row) ?? null;
+}
+
+const TASK_RING_COLOR_VAR: Record<NonNullable<BaseTaskProgress['status']>, string> = {
+  running: 'var(--color-action)',
+  success: 'var(--color-success)',
+  failed: 'var(--color-error)',
+  queued: 'var(--color-neutral-300)'
+};
+
+/** CSS `background` for the ring — a conic-gradient donut, masked to a ring by an inset white circle in the template. Queued renders fully muted regardless of percent; running/failed sweep to their value; success is always a full ring. */
+export function taskRingBackground(tp: BaseTaskProgress): string {
+  const color = TASK_RING_COLOR_VAR[tp.status ?? 'running'];
+  if (tp.status === 'queued') return `${color}`;
+  const pct = tp.status === 'success' ? 100 : Math.max(0, Math.min(100, tp.percent ?? 0));
+  return `conic-gradient(${color} ${pct}%, var(--color-neutral-200) 0)`;
+}
+
+export function taskValueLabel(tp: BaseTaskProgress): string {
+  return tp.status === 'queued' || tp.percent == null ? '–' : `${Math.round(tp.percent)}%`;
+}
+
+export function taskValueClass(tp: BaseTaskProgress): string {
+  return tp.status === 'failed' ? 'text-error'
+    : tp.status === 'success' ? 'text-success'
+    : tp.status === 'queued' ? 'text-neutral-400'
+    : 'text-action';
 }
 
 function summaryNumbers<T>(c: BaseColumnDef<T>, rows: T[]): number[] {

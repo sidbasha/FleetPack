@@ -13,7 +13,7 @@ import {
   signal
 } from '@angular/core';
 import { BaseActionTemplateContext } from '../../directives/cell-template.directive';
-import { BaseCellEditEvent, BaseColumnDef, BaseHandleActionEvent, BaseRow } from '../../models/table.model';
+import { BaseCellEditEvent, BaseColumnDef, BaseHandleActionEvent, BaseRow, BaseTaskProgress } from '../../models/table.model';
 import {
   arrayText,
   badgeClass,
@@ -36,6 +36,9 @@ import {
   resolvedActions,
   sparkData,
   statusTextClass,
+  taskRingBackground,
+  taskValueClass,
+  taskValueLabel,
   textBarPct,
   trendValue
 } from '../../utils/table-cell.utils';
@@ -152,6 +155,17 @@ const SAFE_ACTION_TYPES = new Set(['view', 'click', 'copy', 'download', 'run', '
         @case ('heat-cell') {
           <span class="block w-full text-center rounded-r-sm px-2 py-1 text-[11px] font-bold tabular-nums" [class]="heat()">{{ display() }}</span>
         }
+        @case ('task-progress') {
+          @if (taskProgress(); as tp) {
+            <span class="inline-flex items-center gap-1.5 min-w-0" [attr.aria-label]="taskLabel() + ' ' + tp.label">
+              <span class="relative inline-flex items-center justify-center w-4 h-4 rounded-full shrink-0" [style.background]="taskRing()">
+                <span class="absolute inset-0.75 rounded-full bg-neutral-0"></span>
+              </span>
+              <span class="text-[11px] font-semibold tabular-nums shrink-0" [class]="taskClass()">{{ taskLabel() }}</span>
+              <span class="text-[11px] text-ink-500 truncate">{{ tp.label }}</span>
+            </span>
+          }
+        }
         @case ('row-actions') {
           <span class="inline-flex items-center gap-3 justify-end w-full">
             @for (a of shownActions(); track $index) {
@@ -214,6 +228,16 @@ export class BaseTableCellComponent<T = BaseRow> {
   readonly revertValue = input<unknown>(undefined);
   /** True while this row's pending changes are being saved — freezes the cell to read-only for the duration, per the edit-state machine. */
   readonly saving = input(false);
+  /**
+   * `kind: 'task-progress'` only — passed as an explicit input (computed
+   * fresh by the parent's template every check, like `editingRow`/
+   * `fieldDirty` above) rather than read from `column().taskProgress?.(row())`
+   * internally. A host commonly clears a task by mutating `row.task` in
+   * place from a *different* column's row action; since that leaves this
+   * cell's own `row`/`column` inputs referentially unchanged, OnPush would
+   * skip re-checking it unless the changed value arrives via its own input.
+   */
+  readonly taskProgress = input<BaseTaskProgress | null>(null);
 
   readonly actionRun = output<BaseHandleActionEvent<T>>();
   readonly cellEdit = output<BaseCellEditEvent<T>>();
@@ -237,6 +261,18 @@ export class BaseTableCellComponent<T = BaseRow> {
   protected readonly dot = computed(() => dotClass(this.column(), this.row()));
   protected readonly statusClass = computed(() => statusTextClass(this.column(), this.row()));
   protected readonly heat = computed(() => heatClass(this.column(), this.row()));
+  protected readonly taskRing = computed(() => {
+    const tp = this.taskProgress();
+    return tp ? taskRingBackground(tp) : '';
+  });
+  protected readonly taskLabel = computed(() => {
+    const tp = this.taskProgress();
+    return tp ? taskValueLabel(tp) : '';
+  });
+  protected readonly taskClass = computed(() => {
+    const tp = this.taskProgress();
+    return tp ? taskValueClass(tp) : '';
+  });
   protected readonly trend = computed(() => trendValue(this.column(), this.row()));
   protected readonly progressPct = computed(() => progressBarPct(this.column(), this.row()));
   protected readonly textBarPctVal = computed(() => textBarPct(this.column(), this.row()));

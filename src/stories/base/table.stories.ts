@@ -4,6 +4,7 @@ import { moduleMetadata } from '@storybook/angular';
 import {
   AdditionalHeaderGroup,
   BaseBadgeComponent,
+  BaseButtonComponent,
   BaseCellDirective,
   BaseCellEditEvent,
   BaseChildCellDirective,
@@ -14,7 +15,8 @@ import {
   BaseRowSaveResult,
   BaseTableComponent,
   BaseTableView,
-  BaseTableViewsComponent
+  BaseTableViewsComponent,
+  BaseTaskProgress
 } from '../../app/base';
 
 interface ToolRow {
@@ -713,4 +715,100 @@ export const InfiniteScrollTopTrigger: Story = {
 
 export const RangeFilterBlocksOtherInteractions: Story = {
   args: { columns: RANGE_FILTER_COLUMNS, showSearch: true }
+};
+
+interface TransferRow {
+  toolId: string;
+  site: string;
+  uptime: number;
+  task: BaseTaskProgress | null;
+}
+
+const TRANSFER_UPTIME_THRESHOLDS = [
+  { max: 84, className: 'bg-error-surface text-error-hover' },
+  { max: 94, className: 'bg-warning-surface text-warning-hover' },
+  { max: 100, className: 'bg-success-surface text-success-hover' }
+];
+
+const TRANSFER_ROWS_INITIAL: TransferRow[] = [
+  { toolId: 'SP7-04', site: 'Fab 12 · Hillsboro', uptime: 94.1, task: { percent: 100, label: 'Log export', status: 'success' } },
+  { toolId: 'CAN-02', site: 'Fab 12 · Hillsboro', uptime: 95.1, task: { percent: 72, label: 'Recipe upload', status: 'running' } },
+  { toolId: 'EDR-11', site: 'Fab 12 · Hillsboro', uptime: 96.1, task: { percent: 45, label: 'Log download', status: 'running' } },
+  { toolId: 'ARC-07', site: 'Fab 12 · Hillsboro', uptime: 97.1, task: { percent: null, label: 'Log download queued', status: 'queued' } },
+  { toolId: 'ATL100AIM', site: 'Fab 12 · Hillsboro', uptime: 98.1, task: { percent: 38, label: 'Config apply failed', status: 'failed' } }
+];
+
+const TRANSFER_COLUMNS: BaseColumnDef<TransferRow>[] = [
+  { key: 'toolId', header: 'Tool' },
+  { key: 'site', header: 'Site' },
+  {
+    key: 'uptime', header: 'Up-time', kind: 'heat-cell', align: 'center', width: '90px',
+    heatThresholds: TRANSFER_UPTIME_THRESHOLDS, format: (_r, v) => `${v}%`
+  },
+  {
+    // Task progress (a ring + value + noun) is its own column, separate from
+    // Action — the two kinds of percentage on this grid (up-time, a
+    // measurement; task completion, a cancellable in-flight thing) are never
+    // the same mark, per "The rule". Width widens 88 → 152 only while a task
+    // is actually visible on the page.
+    key: 'task', header: 'Task', kind: 'task-progress', width: '88px', taskProgressWidth: '152px',
+    taskProgress: (r) => r.task
+  },
+  {
+    key: 'actions', header: '', align: 'right', width: '90px', kind: 'row-actions',
+    rowActions: [
+      { type: 'cancel', title: 'Cancel', isHidden: (r) => r.task?.status !== 'running', run: (r) => { r.task = null; } },
+      { type: 'more', title: 'More actions', isHidden: (r) => r.task?.status === 'running', run: () => {} }
+    ] satisfies BaseRowAction<TransferRow>[]
+  }
+];
+
+/**
+ * A real, stateful host — "Advance" moves every running task forward one
+ * step (crossing 100 flips it to success), "Reset" restores the initial
+ * mix of running / queued / failed / just-completed so the whole set of
+ * states is there to see without scripting a specific click sequence.
+ */
+@Component({
+  selector: 'story-transfers-table',
+  standalone: true,
+  imports: [BaseTableComponent, BaseButtonComponent, BaseBadgeComponent],
+  template: `
+    <div class="panel overflow-hidden">
+      <div class="flex items-center gap-2 px-4 py-3 border-b border-neutral-100">
+        <span class="icon-outline text-neutral-400" style="font-size:16px;" aria-hidden="true">download</span>
+        <b class="text-[13px] text-ink-900">Transfers in flight</b>
+        <base-badge [label]="runningCount() + ' running'" tone="action" />
+        <span class="flex-1"></span>
+        <base-button variant="secondary" size="sm" (clicked)="advance()">Advance</base-button>
+        <base-button variant="tertiary" size="sm" (clicked)="reset()">Reset</base-button>
+      </div>
+      <base-table class="block" [columns]="columns" [rows]="rows()" trackKey="toolId" [showSearch]="false" [paginate]="false" />
+    </div>
+  `
+})
+class StoryTransfersTable {
+  readonly columns = TRANSFER_COLUMNS;
+  readonly rows = signal<TransferRow[]>(TRANSFER_ROWS_INITIAL.map((r) => ({ ...r, task: r.task ? { ...r.task } : null })));
+  readonly runningCount = () => this.rows().filter((r) => r.task?.status === 'running').length;
+
+  advance(): void {
+    this.rows.update((rows) =>
+      rows.map((r) => {
+        if (r.task?.status !== 'running' || r.task.percent == null) return r;
+        const next = Math.min(100, r.task.percent + 20);
+        return { ...r, task: { ...r.task, percent: next, status: next >= 100 ? 'success' : 'running' } };
+      })
+    );
+  }
+
+  reset(): void {
+    this.rows.set(TRANSFER_ROWS_INITIAL.map((r) => ({ ...r, task: r.task ? { ...r.task } : null })));
+  }
+}
+
+export const TaskProgressTransfersInFlight: Story = {
+  name: 'Task progress · Transfers in flight',
+  decorators: [moduleMetadata({ imports: [StoryTransfersTable] })],
+  render: () => ({ template: `<story-transfers-table />` })
 };

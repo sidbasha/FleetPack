@@ -20,7 +20,24 @@ export type BaseCellKind =
   | 'link'
   | 'row-actions'
   | 'heat-cell'
+  | 'task-progress'
   | 'template';
+
+/**
+ * One of the three kinds of percentage — see the Base README's "The three
+ * kinds of percentage" / "The rule" sections. Rendered by `kind:
+ * 'task-progress'`: a ring, its value, and the noun naming what's
+ * progressing, so a bare number is never left to mean two different things
+ * in the same row. Distinct from `'progress'` (a share-of-a-set bar) and
+ * `'heat-cell'` (a measurement) — never reuse this for either of those.
+ */
+export interface BaseTaskProgress {
+  /** 0–100. Omit (or leave undefined/null) for a queued task — rendered as a muted ring and "–" rather than "0%". */
+  percent?: number | null;
+  /** The noun that says what's progressing, e.g. "Log download" — the ring's accessible name is built from this plus the value. */
+  label: string;
+  status?: 'running' | 'success' | 'failed' | 'queued';
+}
 
 export type BaseColumnFilterKind = 'text' | 'checkbox' | 'calendar' | 'range';
 
@@ -114,6 +131,11 @@ export interface BaseColumnDef<T = BaseRow> {
   rowActions?: (BaseRowAction<T> | BaseLegacyRowAction<T>)[];
   heatClassMap?: Record<string, string>;
   heatThresholds?: { max: number; className: string }[];
+
+  /** `kind: 'task-progress'` only. Returns null for rows with nothing in flight — the cell renders empty rather than a stray ring. */
+  taskProgress?: (row: T) => BaseTaskProgress | null;
+  /** Column width to switch to while any visible row's `taskProgress` is non-null (e.g. `'152px'`) — falls back to `width` once nothing is running. */
+  taskProgressWidth?: string;
 
   abbreviateNumbers?: boolean;
 

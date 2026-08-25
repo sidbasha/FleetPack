@@ -260,8 +260,8 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
                   [class.cursor-not-allowed]="c.sortable && !readOnly() && interactionBlocked()"
                   [class.bt-sticky-th]="c.sticky"
                   [class]="stickyEdgeClass(c)"
-                  [style.width]="c.width ?? null"
-                  [style.minWidth]="c.width ?? null"
+                  [style.width]="columnWidth(c)"
+                  [style.minWidth]="columnWidth(c)"
                   [style.left]="stickyMeta()[c.key]?.left ?? null"
                   [style.right]="stickyMeta()[c.key]?.right ?? null"
                   [attr.aria-label]="columnAriaLabel(c)"
@@ -444,7 +444,7 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
                                         [maxVisible]="maxVisibleActions()" [readOnly]="readOnly()"
                                         [editingRow]="isRowEditing(row)"
                                         [fieldDirty]="isFieldDirty(row, c)" [revertValue]="revertTargetFor(row, c)"
-                                        [saving]="isRowSaving(row)"
+                                        [saving]="isRowSaving(row)" [taskProgress]="taskProgressFor(c, row)"
                                         (actionRun)="handleAction.emit($event)"
                                         (cellEdit)="cellEdit.emit($event)" />
                     }
@@ -1569,6 +1569,24 @@ export class BaseTableComponent<T = BaseRow> {
   private widthPx(c: BaseColumnDef<T>): number {
     const n = parseInt(c.width ?? '', 10);
     return isNaN(n) ? 120 : n;
+  }
+
+  /** The declared `width`, unless a task is currently in flight somewhere on the visible page and the column defines a wider `taskProgressWidth` to make room for the ring + value + noun. */
+  columnWidth(c: BaseColumnDef<T>): string | null {
+    if (c.taskProgressWidth && c.taskProgress && this.pagedRows().some(r => c.taskProgress!(r))) {
+      return c.taskProgressWidth;
+    }
+    return c.width ?? null;
+  }
+
+  /**
+   * Computed fresh here (not read internally by the cell) so a task cleared
+   * by mutating `row.task` in place from a *different* column's row action
+   * still reaches this cell as a changed @Input — see the long comment on
+   * `BaseTableCellComponent.taskProgress` for why that distinction matters.
+   */
+  taskProgressFor(c: BaseColumnDef<T>, row: T) {
+    return c.taskProgress?.(row) ?? null;
   }
 
   // --- Whole-table save / discard (the two "whole table, save bar" controls) ---
