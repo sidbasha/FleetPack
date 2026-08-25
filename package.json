@@ -8,7 +8,12 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "storybook": "ng run fleetpack-fam:storybook",
-    "build-storybook": "ng run fleetpack-fam:build-storybook"
+    "build-storybook": "ng run fleetpack-fam:build-storybook",
+    "build:base": "ng build fleetpack-base && node scripts/build-base-styles.mjs",
+    "build:base:dev": "ng build fleetpack-base --configuration development && node scripts/build-base-styles.mjs",
+    "pack:base": "npm pack ./dist/fleetpack-base --pack-destination ./dist",
+    "verify:base": "node scripts/verify-lib-install.mjs && node scripts/verify-lib-functional.mjs",
+    "publish:base": "npm publish ./dist/fleetpack-base"
   },
   "private": true,
   "dependencies": {
@@ -43,6 +48,7 @@
     "@angular-devkit/core": "^20.0.0",
     "@angular/animations": "^20.0.0",
     "@angular/platform-browser-dynamic": "^20.0.0",
-    "@compodoc/compodoc": "^2.0.0"
+    "@compodoc/compodoc": "^2.0.0",
+    "ng-packagr": "^20.0.0"
   }
 }

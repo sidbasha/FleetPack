@@ -1,0 +1,13 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../../out-tsc/fleetpack-base",
+    "declaration": true,
+    "declarationMap": false,
+    "inlineSources": false,
+    "types": [],
+    "rootDir": "../..",
+    "target": "ES2022"
+  },
+  "files": ["index.ts"]
+}

@@ -4,6 +4,17 @@ Self-contained, dependency-free (no chart.js required) set of standalone Angular
 Everything uses **signal inputs (props)** and **typed outputs (event listeners)**, `OnPush`
 change detection, and the new control-flow syntax.
 
+Also published as the standalone npm package `@your-scope/fleetpack-base`
+(built from this exact folder via ng-packagr — see the root `README.md`'s
+**Publishing to a private npm registry** section). `index.ts` below is both
+the barrel the rest of this app imports from and the package's public API
+entry file; peer deps are `@angular/core`, `@angular/common`,
+`@angular/forms`, `@angular/router`, `@angular/cdk` (all `^20.0.0`). The
+package ships a compiled `styles.css` alongside the components (a full
+build of `src/styles.css` — Tailwind output + the tokens/utility classes
+below, e.g. `btn-primary`, `panel`, `--p-*`) — consumers add it to their
+global styles; see the root README for the exact snippet.
+
 Live demo route: **`/dev/base`** (Component playground with every feature exercised).
 Every component is also listed live at **`/dev/components`** (Component Catalog), grouped the
 same way as the tables below.

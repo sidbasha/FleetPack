@@ -119,3 +119,108 @@ are `@theme` tokens in `src/styles.css`, alongside the component classes
 6. Add the lazy route in `app.routes.ts` and a sidebar entry.
 
 Full walkthrough with code samples and a data-flow chart: **FAM-Developer-Guide.docx**.
+
+## Publishing `@your-scope/fleetpack-base` to a private npm registry
+
+The **Base module** (`src/app/base/`) doubles as a standalone Angular library,
+packaged from the exact same source with
+[ng-packagr](https://github.com/ng-packagr/ng-packagr). The app keeps
+consuming it locally via `src/app/base/index.ts` as before; the npm package
+is an ng-packagr build of that same file — see `src/app/base/ng-package.json`,
+`src/app/base/package.json`, and `src/app/base/tsconfig.lib*.json`. Nothing
+under `components/`, `services/`, `models/`, `directives/`, or `utils/` moved
+or changed to make this work.
+
+### One-time setup
+
+1. Copy `.npmrc.template` → `.npmrc` (it merges with the `legacy-peer-deps`
+   line already there) and fill in your registry's URL/host in place of
+   `YOUR_PRIVATE_REGISTRY_URL` / `YOUR_PRIVATE_REGISTRY_HOST`.
+2. Export an auth token for that registry as `NPM_AUTH_TOKEN` in your shell
+   (or CI secret store) — never paste a literal token into `.npmrc`.
+3. Pick your real npm scope and replace every `@your-scope` placeholder with
+   it: `src/app/base/package.json`'s `name`, and the matching line in
+   `.npmrc`.
+4. If your registry needs an interactive login instead of a static token:
+   `npm login --scope=@your-scope --registry=https://YOUR_PRIVATE_REGISTRY_URL/`.
+
+### Build, verify, publish
+
+```bash
+npm run build:base     # ng-packagr → dist/fleetpack-base, then compiles src/styles.css into dist/fleetpack-base/styles.css
+npm run verify:base    # two-stage install + functional check — see below
+npm run pack:base      # optional: produce the .tgz locally for manual inspection
+npm run publish:base   # npm publish ./dist/fleetpack-base, via whatever registry .npmrc maps @your-scope to
+```
+
+`verify:base` runs two scripts back to back, both against a real packed
+`.tgz` (not the source tree):
+
+1. `scripts/verify-lib-install.mjs` — packs, installs into a throwaway
+   project, confirms `main`/`module`/`typings`/`style`/`exports` all point
+   at files that actually exist. Fast shape check.
+2. `scripts/verify-lib-functional.mjs` — scaffolds a real, minimal Angular
+   20 app that depends on the tarball, installs it (pulling
+   `@angular/core`/`@angular/cdk`/etc. from the registry for real), renders
+   `BaseButtonComponent` + `BaseBadgeComponent` + `BaseTableComponent`
+   (the last one exercises `@angular/cdk/drag-drop` internally), wires the
+   package's `styles.css` into that app's `angular.json`, and runs a real
+   production `ng build` — full AOT compile, Ivy partial-compilation
+   linking, esbuild bundling, CSS concatenation. It then greps the built
+   `main.js` for each component's marker text *and* its compiled
+   class-computation logic (`bg-action`), and the built `styles.css` for
+   the design tokens (`--p-indigo`) and the generated utility class
+   (`.bg-action`) those components actually render with. This is the same
+   pipeline a real consumer's `ng build` runs — it doesn't launch a
+   browser, so it's not a visual confirmation, but a pass means the
+   package's code and CSS both survive a genuine install-and-build.
+
+`build:base` is two steps chained (`ng build fleetpack-base && node
+scripts/build-base-styles.mjs`): ng-packagr compiles/bundles the Angular
+code, then the second step compiles the app's actual global stylesheet
+(`src/styles.css` — same Tailwind v4 config, same design tokens, same
+`@source` scan) into a standalone `dist/fleetpack-base/styles.css` and
+wires it into the built `package.json`'s `exports`/`style` fields. Bump
+`src/app/base/package.json`'s `version` before each publish — ng-packagr
+copies it verbatim into the built package. `publish:base` targets
+`dist/fleetpack-base` (the *built* package.json, with `main`/`module`/
+`typings`/`exports`/`style` filled in), not the repo root.
+
+### Consuming it
+
+```bash
+npm install @your-scope/fleetpack-base
+```
+
+Requires a `.npmrc` (project- or user-level) mapping the `@your-scope` scope
+to your private registry — see `.npmrc.template`. Peer dependencies
+(`@angular/core`, `@angular/common`, `@angular/forms`, `@angular/router`,
+`@angular/cdk`, all `^20.0.0`) must already be present in the consuming app;
+npm installs them automatically if they aren't pinned to a conflicting
+version.
+
+**Styling ships with the package.** Add its compiled stylesheet to your
+app's global styles — e.g. in `angular.json`:
+
+```json
+"styles": ["node_modules/@your-scope/fleetpack-base/styles.css", "src/styles.css"]
+```
+
+or `@import '@your-scope/fleetpack-base/styles.css';` at the top of your
+own global CSS. That file is a full compile of this repo's `src/styles.css`
+(Tailwind v4 output + the Nexus design tokens + every component utility
+class Base uses, e.g. `btn-primary`, `panel`, `table-th`) — not a
+hand-picked subset, so it's never at risk of missing a class a component
+needs. It is *not* tree-shaken per-component; expect the full token/utility
+set (~100 kB unminified) regardless of which Base components you actually
+use.
+
+### Registry-agnostic by design
+
+`src/app/base/package.json` has no `publishConfig.registry` — the
+destination is whatever `.npmrc` maps `@your-scope` to, and `_authToken`
+lines use `${NPM_AUTH_TOKEN}` env-var substitution rather than a literal
+secret, so `.npmrc` itself is safe to commit. The same setup works unchanged
+against Verdaccio, Nexus, JFrog Artifactory, GitHub Packages, Azure
+Artifacts, or AWS CodeArtifact — swap the URL/host and token, nothing else
+changes.

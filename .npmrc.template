@@ -1,0 +1,32 @@
+# Template for the local .npmrc used to install AND publish
+# @your-scope/fleetpack-base against a private npm registry.
+#
+# Copy this file to `.npmrc` (which already exists at the repo root for
+# `legacy-peer-deps`) and fill in the two placeholders below. This file is
+# intentionally registry-agnostic — it works unchanged against Verdaccio,
+# Nexus, JFrog Artifactory, GitHub Packages, Azure Artifacts, or AWS
+# CodeArtifact; only the URL/host and the token differ per provider.
+#
+#   1. YOUR_PRIVATE_REGISTRY_URL  → e.g. https://npm.pkg.github.com/
+#                                        https://registry.mycompany.com/
+#   2. YOUR_PRIVATE_REGISTRY_HOST → the same URL, host-only, no scheme
+#                                        e.g. npm.pkg.github.com
+#                                        registry.mycompany.com
+#
+# Keep the existing `legacy-peer-deps=true` line — it is unrelated to
+# publishing and is needed for the app's own `npm install`.
+
+legacy-peer-deps=true
+
+# Route every install/publish of the @your-scope scope to the private
+# registry instead of the public npmjs.org default.
+@your-scope:registry=https://YOUR_PRIVATE_REGISTRY_URL/
+
+# Auth token for that registry. Do NOT paste a literal token here.
+# ${NPM_AUTH_TOKEN} is substituted from your shell/CI environment at
+# install/publish time, so this line is safe to commit as-is.
+//YOUR_PRIVATE_REGISTRY_HOST/:_authToken=${NPM_AUTH_TOKEN}
+
+# Optional but recommended: fail fast instead of silently falling back to
+# the public registry if the private one is unreachable.
+# always-auth=true

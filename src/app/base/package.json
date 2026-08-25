@@ -1,0 +1,20 @@
+{
+  "name": "@your-scope/fleetpack-base",
+  "version": "0.1.0",
+  "description": "KLA FleetPack Nexus design system — standalone Angular component library (tables, forms, overlays, navigation, charts, timeline and layout primitives) extracted from fleetpack-fam's Base module.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18.19.0 || >=20.11.0 || >=22.0.0"
+  },
+  "peerDependencies": {
+    "@angular/cdk": "^20.0.0",
+    "@angular/common": "^20.0.0",
+    "@angular/core": "^20.0.0",
+    "@angular/forms": "^20.0.0",
+    "@angular/router": "^20.0.0"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "restricted"
+  }
+}

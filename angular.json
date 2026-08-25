@@ -63,6 +63,29 @@
           }
         }
       }
+    },
+    "fleetpack-base": {
+      "projectType": "library",
+      "root": "src/app/base",
+      "sourceRoot": "src/app/base",
+      "prefix": "base",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:ng-packagr",
+          "options": {
+            "project": "src/app/base/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "src/app/base/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "src/app/base/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        }
+      }
     }
   },
   "cli": {
