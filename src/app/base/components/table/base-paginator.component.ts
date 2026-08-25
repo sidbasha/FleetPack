@@ -19,37 +19,65 @@ import { BasePageEvent } from '../../models/table.model';
         } @else { No records }
       </span>
 
-      <span class="flex items-center gap-1.5">
+      <span class="flex items-center gap-2.5">
+        @if (showPageEntry()) {
+          <span class="flex items-center gap-1.5">
+            <label class="flex items-center gap-1.5" for="basePaginatorGoTo">
+              Go to
+              <input id="basePaginatorGoTo" type="number" min="1" [max]="pageCount()" [value]="goToValue()"
+                     [disabled]="disabled()"
+                     class="w-14 border rounded-r-sm px-1.5 py-1 text-xs text-ink-700 bg-neutral-0 tabular-nums
+                            focus:outline-none focus:ring-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                     [class]="goToError() ? 'border-error focus:ring-error' : 'border-neutral-200 focus:ring-action-surface'"
+                     (input)="onGoToInput($event)" (keydown.enter)="onGoToSubmit()" (blur)="onGoToSubmit()"
+                     aria-label="Go to page" />
+            </label>
+            of {{ pageCount() }}
+          </span>
+        }
         @if (showPageSize()) {
-          <select class="border border-neutral-200 rounded-r-sm px-1.5 py-1 text-xs text-ink-600 bg-neutral-0"
-                  [value]="pageSize()" (change)="onPageSize($event)" aria-label="Rows per page">
-            @for (s of pageSizeOptions(); track s) { <option [value]="s">{{ s }} / page</option> }
+          <select class="border border-neutral-200 rounded-r-sm px-1.5 py-1 text-xs text-ink-600 bg-neutral-0
+                         disabled:opacity-50 disabled:cursor-not-allowed"
+                  [disabled]="disabled()" (change)="onPageSize($event)" aria-label="Rows per page">
+            @for (s of pageSizeOptions(); track s) {
+              <!-- [selected] per-option, not [value] on the select: a [value] binding on the
+                   host can apply before these @for-generated <option>s exist in the DOM, so the
+                   browser finds nothing to match and silently shows the first option instead. -->
+              <option [value]="s" [selected]="s === pageSize()">{{ s }} / page</option>
+            }
           </select>
         }
-        <button class="btn-ghost" [disabled]="page() <= 1" (click)="go(1)" aria-label="First page">«</button>
-        <button class="btn-ghost" [disabled]="page() <= 1" (click)="go(page() - 1)" aria-label="Previous page">‹ Prev</button>
-        @if (!unknownTotal()) {
-          @for (p of pageItems(); track $index) {
-            @if (p === '…') {
-              <span class="px-1.5 text-neutral-300 select-none" aria-hidden="true">…</span>
-            } @else {
-              <button class="rounded-r-sm px-2.5 py-1 text-xs font-semibold transition-colors tabular-nums"
-                      [class]="p === page()
-                        ? 'bg-action text-neutral-0'
-                        : 'text-ink-600 hover:bg-action-surface hover:text-action'"
-                      [attr.aria-current]="p === page() ? 'page' : null"
-                      (click)="go(p)">{{ p }}</button>
+        @if (showSteps()) {
+          <button class="btn-ghost" [disabled]="disabled() || page() <= 1" (click)="go(1)" aria-label="First page">«</button>
+          <button class="btn-ghost" [disabled]="disabled() || page() <= 1" (click)="go(page() - 1)" aria-label="Previous page">‹ Prev</button>
+          @if (!unknownTotal()) {
+            @for (p of pageItems(); track $index) {
+              @if (p === '…') {
+                <span class="px-1.5 text-neutral-300 select-none" aria-hidden="true">…</span>
+              } @else {
+                <button class="rounded-r-sm px-2.5 py-1 text-xs font-semibold transition-colors tabular-nums
+                               disabled:opacity-50 disabled:cursor-not-allowed"
+                        [class]="p === page()
+                          ? 'bg-action text-neutral-0'
+                          : 'text-ink-600 hover:bg-action-surface hover:text-action'"
+                        [disabled]="disabled()"
+                        [attr.aria-current]="p === page() ? 'page' : null"
+                        (click)="go(p)">{{ p }}</button>
+              }
             }
           }
-        }
-        @if (unknownTotal()) {
-          <button class="btn-ghost" [disabled]="!hasNext()" (click)="go(page() + 1)" aria-label="Next page">Next ›</button>
-        } @else {
-          <button class="btn-ghost" [disabled]="page() >= pageCount()" (click)="go(page() + 1)" aria-label="Next page">Next ›</button>
-          <button class="btn-ghost" [disabled]="page() >= pageCount()" (click)="go(pageCount())" aria-label="Last page">»</button>
+          @if (unknownTotal()) {
+            <button class="btn-ghost" [disabled]="disabled() || !hasNext()" (click)="go(page() + 1)" aria-label="Next page">Next ›</button>
+          } @else {
+            <button class="btn-ghost" [disabled]="disabled() || page() >= pageCount()" (click)="go(page() + 1)" aria-label="Next page">Next ›</button>
+            <button class="btn-ghost" [disabled]="disabled() || page() >= pageCount()" (click)="go(pageCount())" aria-label="Last page">»</button>
+          }
         }
       </span>
     </div>
+    @if (goToError()) {
+      <p class="mt-1 text-right text-[11px] text-error-text">{{ goToError() }}</p>
+    }
   `
 })
 export class BasePaginatorComponent {
@@ -60,6 +88,10 @@ export class BasePaginatorComponent {
   readonly pageSizeOptions = input<number[]>([10, 25, 50, 100]);
   readonly showPageSize = input(true);
   readonly maxButtons = input(5);
+  /** Page count at/above which the "Go to" direct-entry field appears — repeated clicking through a large result set otherwise. */
+  readonly pageEntryThreshold = input(10);
+  /** Disables every interactive control (e.g. while unsaved edits block paging) without hiding the footer's summary text. */
+  readonly disabled = input(false);
 
   readonly unknownTotal = input(false);
   readonly currentCount = input(0);
@@ -72,6 +104,12 @@ export class BasePaginatorComponent {
       ? this.pageCountOverride()
       : Math.max(1, Math.ceil(this.total() / this.pageSize()))
   );
+  /** Total is unknown → entry and page numbers both suppress (nothing to count against). A single known page → the whole stepper (numbers + first/prev/next/last) hides too, not just the entry. */
+  protected readonly showPageEntry = computed(() => !this.unknownTotal() && this.pageCount() >= this.pageEntryThreshold());
+  protected readonly showSteps = computed(() => this.unknownTotal() || this.pageCount() > 1);
+
+  protected readonly goToValue = signal('');
+  protected readonly goToError = signal<string | null>(null);
   protected readonly rangeStart = computed(() =>
     this.unknownTotal() ? (this.currentCount() === 0 ? 0 : (this.page() - 1) * this.pageSize() + 1)
     : this.total() === 0 ? 0 : (this.page() - 1) * this.pageSize() + 1
@@ -99,13 +137,39 @@ export class BasePaginatorComponent {
   });
 
   go(p: number): void {
+    if (this.disabled()) return;
     const clamped = this.unknownTotal() ? Math.max(1, p) : Math.min(Math.max(1, p), this.pageCount());
     if (clamped !== this.page()) this.pageChange.emit({ page: clamped, pageSize: this.pageSize() });
   }
 
   onPageSize(ev: Event): void {
+    if (this.disabled()) return;
     const size = Number((ev.target as HTMLSelectElement).value);
-    this.pageChange.emit({ page: 1, pageSize: size });
+    // Pass the *current* page through rather than forcing 1 — the host
+    // (BaseTableComponent) resolves which page actually keeps the first
+    // visible row in view for the new size; this component has no row data
+    // of its own to compute that with.
+    this.pageChange.emit({ page: this.page(), pageSize: size });
+  }
+
+  onGoToInput(ev: Event): void {
+    this.goToValue.set((ev.target as HTMLInputElement).value);
+    this.goToError.set(null);
+  }
+
+  /** Out of range never clamps silently — it reports the bounds and holds the current page. */
+  onGoToSubmit(): void {
+    if (this.disabled()) return;
+    const raw = this.goToValue().trim();
+    if (!raw) { this.goToError.set(null); return; }
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 1 || n > this.pageCount()) {
+      this.goToError.set(`Only ${this.pageCount()} page${this.pageCount() === 1 ? '' : 's'} available.`);
+      return;
+    }
+    this.goToError.set(null);
+    this.goToValue.set('');
+    this.go(n);
   }
 }
 

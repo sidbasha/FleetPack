@@ -54,6 +54,8 @@ function mockRows(n: number): ToolRow[] {
 }
 
 const ROWS = mockRows(37);
+/** 214 rows / page size 25 → 9 pages, matching the pagination-feature mockup's "Showing 76–100 of 214 tools" exactly. */
+const LARGE_ROWS = mockRows(214);
 
 const STATUS_BADGE_MAP: Record<string, string> = {
   PRODUCTION: 'bg-emerald-50 text-emerald-600',
@@ -263,6 +265,7 @@ const meta: Meta<BaseTableComponent<ToolRow>> = {
     emptyKind: { control: 'select', options: [null, 'no-results', 'no-access', 'no-data', 'out-of-range', 'not-configured', 'custom'] },
     scrollTriggerPosition: { control: 'select', options: ['top', 'bottom'] },
     pinBudgetPercent: { control: { type: 'number', min: 0, max: 100, step: 5 } },
+    pageEntryThreshold: { control: { type: 'number', min: 1, max: 50, step: 1 } },
     groupBy: { control: false },
     childColumns: { control: false },
     childRowsOf: { control: false },
@@ -285,6 +288,7 @@ const meta: Meta<BaseTableComponent<ToolRow>> = {
     initialPageSize: 10,
     manageColumns: false,
     pinBudgetPercent: 40,
+    pageEntryThreshold: 10,
     enableScroll: false,
     scrollLoading: false,
     scrollTriggerPosition: 'bottom',
@@ -311,7 +315,7 @@ const meta: Meta<BaseTableComponent<ToolRow>> = {
       [striped]="striped" [readOnly]="readOnly" [paginate]="paginate" [initialPageSize]="initialPageSize"
       [groupBy]="groupBy" [groupHeaderStyle]="groupHeaderStyle" [groupActionLabel]="groupActionLabel"
       [maxHeight]="maxHeight" [minWidth]="minWidth" [additionalHeader]="additionalHeader"
-      [manageColumns]="manageColumns" [pinBudgetPercent]="pinBudgetPercent"
+      [manageColumns]="manageColumns" [pinBudgetPercent]="pinBudgetPercent" [pageEntryThreshold]="pageEntryThreshold"
       [enableScroll]="enableScroll" [scrollLoading]="scrollLoading"
       [scrollTriggerPosition]="scrollTriggerPosition" [scrollEnd]="scrollEnd"
       [highlightKey]="highlightKey"
@@ -679,6 +683,24 @@ export const InlineEdit: Story = {
 
 export const UnknownTotalServerSide: Story = {
   args: { serverSide: true, totalItems: 0, rows: ROWS.slice(0, 10), paginate: true, showSearch: false }
+};
+
+/**
+ * Large result set (214 rows), threshold lowered to 8 so the "Go to" entry
+ * shows on this 9-page set instead of the shipped default of 10. Type a
+ * page number and press Enter to jump directly; type one past the last
+ * page and it reports the bound instead of clamping. Then change Rows —
+ * the page you land on is whichever one still holds the first row you were
+ * looking at, not page 1, and the note underneath says which row and page.
+ */
+export const LargeResultSetGoToPage: Story = {
+  name: 'Large result set · Go to page + size-change anchor',
+  args: { columns: BASIC_COLUMNS, rows: LARGE_ROWS, initialPageSize: 25, pageEntryThreshold: 8, showSearch: false }
+};
+
+export const SinglePageHidesStepper: Story = {
+  name: 'Single page · stepper and entry both hide',
+  args: { columns: BASIC_COLUMNS, rows: ROWS.slice(0, 5), initialPageSize: 25, showSearch: false }
 };
 
 export const InfiniteScrollEnded: Story = {

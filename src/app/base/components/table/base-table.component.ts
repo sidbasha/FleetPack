@@ -535,7 +535,15 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
           [unknownTotal]="unknownTotal()"
           [currentCount]="rows().length"
           [hasNext]="resolvedHasNext()"
+          [pageEntryThreshold]="pageEntryThreshold()"
+          [disabled]="interactionBlocked()"
           (pageChange)="onPage($event)" />
+        @if (pageNote(); as note) {
+          <p class="flex items-center gap-1.5 mt-2 text-[11px] text-info">
+            <span class="icon-outline" style="font-size:13px;" aria-hidden="true">my_location</span>
+            {{ note }}
+          </p>
+        }
       </div>
     }
 
@@ -607,6 +615,8 @@ export class BaseTableComponent<T = BaseRow> {
   readonly paginate = input(true);
   readonly initialPageSize = input(10);
   readonly pageSizeOptions = input<number[]>([10, 25, 50, 100]);
+  /** Page count at/above which the paginator's direct "Go to" entry appears. */
+  readonly pageEntryThreshold = input(10);
 
   readonly density = input<'compact' | 'standard' | 'comfortable' | null>(null);
   private readonly densityService = inject(BaseDensityService);
@@ -710,6 +720,8 @@ export class BaseTableComponent<T = BaseRow> {
   readonly rangeFilters = signal<Record<string, BaseRangeFilterValue>>({});
   private readonly pageState = signal(1);
   readonly pageSize = signal(10);
+  /** The "kept your place" / "lost your place" note shown under the paginator after a page-size change; cleared on the next unrelated interaction. */
+  protected readonly pageNote = signal<string | null>(null);
   private readonly selected = signal<Map<unknown, T>>(new Map());
   private readonly expandedKeys = signal<Set<unknown>>(new Set());
   private readonly manageOrder = signal<string[] | null>(null);
@@ -1166,6 +1178,7 @@ export class BaseTableComponent<T = BaseRow> {
 
   toggleSort(key: string): void {
     if (this.interactionBlocked()) return;
+    this.pageNote.set(null);
     const s = this.sortState();
     const next: BaseSortEvent =
       s.key !== key ? { key, direction: 'asc' } :
@@ -1177,6 +1190,7 @@ export class BaseTableComponent<T = BaseRow> {
 
   onQuickSearch(text: string): void {
     if (this.interactionBlocked()) return;
+    this.pageNote.set(null);
     this.quickText.set(text);
     this.pageState.set(1);
     this.emitFilter();
@@ -1221,7 +1235,11 @@ export class BaseTableComponent<T = BaseRow> {
   }
 
   onRangeFilter(key: string, v: BaseRangeFilterValue): void {
-    if (this.hasEditingRows()) return;
+    // Not interactionBlocked() — that includes hasRangeFilterActive(), which
+    // would make this the one control that can never adjust or clear an
+    // already-active range filter.
+    if (this.hasEditingRows() || this.hasDirtyRows()) return;
+    this.pageNote.set(null);
     this.quickText.set('');
     this.columnFilters.set({});
     this.checkboxFilters.set({});
@@ -1254,7 +1272,8 @@ export class BaseTableComponent<T = BaseRow> {
   }
 
   clearAllFilters(): void {
-    if (this.hasEditingRows()) return;
+    if (this.interactionBlocked()) return;
+    this.pageNote.set(null);
     this.quickText.set('');
     this.columnFilters.set({});
     this.checkboxFilters.set({});
@@ -1308,15 +1327,43 @@ export class BaseTableComponent<T = BaseRow> {
     this.filterChange.emit({ quick: this.quickText(), columns: this.columnFilters() });
   }
 
+  /**
+   * A plain page navigation just moves. A page-*size* change instead keeps
+   * the row the user was reading in view: it re-anchors to whichever page
+   * now contains the first row that was visible before the size changed,
+   * rather than resetting to page 1, and says where it landed. If that
+   * anchor row can't be located any more, it falls back to page 1 and says
+   * why instead of failing silently.
+   */
   onPage(ev: BasePageEvent): void {
-    if (this.hasEditingRows()) return;
-    this.pageState.set(ev.page);
+    if (this.interactionBlocked()) return;
+    const sizeChanged = ev.pageSize !== this.pageSize();
+    if (!sizeChanged) {
+      this.pageNote.set(null);
+      this.pageState.set(ev.page);
+      this.pageSize.set(ev.pageSize);
+      this.pageChange.emit(ev);
+      return;
+    }
+
+    const anchor = this.pagedRows()[0];
+    const anchorIndex = anchor ? this.sortedRows().indexOf(anchor) : -1;
     this.pageSize.set(ev.pageSize);
-    this.pageChange.emit(ev);
+    if (anchor && anchorIndex >= 0) {
+      const newPage = Math.floor(anchorIndex / ev.pageSize) + 1;
+      const totalPages = Math.max(1, Math.ceil(this.filteredTotal() / ev.pageSize));
+      this.pageState.set(newPage);
+      this.pageNote.set(`Page size changed to ${ev.pageSize}. Kept ${this.rowTrack(anchor)} in view — now on page ${newPage} of ${totalPages}.`);
+      this.pageChange.emit({ page: newPage, pageSize: ev.pageSize });
+    } else {
+      this.pageState.set(1);
+      this.pageNote.set("Couldn't keep your place after the size change — returned to page 1.");
+      this.pageChange.emit({ page: 1, pageSize: ev.pageSize });
+    }
   }
 
   onManageColumns(ev: BaseManageColumnsEvent): void {
-    if (this.hasEditingRows()) return;
+    if (this.interactionBlocked()) return;
     this.manageOrder.set(ev.order);
     this.manageHidden.set(new Set(ev.order.filter(k => !ev.visibleKeys.includes(k))));
     this.managePinned.set(ev.pinned);
