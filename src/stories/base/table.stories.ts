@@ -258,6 +258,7 @@ const meta: Meta<BaseTableComponent<ToolRow>> = {
     groupHeaderStyle: { control: 'select', options: ['accent', 'plain', 'light'] },
     emptyKind: { control: 'select', options: [null, 'no-results', 'no-access', 'no-data', 'out-of-range', 'not-configured', 'custom'] },
     scrollTriggerPosition: { control: 'select', options: ['top', 'bottom'] },
+    pinBudgetPercent: { control: { type: 'number', min: 0, max: 100, step: 5 } },
     groupBy: { control: false },
     childColumns: { control: false },
     childRowsOf: { control: false },
@@ -279,6 +280,7 @@ const meta: Meta<BaseTableComponent<ToolRow>> = {
     paginate: true,
     initialPageSize: 10,
     manageColumns: false,
+    pinBudgetPercent: 40,
     enableScroll: false,
     scrollLoading: false,
     scrollTriggerPosition: 'bottom',
@@ -305,7 +307,8 @@ const meta: Meta<BaseTableComponent<ToolRow>> = {
       [striped]="striped" [readOnly]="readOnly" [paginate]="paginate" [initialPageSize]="initialPageSize"
       [groupBy]="groupBy" [groupHeaderStyle]="groupHeaderStyle" [groupActionLabel]="groupActionLabel"
       [maxHeight]="maxHeight" [minWidth]="minWidth" [additionalHeader]="additionalHeader"
-      [manageColumns]="manageColumns" [enableScroll]="enableScroll" [scrollLoading]="scrollLoading"
+      [manageColumns]="manageColumns" [pinBudgetPercent]="pinBudgetPercent"
+      [enableScroll]="enableScroll" [scrollLoading]="scrollLoading"
       [scrollTriggerPosition]="scrollTriggerPosition" [scrollEnd]="scrollEnd"
       [highlightKey]="highlightKey"
       [loading]="loading" [loadingRowCount]="loadingRowCount" [error]="error" [errorMessage]="errorMessage"
@@ -357,6 +360,19 @@ export const ManageColumns: Story = {
   args: {
     columns: STICKY_COLUMNS, manageColumns: true, minWidth: '900px', showSearch: false,
     tableTitle: 'Software version matrix', tableIcon: 'view_column'
+  }
+};
+
+/**
+ * Same table, but with a tight pin budget — open Manage Columns and pin a
+ * couple more scrollable columns (drag them into Pinned left/right, or use
+ * the per-row pin buttons) to see the budget meter cross into its warning
+ * tone. `toolId`/`actions` are still identity-locked either way.
+ */
+export const ManageColumnsTightBudget: Story = {
+  args: {
+    columns: STICKY_COLUMNS, manageColumns: true, minWidth: '900px', showSearch: false,
+    tableTitle: 'Software version matrix', tableIcon: 'view_column', pinBudgetPercent: 20
   }
 };
 

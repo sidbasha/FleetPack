@@ -99,7 +99,7 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
   ],
   styles: [`
     .bt-sticky-th { position: sticky; z-index: 12; background: #f8fafc; }
-    .bt-sticky-td { position: sticky; z-index: 1; background: #ffffff; }
+    .bt-sticky-td { position: sticky; z-index: 1; }
     .bt-sticky-left-edge::after, .bt-sticky-right-edge::after {
       content: ''; position: absolute; top: 0; bottom: 0; width: 6px; pointer-events: none;
     }
@@ -137,6 +137,7 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
           }
           @if (manageColumns() && !readOnly()) {
             <base-manage-columns [items]="manageColumnItems()" [visibleKeys]="manageVisibleKeys()"
+                                  [budgetPercent]="pinBudgetPercent()"
                                   align="right" (apply)="onManageColumns($event)" />
           }
         </span>
@@ -223,8 +224,12 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
                   [style.minWidth]="c.width ?? null"
                   [style.left]="stickyMeta()[c.key]?.left ?? null"
                   [style.right]="stickyMeta()[c.key]?.right ?? null"
+                  [attr.aria-label]="columnAriaLabel(c)"
                   (click)="c.sortable && !readOnly() && toggleSort(c.key)">
                 <span class="inline-flex items-center gap-1.5">
+                  @if (c.sticky) {
+                    <span class="icon-outline text-neutral-300" style="font-size:12px;" aria-hidden="true">push_pin</span>
+                  }
                   @if (headerTemplateFor(c.key); as ht) {
                     <ng-container *ngTemplateOutlet="ht; context: { column: c }" />
                   } @else if (c.tooltip) {
@@ -360,7 +365,8 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
             @for (row of g.rows; track rowTrack(row); let i = $index) {
               <tr [class]="rowClassOf(row, i)" [attr.data-row-key]="rowTrack(row)" (click)="onRowClick(row, i)">
                 @if (expandable()) {
-                  <td class="table-td w-8 text-center" [class.bt-sticky-td]="hasLeftSticky()" [style.left]="leadingStickyLeft('expand')">
+                  <td class="table-td w-8 text-center" [class]="hasLeftSticky() ? 'bt-sticky-td ' + rowStickyBg(row, i) : ''"
+                      [style.left]="leadingStickyLeft('expand')">
                     @if (hasChildren(row)) {
                       <button type="button" class="inline-flex items-center justify-center w-5 h-5 rounded-r-xs hover:bg-neutral-100 text-ink-500"
                               [attr.aria-label]="isExpanded(row) ? 'Collapse row' : 'Expand row'"
@@ -372,7 +378,8 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
                   </td>
                 }
                 @if (selectable() === 'multiple') {
-                  <td class="table-td w-8" [class.bt-sticky-td]="hasLeftSticky()" [style.left]="leadingStickyLeft('checkbox')">
+                  <td class="table-td w-8" [class]="hasLeftSticky() ? 'bt-sticky-td ' + rowStickyBg(row, i) : ''"
+                      [style.left]="leadingStickyLeft('checkbox')">
                     <input type="checkbox" [checked]="isSelected(row)" [disabled]="isRowCheckboxDisabled(row)"
                            [title]="isRowCheckboxDisabled(row) ? checkboxDisabledReason(row) : ''"
                            (click)="$event.stopPropagation()"
@@ -383,8 +390,7 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
                   <td class="table-td"
                       [class.text-right]="c.align === 'right'"
                       [class.text-center]="c.align === 'center'"
-                      [class.bt-sticky-td]="c.sticky"
-                      [class]="stickyEdgeClass(c)"
+                      [class]="stickyBodyCellClass(c, row, i)"
                       [style.left]="stickyMeta()[c.key]?.left ?? null"
                       [style.right]="stickyMeta()[c.key]?.right ?? null"
                       [baseTooltip]="rowTooltipText(c, row)" [tooltipPosition]="c.tooltipPosition ?? 'top'"
@@ -458,7 +464,8 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
               @for (c of visibleColumns(); track c.key) {
                 <td class="table-td text-[11px] text-ink-600"
                     [class.text-right]="c.align === 'right'" [class.text-center]="c.align === 'center'"
-                    [class.bt-sticky-td]="c.sticky" [style.left]="stickyMeta()[c.key]?.left ?? null" [style.right]="stickyMeta()[c.key]?.right ?? null">
+                    [class]="c.sticky ? 'bt-sticky-td bg-neutral-50 ' + stickyEdgeClass(c) : ''"
+                    [style.left]="stickyMeta()[c.key]?.left ?? null" [style.right]="stickyMeta()[c.key]?.right ?? null">
                   {{ summaryByKey()[c.key] }}
                 </td>
               }
@@ -540,6 +547,8 @@ export class BaseTableComponent<T = BaseRow> {
 
   readonly manageColumns = input(false);
   readonly preselectedColumns = input<string[] | null>(null);
+  /** % of total column width identity-locked + user-pinned columns may occupy before the Manage Columns budget meter warns. */
+  readonly pinBudgetPercent = input(40);
 
   readonly enableScroll = input(false);
   readonly scrollLoading = input(false);
@@ -570,6 +579,8 @@ export class BaseTableComponent<T = BaseRow> {
   readonly expandChange = output<{ row: T; expanded: boolean }>();
   readonly handleAction = output<BaseHandleActionEvent<T>>();
   readonly manageColumn = output<string[]>();
+  /** Fires alongside `manageColumn` with the full left/right pin assignment, for hosts persisting table view state. */
+  readonly pinChange = output<Record<string, 'left' | 'right'>>();
   readonly scrollEvent = output<BaseScrollEvent>();
 
   private readonly cellTemplates = contentChildren(BaseCellDirective<T>);
@@ -590,7 +601,10 @@ export class BaseTableComponent<T = BaseRow> {
   private readonly expandedKeys = signal<Set<unknown>>(new Set());
   private readonly manageOrder = signal<string[] | null>(null);
   private readonly manageHidden = signal<Set<string> | null>(null);
+  private readonly managePinned = signal<Record<string, 'left' | 'right'> | null>(null);
   protected readonly viewportNarrow = signal(false);
+  protected readonly showLeftEdgeShadow = signal(false);
+  protected readonly showRightEdgeShadow = signal(false);
 
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly destroyRef = inject(DestroyRef);
@@ -625,17 +639,41 @@ export class BaseTableComponent<T = BaseRow> {
       mq.addEventListener('change', onChange);
       this.destroyRef.onDestroy(() => mq.removeEventListener('change', onChange));
     }
+
+    // Re-measure which sticky edge actually has content scrolled behind it
+    // whenever the visible/pinned columns change shape (pinning, hiding, or
+    // resizing the viewport can all change whether the table overflows).
+    effect(() => {
+      this.visibleColumns();
+      queueMicrotask(() => this.measureHorizontalEdges());
+    });
   }
 
-  readonly visibleColumns = computed(() => {
+  private measureHorizontalEdges(): void {
+    const el: HTMLElement | null = this.host.nativeElement.querySelector('.overflow-x-auto');
+    if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    this.showLeftEdgeShadow.set(el.scrollLeft > 1);
+    this.showRightEdgeShadow.set(maxScroll > 1 && el.scrollLeft < maxScroll - 1);
+  }
+
+  /** Columns with order/visibility/user-pin overrides applied, but before the narrow-viewport unfreeze — the "real" intended arrangement, used by the Manage Columns panel and the pin budget so a narrow window doesn't make either lie about what's actually pinned. */
+  private readonly pinnedColumns = computed(() => {
     const order = this.manageOrder();
     const hidden = this.manageHidden();
+    const pinned = this.managePinned();
     let cols = this.columns();
     if (order) {
       const byKey = new Map(cols.map(c => [c.key, c]));
       cols = order.map(k => byKey.get(k)).filter((c): c is BaseColumnDef<T> => !!c);
     }
     cols = cols.filter(c => hidden ? !hidden.has(c.key) : !c.hidden);
+    if (pinned) cols = cols.map(c => pinned[c.key] ? { ...c, sticky: pinned[c.key] } : c);
+    return cols;
+  });
+
+  readonly visibleColumns = computed(() => {
+    let cols = this.pinnedColumns();
     if (this.viewportNarrow()) cols = cols.map(c => c.sticky === 'right' ? { ...c, sticky: undefined } : c);
     const left = cols.filter(c => c.sticky === 'left');
     const mid = cols.filter(c => !c.sticky);
@@ -724,10 +762,17 @@ export class BaseTableComponent<T = BaseRow> {
   readonly manageColumnItems = computed<ManageColumnItem[]>(() => {
     const order = this.manageOrder() ?? this.columns().map(c => c.key);
     const byKey = new Map(this.columns().map(c => [c.key, c]));
+    const pinned = this.managePinned();
     return order
       .map(k => byKey.get(k))
       .filter((c): c is BaseColumnDef<T> => !!c)
-      .map(c => ({ key: c.key, header: c.header, locked: !!c.sticky }));
+      .map(c => ({
+        key: c.key,
+        header: c.header,
+        locked: !!c.sticky,
+        pin: c.sticky ?? pinned?.[c.key] ?? null,
+        widthPx: this.widthPx(c)
+      }));
   });
 
   readonly manageVisibleKeys = computed<string[]>(() => {
@@ -1069,10 +1114,17 @@ export class BaseTableComponent<T = BaseRow> {
     if (this.hasEditingRows()) return;
     this.manageOrder.set(ev.order);
     this.manageHidden.set(new Set(ev.order.filter(k => !ev.visibleKeys.includes(k))));
+    this.managePinned.set(ev.pinned);
     this.manageColumn.emit(ev.visibleKeys);
+    this.pinChange.emit(ev.pinned);
   }
 
   onScroll(ev: Event): void {
+    const scrollEl = ev.target as HTMLElement;
+    const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+    this.showLeftEdgeShadow.set(scrollEl.scrollLeft > 1);
+    this.showRightEdgeShadow.set(maxScroll > 1 && scrollEl.scrollLeft < maxScroll - 1);
+
     if (!this.enableScroll() || this.scrollTicking) return;
     this.scrollTicking = true;
     requestAnimationFrame(() => {
@@ -1191,19 +1243,34 @@ export class BaseTableComponent<T = BaseRow> {
     return (row as BaseRow)[this.trackKey()];
   }
 
+  /** The row's state background, e.g. `bg-action-surface` when selected — shared by the row itself and by its sticky cells, so a selected/error/edit tint is never interrupted by a plain cell underneath a pinned column. */
+  private rowStateBg(row: T, index: number): string {
+    const highlighted = this.highlightKey() != null && String(this.rowTrack(row)) === this.highlightKey();
+    if (highlighted) return this.highlightClass();
+    if (this.isSelected(row)) return 'bg-action-surface';
+    const hasEditError = this.editableRows() && !!(row as BaseRow).hasEditError;
+    if (hasEditError) return 'bg-error-surface';
+    if (this.isRowEditing(row)) return 'bg-warning-surface';
+    if (this.striped() && !this.groupBy() && index % 2 === 1) return 'bg-neutral-50/60';
+    return '';
+  }
+
   rowClassOf(row: T, index: number): string {
     const clickable = this.selectable() !== 'none' ? 'cursor-pointer' : '';
     const highlighted = this.highlightKey() != null && String(this.rowTrack(row)) === this.highlightKey();
-    const hasEditError = this.editableRows() && !!(row as BaseRow).hasEditError;
-    const editing = this.isRowEditing(row);
-    const stripe = this.striped() && !this.groupBy() && index % 2 === 1;
-    const bg = highlighted ? `${this.highlightClass()} border-l-[3px] border-l-action`
-      : this.isSelected(row) ? 'bg-action-surface'
-      : hasEditError ? 'bg-error-surface'
-      : editing ? 'bg-warning-surface'
-      : stripe ? 'bg-neutral-50/60'
-      : '';
-    return `transition-colors hover:bg-action-surface/50 ${clickable} ${bg}`.trim();
+    const bg = this.rowStateBg(row, index);
+    const bgWithBorder = highlighted ? `${bg} border-l-[3px] border-l-action` : bg;
+    return `transition-colors hover:bg-action-surface/50 ${clickable} ${bgWithBorder}`.trim();
+  }
+
+  /** Same background as the row itself, defaulting to opaque white — sticky cells need an explicit, opaque background (they sit over scrolled-away siblings), so `''` from rowStateBg would leave them see-through. */
+  rowStickyBg(row: T, index: number): string {
+    return this.rowStateBg(row, index) || 'bg-neutral-0';
+  }
+
+  stickyBodyCellClass(c: BaseColumnDef<T>, row: T, index: number): string {
+    if (!c.sticky) return '';
+    return `bt-sticky-td ${this.rowStickyBg(row, index)} ${this.stickyEdgeClass(c)}`.trim();
   }
 
   stickyEdgeClass(c: BaseColumnDef<T>): string {
@@ -1211,10 +1278,14 @@ export class BaseTableComponent<T = BaseRow> {
     const cols = this.visibleColumns();
     if (c.sticky === 'left') {
       const lefts = cols.filter(x => x.sticky === 'left');
-      return lefts[lefts.length - 1] === c ? 'bt-sticky-left-edge' : '';
+      return lefts[lefts.length - 1] === c && this.showLeftEdgeShadow() ? 'bt-sticky-left-edge' : '';
     }
     const rights = cols.filter(x => x.sticky === 'right');
-    return rights[0] === c ? 'bt-sticky-right-edge' : '';
+    return rights[0] === c && this.showRightEdgeShadow() ? 'bt-sticky-right-edge' : '';
+  }
+
+  columnAriaLabel(c: BaseColumnDef<T>): string {
+    return c.sticky ? `${c.header}, pinned ${c.sticky}` : c.header;
   }
 
   blankHeaderClass(key: string): string {

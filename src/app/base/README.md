@@ -244,8 +244,21 @@ Set `sticky: 'left' | 'right'` **and a fixed `width`** on the column def.
 Pinned columns are automatically ordered to the edges and offsets are computed —
 header, left-frozen, and right-frozen all hold at once. Below 720px wide the
 right-frozen group automatically unfreezes (left stays pinned, since it's
-usually the row's own identity). Sticky columns are also treated as "frozen" by
-Manage Columns — locked, undraggable, always visible.
+usually the row's own identity). Columns defined with `sticky` are treated as
+**identity-locked** by Manage Columns — always visible, undraggable out of
+their pinned group, shown with a lock icon.
+
+Every other column stays user-pinnable at runtime: `[manageColumns]="true"`'s
+panel groups columns into **Pinned left / Scrollable / Pinned right**, and any
+non-locked column can move between groups by dragging it across, or via the
+per-row pin-left/pin-right buttons (a keyboard-reachable equivalent to
+dragging). A budget meter (`[pinBudgetPercent]`, default 40) shows what % of
+total column width is currently pinned (identity-locked + user-pinned
+combined) and tints past that threshold — advisory only, it never blocks a
+pin. Applying emits both `(manageColumn)` (visible keys, unchanged shape) and
+`(pinChange)` (`Record<string, 'left'|'right'>`) for hosts that persist pin
+state as part of a saved view. Selected/error/edit-row tints and the
+scroll-position edge shadow are preserved across pinned cells with no seam.
 
 ### Column filters
 

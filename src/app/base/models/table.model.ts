@@ -187,4 +187,6 @@ export interface BaseScrollEvent {
 export interface BaseManageColumnsEvent {
   visibleKeys: string[];
   order: string[];
+  /** Keys the user pinned left/right from the Manage Columns panel, on top of any column's static `sticky` default. */
+  pinned: Record<string, 'left' | 'right'>;
 }

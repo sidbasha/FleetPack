@@ -291,7 +291,7 @@ const BASE_PLAYGROUND_ROUTE = '/dev/base';
 
                     @case ('BasePaginatorComponent') { <base-paginator [page]="1" [total]="42" /> }
                     @case ('BaseSearchInputComponent') { <base-search-input placeholder="Search tools…" /> }
-                    @case ('BaseManageColumnsComponent') { <base-manage-columns [items]="[{key:'a',header:'Tool ID',locked:true},{key:'b',header:'Status',locked:false}]" [visibleKeys]="['b']" /> }
+                    @case ('BaseManageColumnsComponent') { <base-manage-columns [items]="[{key:'a',header:'Tool ID',locked:true,pin:'left',widthPx:130},{key:'b',header:'Status',locked:false,widthPx:120}]" [visibleKeys]="['b']" /> }
                     @case ('BaseCheckboxFilterComponent') { <base-checkbox-filter header="Status" [options]="[{value:'PRODUCTION',label:'Production'},{value:'DOWN',label:'Down'}]" /> }
                     @case ('BaseCalendarFilterComponent') { <base-calendar-filter header="Last Maint." /> }
                     @case ('BaseRangeFilterComponent') { <base-range-filter header="Alarms" /> }
