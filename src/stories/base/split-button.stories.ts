@@ -6,10 +6,12 @@ const meta: Meta<BaseSplitButtonComponent> = {
   component: BaseSplitButtonComponent,
   tags: ['autodocs'],
   argTypes: {
-    variant: { control: 'select', options: ['primary', 'secondary'] }
+    variant: { control: 'select', options: ['primary', 'secondary'] },
+    debounceMs: { control: 'number' }
   },
   args: {
     variant: 'primary',
+    debounceMs: 0,
     items: [
       { id: 'csv', label: 'Export as CSV' },
       { id: 'xlsx', label: 'Export as Excel' },
@@ -18,7 +20,7 @@ const meta: Meta<BaseSplitButtonComponent> = {
   },
   render: (args) => ({
     props: args,
-    template: `<base-split-button [items]="items" [variant]="variant">Download</base-split-button>`
+    template: `<base-split-button [items]="items" [variant]="variant" [debounceMs]="debounceMs">Download</base-split-button>`
   })
 };
 export default meta;

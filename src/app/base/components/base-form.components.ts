@@ -16,6 +16,7 @@ import {
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { BaseMenuItem } from './base-nav.components';
+import { ActionGuard } from '../utils/debounce.utils';
 
 let uid = 0;
 const nextId = (prefix: string) => `${prefix}-${++uid}`;
@@ -52,7 +53,7 @@ const ERROR_CLS = `mt-1 text-caption normal-case font-normal text-error`;
                    outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2
                    disabled:opacity-[0.42] disabled:cursor-not-allowed"
             [class]="variantClass() + ' ' + sizeClass() + ' ' + radiusClass() + (fullWidth() ? ' w-full' : '')"
-            (click)="clicked.emit($event)">
+            (click)="onClick($event)">
       @if (loading()) {
         <span class="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" aria-hidden="true"></span>
       }
@@ -72,8 +73,16 @@ export class BaseButtonComponent {
   readonly iconOnly = input(false);
   readonly ariaLabel = input('');
   readonly shape = input<'default' | 'pill'>('default');
+  readonly debounceMs = input(0);
 
   readonly clicked = output<MouseEvent>();
+
+  private readonly clickGuard = new ActionGuard();
+
+  protected onClick(ev: MouseEvent): void {
+    if (!this.clickGuard.allow(this.debounceMs())) return;
+    this.clicked.emit(ev);
+  }
 
   protected readonly variantClass = computed(() => ({
     primary: 'bg-action text-neutral-0 hover:bg-action-hover active:bg-action-active',
@@ -541,7 +550,7 @@ export class BaseToggleComponent extends BaseControl<boolean> {
                      focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2
                      disabled:opacity-[0.42] disabled:cursor-not-allowed"
               [class]="leftClass()"
-              (click)="clicked.emit($event)">
+              (click)="onClick($event)">
         <ng-content />
       </button>
       <button type="button" [disabled]="disabled()" aria-label="More options" aria-haspopup="menu"
@@ -575,12 +584,14 @@ export class BaseSplitButtonComponent {
   readonly items = input.required<BaseMenuItem[]>();
   readonly disabled = input(false);
   readonly variant = input<'primary' | 'secondary'>('primary');
+  readonly debounceMs = input(0);
 
   readonly clicked = output<MouseEvent>();
   readonly itemSelect = output<BaseMenuItem>();
 
   protected readonly open = signal(false);
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly actionGuard = new ActionGuard();
 
   protected readonly leftClass = computed(() => this.variant() === 'secondary'
     ? 'bg-neutral-0 text-ink-700 border border-r-0 border-neutral-200 hover:border-action hover:text-action'
@@ -597,9 +608,15 @@ export class BaseSplitButtonComponent {
 
   toggle(): void { this.open.update(o => !o); }
 
+  onClick(ev: MouseEvent): void {
+    if (!this.actionGuard.allow(this.debounceMs())) return;
+    this.clicked.emit(ev);
+  }
+
   pick(m: BaseMenuItem): void {
-    this.itemSelect.emit(m);
     this.open.set(false);
+    if (!this.actionGuard.allow(this.debounceMs())) return;
+    this.itemSelect.emit(m);
   }
 }
 
@@ -638,11 +655,15 @@ export class BaseButtonGroupComponent {
   readonly activeId = input<string | null>(null);
   readonly iconOnly = input(false);
   readonly ariaLabel = input('');
+  readonly debounceMs = input(0);
 
   readonly itemClick = output<BaseButtonGroupItem>();
 
+  private readonly clickGuard = new ActionGuard();
+
   pick(o: BaseButtonGroupItem): void {
     if (o.disabled) return;
+    if (!this.clickGuard.allow(this.debounceMs())) return;
     this.itemClick.emit(o);
   }
 }

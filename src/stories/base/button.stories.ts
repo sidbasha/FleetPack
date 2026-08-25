@@ -1,4 +1,6 @@
+import { Component, signal } from '@angular/core';
 import type { Meta, StoryObj } from '@storybook/angular';
+import { moduleMetadata } from '@storybook/angular';
 import { BaseButtonComponent } from '../../app/base';
 
 const meta: Meta<BaseButtonComponent> = {
@@ -12,7 +14,8 @@ const meta: Meta<BaseButtonComponent> = {
     },
     size: { control: 'select', options: ['sm', 'md', 'lg'] },
     type: { control: 'select', options: ['button', 'submit', 'reset'] },
-    shape: { control: 'select', options: ['default', 'pill'] }
+    shape: { control: 'select', options: ['default', 'pill'] },
+    debounceMs: { control: 'number' }
   },
   args: {
     variant: 'primary',
@@ -22,13 +25,14 @@ const meta: Meta<BaseButtonComponent> = {
     loading: false,
     fullWidth: false,
     iconOnly: false,
-    shape: 'default'
+    shape: 'default',
+    debounceMs: 0
   },
   render: (args) => ({
     props: args,
     template: `
       <base-button [variant]="variant" [size]="size" [type]="type" [shape]="shape"
-                   [disabled]="disabled" [loading]="loading" [fullWidth]="fullWidth">
+                   [disabled]="disabled" [loading]="loading" [fullWidth]="fullWidth" [debounceMs]="debounceMs">
         Save changes
       </base-button>`
   })
@@ -113,4 +117,39 @@ export const LoadingAndDisabled: Story = {
         }
       </div>`
   })
+};
+
+@Component({
+  selector: 'story-debounced-button',
+  standalone: true,
+  imports: [BaseButtonComponent],
+  template: `
+    <div class="flex flex-col gap-4 max-w-sm">
+      <div class="flex items-center gap-3">
+        <base-button (clicked)="normalCalls.update(n => n + 1)">Save (no debounce)</base-button>
+        <span class="text-xs text-ink-600">API calls fired: <b class="text-action">{{ normalCalls() }}</b></span>
+      </div>
+      <div class="flex items-center gap-3">
+        <base-button [debounceMs]="600" (clicked)="debouncedCalls.update(n => n + 1)">Save (debounceMs="600")</base-button>
+        <span class="text-xs text-ink-600">API calls fired: <b class="text-action">{{ debouncedCalls() }}</b></span>
+      </div>
+      <p class="text-[11px] text-neutral-400">
+        Click each button several times fast. The top button fires once per click — a burst of
+        clicks becomes a burst of API calls. The bottom button ignores every click that lands
+        within 600ms of the last one it accepted, so the same burst reaches the API at most once
+        every 600ms. The button never looks disabled during that window — it just drops the
+        duplicate calls.
+      </p>
+    </div>
+  `
+})
+class StoryDebouncedButtonComponent {
+  readonly normalCalls = signal(0);
+  readonly debouncedCalls = signal(0);
+}
+
+export const DebouncedApiCall: StoryObj<StoryDebouncedButtonComponent> = {
+  name: 'Debounced — prevent duplicate API calls',
+  decorators: [moduleMetadata({ imports: [StoryDebouncedButtonComponent] })],
+  render: () => ({ template: `<story-debounced-button />` })
 };
