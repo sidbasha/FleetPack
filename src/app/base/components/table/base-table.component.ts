@@ -1000,7 +1000,6 @@ export class BaseTableComponent<T = BaseRow> {
     return !Object.is(this.cellValue(c, row), snap[c.key]);
   }
 
-  /** The value Revert would restore this field to. */
   revertTargetFor(row: T, c: BaseColumnDef<T>): unknown {
     return this.editSnapshots.get(this.rowTrack(row))?.[c.key];
   }
