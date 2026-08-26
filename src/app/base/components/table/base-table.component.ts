@@ -35,6 +35,7 @@ import {
   BaseRangeFilterValue,
   BaseRow,
   BaseRowClickEvent,
+  BaseRowIndicator,
   BaseRowSaveRequest,
   BaseRowSaveResult,
   BaseScrollEvent,
@@ -339,6 +340,23 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
           }
         </thead>
 
+        <!-- Shared by every branch of the row-indicator @switch below, so decorating a cell
+             (swatch, rule, icon, bar) never means re-writing how that cell itself renders. -->
+        <ng-template #plainCell let-c let-row="row" let-i="i">
+          @if (templateFor(c.key); as tpl) {
+            <ng-container *ngTemplateOutlet="tpl; context: cellContext(row, c, i)" />
+          } @else {
+            <base-table-cell [column]="c" [row]="row" [rowIndex]="snoValue(row)"
+                              [actionTemplateFor]="actionTemplateFor"
+                              [maxVisible]="maxVisibleActions()" [readOnly]="readOnly()"
+                              [editingRow]="isRowEditing(row)"
+                              [fieldDirty]="isFieldDirty(row, c)" [revertValue]="revertTargetFor(row, c)"
+                              [saving]="isRowSaving(row)" [taskProgress]="taskProgressFor(c, row)"
+                              (actionRun)="handleAction.emit($event)"
+                              (cellEdit)="cellEdit.emit($event)" />
+          }
+        </ng-template>
+
         <tbody class="divide-y divide-neutral-100" [class.opacity-60]="dimmed()" [class.pointer-events-none]="dimmed()">
           @if (loading() && rows().length === 0) {
             @for (i of skeletonRows(); track i) {
@@ -406,7 +424,7 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
               <tr [class]="rowClassOf(row, i)" [attr.data-row-key]="rowTrack(row)" (click)="onRowClick(row, i)">
                 @if (expandable()) {
                   <td class="table-td w-8 text-center" [class]="hasLeftSticky() ? 'bt-sticky-td ' + rowStickyBg(row, i) : ''"
-                      [style.left]="leadingStickyLeft('expand')">
+                      [style.left]="leadingStickyLeft('expand')" [style]="indicatorEdgeStyle(row)">
                     @if (hasChildren(row)) {
                       <button type="button" class="inline-flex items-center justify-center w-5 h-5 rounded-r-xs hover:bg-neutral-100 text-ink-500"
                               [attr.aria-label]="isExpanded(row) ? 'Collapse row' : 'Expand row'"
@@ -419,34 +437,63 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
                 }
                 @if (selectable() === 'multiple') {
                   <td class="table-td w-8" [class]="hasLeftSticky() ? 'bt-sticky-td ' + rowStickyBg(row, i) : ''"
-                      [style.left]="leadingStickyLeft('checkbox')">
+                      [style.left]="leadingStickyLeft('checkbox')"
+                      [style]="!expandable() ? indicatorEdgeStyle(row) : null">
                     <input type="checkbox" [checked]="isSelected(row)" [disabled]="isRowCheckboxDisabled(row)"
                            [title]="isRowCheckboxDisabled(row) ? checkboxDisabledReason(row) : ''"
                            (click)="$event.stopPropagation()"
                            (change)="toggleRow(row)" aria-label="Select row" />
                   </td>
                 }
-                @for (c of visibleColumns(); track c.key) {
+                @for (c of visibleColumns(); track c.key; let firstCol = $first) {
                   <td class="table-td"
                       [class.text-right]="c.align === 'right'"
                       [class.text-center]="c.align === 'center'"
                       [class]="stickyBodyCellClass(c, row, i)"
                       [style.left]="stickyMeta()[c.key]?.left ?? null"
                       [style.right]="stickyMeta()[c.key]?.right ?? null"
+                      [style]="(firstCol && !expandable() && selectable() !== 'multiple') ? indicatorEdgeStyle(row) : null"
                       [baseTooltip]="rowTooltipText(c, row)" [tooltipPosition]="c.tooltipPosition ?? 'top'"
                       (click)="onCellClick(row, c, i, $event)">
 
-                    @if (templateFor(c.key); as tpl) {
-                      <ng-container *ngTemplateOutlet="tpl; context: cellContext(row, c, i)" />
-                    } @else {
-                      <base-table-cell [column]="c" [row]="row" [rowIndex]="snoValue(row)"
-                                        [actionTemplateFor]="actionTemplateFor"
-                                        [maxVisible]="maxVisibleActions()" [readOnly]="readOnly()"
-                                        [editingRow]="isRowEditing(row)"
-                                        [fieldDirty]="isFieldDirty(row, c)" [revertValue]="revertTargetFor(row, c)"
-                                        [saving]="isRowSaving(row)" [taskProgress]="taskProgressFor(c, row)"
-                                        (actionRun)="handleAction.emit($event)"
-                                        (cellEdit)="cellEdit.emit($event)" />
+                    @switch (indicatorFormForColumn(c)) {
+                      @case ('series-key') {
+                        <span class="inline-flex items-center gap-2" [attr.aria-label]="indicatorLabel(row)">
+                          <span class="inline-block w-2.5 h-2.5 rounded-[2px] shrink-0" [style.background]="indicatorColor(row)" aria-hidden="true"></span>
+                          <ng-container *ngTemplateOutlet="plainCell; context: { $implicit: c, row: row, i: i }" />
+                        </span>
+                      }
+                      @case ('magnitude-rule') {
+                        <span class="flex flex-col gap-1" [attr.aria-label]="indicatorLabel(row)">
+                          <span [style.color]="indicatorColor(row)" class="font-semibold">
+                            <ng-container *ngTemplateOutlet="plainCell; context: { $implicit: c, row: row, i: i }" />
+                          </span>
+                          <span class="h-[3px] rounded-full bg-neutral-100 overflow-hidden" style="max-width: 88px;" aria-hidden="true">
+                            <span class="block h-full rounded-full" [style.width.%]="indicatorPct(row)" [style.background]="indicatorColor(row)"></span>
+                          </span>
+                        </span>
+                      }
+                      @case ('marker-column') {
+                        <span class="inline-flex items-center gap-2" style="padding-left: 4px;" [attr.aria-label]="indicatorLabel(row)">
+                          <span class="icon-outline shrink-0 text-center" style="font-size:12px; width:16px;"
+                                [style.color]="indicatorColor(row)" aria-hidden="true">{{ indicatorIcon(row) }}</span>
+                          <ng-container *ngTemplateOutlet="plainCell; context: { $implicit: c, row: row, i: i }" />
+                        </span>
+                      }
+                      @default {
+                        @if (indicatorIsBarColumn(c)) {
+                          <span class="inline-flex items-center gap-2 w-full justify-end" [attr.aria-label]="indicatorLabel(row)">
+                            <span class="relative h-1 rounded-full bg-neutral-100 overflow-hidden shrink-0" style="width: 88px;" aria-hidden="true">
+                              <span class="absolute inset-y-0 left-0 rounded-full" [style.width.%]="indicatorPct(row)" [style.background]="indicatorColor(row)"></span>
+                            </span>
+                            <span class="text-right tabular-nums font-semibold shrink-0" style="width: 44px;" [style.color]="indicatorColor(row)">
+                              {{ indicatorValueText(row) }}
+                            </span>
+                          </span>
+                        } @else {
+                          <ng-container *ngTemplateOutlet="plainCell; context: { $implicit: c, row: row, i: i }" />
+                        }
+                      }
                     }
                   </td>
                 }
@@ -516,6 +563,13 @@ const HEADER_GROUP_HUES = ['bg-action-surface/60', 'bg-accent-surface/60', 'bg-s
         }
       </table>
     </div>
+
+    @if (indicatorLegend(); as legend) {
+      <div class="flex items-center gap-1.5 px-4 py-1.5 text-[10px] text-neutral-400 border-t border-neutral-100">
+        <span class="icon-outline" style="font-size:12px;" aria-hidden="true">straighten</span>
+        {{ legend }}
+      </div>
+    }
 
     @if (hasDirtyRows()) {
       <div class="flex items-center gap-1.5 px-4 py-1.5 text-[10px] text-neutral-400 border-t border-neutral-100">
@@ -659,6 +713,9 @@ export class BaseTableComponent<T = BaseRow> {
   readonly retry = output<void>();
 
   readonly additionalHeader = input<AdditionalHeaderGroup[] | null>(null);
+
+  /** Row-to-series colour coding — one of five interchangeable visual forms. See "Row-level visual indicators" in the Base README. At most one per table. */
+  readonly rowIndicator = input<BaseRowIndicator<T> | null>(null);
 
   readonly manageColumns = input(false);
   readonly preselectedColumns = input<string[] | null>(null);
@@ -1587,6 +1644,71 @@ export class BaseTableComponent<T = BaseRow> {
    */
   taskProgressFor(c: BaseColumnDef<T>, row: T) {
     return c.taskProgress?.(row) ?? null;
+  }
+
+  // --- Row-level visual indicators (row-to-series colour coding, one of five forms) ---
+
+  /** The shared scale every magnitude-rule/inline-bar in the table sizes against — explicit `max`, or the largest `value` across every row, so the legend and every bar agree. */
+  private indicatorMax(): number {
+    const ind = this.rowIndicator();
+    if (!ind) return 0;
+    if (ind.max != null) return ind.max;
+    const values = this.rows().map(r => ind.value?.(r) ?? 0);
+    return values.length ? Math.max(...values) : 0;
+  }
+
+  /** "Scale: column maximum, N%" — empty for forms that don't have a scale (edge-marker, series-key, marker-column). */
+  indicatorLegend(): string {
+    const ind = this.rowIndicator();
+    if (!ind || (ind.form !== 'magnitude-rule' && ind.form !== 'inline-bar')) return '';
+    return `Scale: column maximum, ${this.indicatorMax()}%`;
+  }
+
+  /** `box-shadow: inset 3px 0 0 0 <colour>` on the row's leading cell — edge-marker only, a full-height strip that adds no extra column. */
+  indicatorEdgeStyle(row: T): string | null {
+    const ind = this.rowIndicator();
+    if (!ind || ind.form !== 'edge-marker') return null;
+    return `box-shadow: inset 3px 0 0 0 ${ind.colorOf(ind.series(row))};`;
+  }
+
+  /** Which of the three in-cell forms (if any) this column carries, for the `@switch` in the row template. */
+  indicatorFormForColumn(c: BaseColumnDef<T>): 'series-key' | 'magnitude-rule' | 'marker-column' | null {
+    const ind = this.rowIndicator();
+    if (!ind || !ind.labelColumnKey || ind.labelColumnKey !== c.key) return null;
+    return ind.form === 'series-key' || ind.form === 'magnitude-rule' || ind.form === 'marker-column' ? ind.form : null;
+  }
+
+  indicatorIsBarColumn(c: BaseColumnDef<T>): boolean {
+    const ind = this.rowIndicator();
+    return !!ind && ind.form === 'inline-bar' && ind.barColumnKey === c.key;
+  }
+
+  indicatorColor(row: T): string {
+    const ind = this.rowIndicator();
+    return ind ? ind.colorOf(ind.series(row)) : '';
+  }
+
+  /** The series' display label — used for the decoration's accessible name, not to replace the column's own cell text. */
+  indicatorLabel(row: T): string {
+    const ind = this.rowIndicator();
+    return ind ? ind.labelOf(ind.series(row)) : '';
+  }
+
+  indicatorIcon(row: T): string {
+    const ind = this.rowIndicator();
+    return ind?.iconOf ? ind.iconOf(ind.series(row)) : '';
+  }
+
+  indicatorPct(row: T): number {
+    const ind = this.rowIndicator();
+    const max = this.indicatorMax();
+    if (!ind?.value || max <= 0) return 0;
+    return Math.max(0, Math.min(100, (ind.value(row) / max) * 100));
+  }
+
+  indicatorValueText(row: T): string {
+    const ind = this.rowIndicator();
+    return ind?.value ? String(ind.value(row)) : '';
   }
 
   // --- Whole-table save / discard (the two "whole table, save bar" controls) ---

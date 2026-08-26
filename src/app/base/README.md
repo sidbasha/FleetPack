@@ -299,6 +299,28 @@ and emits `(cellEdit)` on every change; it never commits anything itself. While 
 editing, sort/filter/page/Manage Columns all block with a dirty-count banner rather than risk
 losing track of an unsaved row.
 
+### Row-level visual indicators
+
+`[rowIndicator]` colour-codes rows by a series/category (`series: (row) => string`,
+`colorOf`, required `labelOf`) in one of five forms — a table takes at most one; there's
+no array, so a second family isn't a prop you can pass:
+
+| Form | Geometry | Lives in |
+|---|---|---|
+| `edge-marker` | 3px inset box-shadow, full row height | The row's own leading cell — no extra column |
+| `series-key` | 10px swatch, 2px radius, 8px gap | `labelColumnKey`'s cell, before its own content |
+| `magnitude-rule` | 3px rule, fully rounded, 4px gap | `labelColumnKey`'s cell, under its own content |
+| `inline-bar` | 4px track, 88px max width, 44px value column | `barColumnKey`'s cell, replacing its own content |
+| `marker-column` | 16px mark, 12px icon (needs `iconOf`) | `labelColumnKey`'s cell, before its own content |
+
+`magnitude-rule`/`inline-bar` share one scale per column — `max` if set, else the
+largest `value` across every row — and print it as a footer legend so the bars are never
+read against a maximum the user can't see. `labelOf` never replaces the column's own
+cell text (a bare swatch or bar with no label isn't a configuration this supports); it
+only names the series in that decoration's accessible name. Row state (selected, dirty,
+error) is a `<tr>`/`<td>` background — the mark is foreground content layered on top of
+it by ordinary CSS stacking, not something that competes with it for a layer.
+
 ### The three kinds of percentage
 
 A bare `45%` doesn't say whether it's rising, falling, or what it belongs to. This module

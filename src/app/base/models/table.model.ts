@@ -39,6 +39,33 @@ export interface BaseTaskProgress {
   status?: 'running' | 'success' | 'failed' | 'queued';
 }
 
+/**
+ * A row-to-series colour coding, rendered as one of five interchangeable
+ * forms — see the Base README's "Row-level visual indicators" section. A
+ * table takes at most one `rowIndicator`: a second indicator family on the
+ * same grid is a configuration error the type system already prevents
+ * (there's only one slot), not something checked at runtime.
+ */
+export interface BaseRowIndicator<T = BaseRow> {
+  form: 'edge-marker' | 'series-key' | 'magnitude-rule' | 'inline-bar' | 'marker-column';
+  /** The series/category key for a row — drives colour, label, and (marker-column) icon. */
+  series: (row: T) => string;
+  /** Maps a series key to its colour (any valid CSS colour). */
+  colorOf: (series: string) => string;
+  /** Display label for a series key. Required — a bare swatch or bar with no label is not a supported configuration. */
+  labelOf: (series: string) => string;
+  /** `icon-outline` glyph name per series — `marker-column` only. */
+  iconOf?: (series: string) => string;
+  /** The value driving proportional sizing — required by `magnitude-rule` and `inline-bar`, ignored otherwise. */
+  value?: (row: T) => number;
+  /** Explicit scale maximum; defaults to the max `value` across every row, shown in the legend either way. */
+  max?: number;
+  /** Which column's cell carries the swatch/rule/icon — `series-key`, `magnitude-rule` and `marker-column` only. */
+  labelColumnKey?: string;
+  /** Which column's cell gets the trailing bar — `inline-bar` only. */
+  barColumnKey?: string;
+}
+
 export type BaseColumnFilterKind = 'text' | 'checkbox' | 'calendar' | 'range';
 
 export type BaseSummaryFn = 'total' | 'mean' | 'median' | 'min' | 'max' | 'count' | 'outOfSpec' | 'none';

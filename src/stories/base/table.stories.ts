@@ -11,6 +11,7 @@ import {
   BaseChildFooterDirective,
   BaseColumnDef,
   BaseRowAction,
+  BaseRowIndicator,
   BaseRowSaveRequest,
   BaseRowSaveResult,
   BaseTableComponent,
@@ -811,4 +812,103 @@ export const TaskProgressTransfersInFlight: Story = {
   name: 'Task progress · Transfers in flight',
   decorators: [moduleMetadata({ imports: [StoryTransfersTable] })],
   render: () => ({ template: `<story-transfers-table />` })
+};
+
+interface CategoryRow {
+  category: string;
+  value: number;
+  week13: null;
+  y2026: null;
+}
+
+const INDICATOR_ROWS: CategoryRow[] = [
+  { category: 'SW Failure', value: 2.15, week13: null, y2026: null },
+  { category: 'HW Failure', value: 1.05, week13: null, y2026: null },
+  { category: 'Other', value: 1.04, week13: null, y2026: null },
+  { category: 'Planned Restart', value: 0.62, week13: null, y2026: null },
+  { category: 'KLA Preventative Maintenance', value: 0.57, week13: null, y2026: null }
+];
+
+const INDICATOR_SERIES_COLOR: Record<string, string> = {
+  'SW Failure': '#99181b',
+  'HW Failure': '#c2410c',
+  Other: '#7c3aed',
+  'Planned Restart': '#2563eb',
+  'KLA Preventative Maintenance': '#0e7490'
+};
+
+const INDICATOR_SERIES_ICON: Record<string, string> = {
+  'SW Failure': 'cancel',
+  'HW Failure': 'warning',
+  Other: 'help',
+  'Planned Restart': 'schedule',
+  'KLA Preventative Maintenance': 'check_circle'
+};
+
+const INDICATOR_COLUMNS: BaseColumnDef<CategoryRow>[] = [
+  { key: 'category', header: 'Category' },
+  { key: 'value', header: '2025-18 → 2026-17 (%)', kind: 'number', align: 'right', numberFormat: { minimumFractionDigits: 2 } },
+  { key: 'week13', header: '13-week (%)', align: 'right' },
+  { key: 'y2026', header: '2026-17 (%)', align: 'right' }
+];
+
+type IndicatorForm = BaseRowIndicator<CategoryRow>['form'];
+const INDICATOR_FORMS: { form: IndicatorForm; label: string }[] = [
+  { form: 'edge-marker', label: 'Edge marker' },
+  { form: 'series-key', label: 'Series key' },
+  { form: 'magnitude-rule', label: 'Magnitude rule' },
+  { form: 'inline-bar', label: 'Inline bar' },
+  { form: 'marker-column', label: 'Marker column' }
+];
+
+/**
+ * Same five rows in every form — the only variable is the mark, matching
+ * the design brief's "switch between them" preview exactly. `rowIndicator`
+ * takes exactly one form at a time (a second indicator family on the same
+ * grid isn't a prop you can pass, by construction).
+ */
+@Component({
+  selector: 'story-row-indicators',
+  standalone: true,
+  imports: [BaseTableComponent, BaseButtonComponent],
+  template: `
+    <div class="flex items-center gap-2 mb-3 flex-wrap">
+      @for (f of forms; track f.form) {
+        <base-button [variant]="form() === f.form ? 'primary' : 'secondary'" size="sm" (clicked)="form.set(f.form)">
+          {{ f.label }}
+        </base-button>
+      }
+    </div>
+    <base-table class="panel block overflow-hidden" [columns]="columns" [rows]="rows" trackKey="category"
+                [showSearch]="false" [paginate]="false" [rowIndicator]="indicator()" />
+  `
+})
+class StoryRowIndicators {
+  readonly forms = INDICATOR_FORMS;
+  readonly columns = INDICATOR_COLUMNS;
+  readonly rows = INDICATOR_ROWS;
+  readonly form = signal<IndicatorForm>('edge-marker');
+
+  readonly indicator = () => {
+    const base = {
+      series: (r: CategoryRow) => r.category,
+      colorOf: (s: string) => INDICATOR_SERIES_COLOR[s] ?? '#94a3b8',
+      labelOf: (s: string) => s,
+      iconOf: (s: string) => INDICATOR_SERIES_ICON[s] ?? 'circle',
+      value: (r: CategoryRow) => r.value
+    };
+    const f = this.form();
+    return {
+      ...base,
+      form: f,
+      labelColumnKey: f === 'inline-bar' ? undefined : 'category',
+      barColumnKey: f === 'inline-bar' ? 'value' : undefined
+    } satisfies BaseRowIndicator<CategoryRow>;
+  };
+}
+
+export const RowIndicatorsAllFiveForms: Story = {
+  name: 'Row indicators · all five forms',
+  decorators: [moduleMetadata({ imports: [StoryRowIndicators] })],
+  render: () => ({ template: `<story-row-indicators />` })
 };
