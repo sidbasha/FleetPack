@@ -92,6 +92,17 @@ import { BaseTableView } from '../../models/table.model';
                       (click)="update.emit()">
                 <span aria-hidden="true">✓</span> Update view
               </button>
+            } @else if (modified() && !v.isDefault && !canModifyActive()) {
+              <!-- Shared/read-only: the view itself can't be written to, so Update is
+                   unavailable — Duplicate is the only path to keep the changes. -->
+              <button type="button" class="text-[11px] font-semibold text-ink-600 border border-neutral-200 rounded-r-sm px-2.5 py-1.5
+                                            hover:border-action hover:text-action transition-colors"
+                      (click)="reset.emit()">Reset</button>
+              <button type="button" class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-neutral-0 bg-action hover:bg-action-hover
+                                            rounded-r-sm px-3 py-1.5 transition-colors"
+                      (click)="duplicate.emit()">
+                <span class="icon-outline" style="font-size:13px;" aria-hidden="true">content_copy</span> Duplicate
+              </button>
             }
           </span>
         </div>
@@ -111,6 +122,8 @@ export class BaseTableViewsComponent {
   readonly update = output<void>();
   readonly reset = output<void>();
   readonly copyLink = output<void>();
+  /** Fires when the user duplicates a modified shared/read-only view — the host should open "Save view" pre-filled with the current live state, since Update isn't available on a view it doesn't own. */
+  readonly duplicate = output<void>();
 
   protected readonly moreOpen = signal(false);
   protected readonly saveOpen = signal(false);

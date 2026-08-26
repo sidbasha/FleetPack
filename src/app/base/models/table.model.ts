@@ -120,6 +120,22 @@ export interface BaseTableView<S = unknown> {
   state?: S;
 }
 
+/**
+ * A user-created view's column layout — visible ids in order, plus the
+ * left/right pin groups in their own order — the "one stored fact" a view
+ * captures for columns (see the Base README's "User-created views" and
+ * "Manage Columns" sections). Get it from `BaseTableComponent.getColumnLayout()`
+ * when saving/updating a view; restore it with `applyColumnLayout()` on
+ * open/Reset. Selection, expansion, scroll position, page number and
+ * pending edits are deliberately not part of this — a view is a lens on
+ * the data, not a session snapshot.
+ */
+export interface BaseColumnLayout {
+  order: string[];
+  visibleKeys: string[];
+  pinned: Record<string, 'left' | 'right'>;
+}
+
 export interface BaseColumnDef<T = BaseRow> {
   key: string;
   header: string;

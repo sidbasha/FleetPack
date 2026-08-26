@@ -26,6 +26,7 @@ import {
   BaseCellEditEvent,
   BaseCheckboxFilterValue,
   BaseColumnDef,
+  BaseColumnLayout,
   BaseDraftConflict,
   BaseFilterEvent,
   BaseFilterOption,
@@ -761,6 +762,8 @@ export class BaseTableComponent<T = BaseRow> {
   readonly manageColumn = output<string[]>();
   /** Fires alongside `manageColumn` with the full left/right pin assignment, for hosts persisting table view state. */
   readonly pinChange = output<Record<string, 'left' | 'right'>>();
+  /** Fires alongside `manageColumn`/`pinChange` with the complete layout (order + visible + pinned) as one fact — what a saved view actually stores. Also available on demand via `getColumnLayout()`. */
+  readonly layoutChange = output<BaseColumnLayout>();
   readonly scrollEvent = output<BaseScrollEvent>();
 
   private readonly cellTemplates = contentChildren(BaseCellDirective<T>);
@@ -884,8 +887,35 @@ export class BaseTableComponent<T = BaseRow> {
     }
     cols = cols.filter(c => hidden ? !hidden.has(c.key) : !c.hidden);
     if (pinned) cols = cols.map(c => pinned[c.key] ? { ...c, sticky: pinned[c.key] } : c);
-    return cols;
+    return this.enforcePinBudget(cols, pinned);
   });
+
+  /**
+   * A view (or a manual pin) that exceeds `pinBudgetPercent` unpins from the
+   * right — outermost user-pinned column first — until back within budget,
+   * on this render only. It never touches `managePinned`, so the saved
+   * view/layout is untouched; switching away and back (or widening the
+   * table) brings the dropped pin(s) straight back. Identity-locked columns
+   * (a static `sticky` in the column def, not a user pin) are never
+   * candidates — the budget can't unpin what the host declared load-bearing.
+   */
+  private enforcePinBudget(cols: BaseColumnDef<T>[], pinned: Record<string, 'left' | 'right'> | null): BaseColumnDef<T>[] {
+    if (!pinned) return cols;
+    const total = cols.reduce((s, c) => s + this.widthPx(c), 0);
+    if (total <= 0) return cols;
+    const budget = this.pinBudgetPercent();
+    let pinnedWidth = cols.filter(c => c.sticky).reduce((s, c) => s + this.widthPx(c), 0);
+    if ((pinnedWidth / total) * 100 <= budget) return cols;
+
+    const result = [...cols];
+    for (let idx = result.length - 1; idx >= 0 && (pinnedWidth / total) * 100 > budget; idx--) {
+      const c = result[idx];
+      if (c.sticky !== 'right' || pinned[c.key] !== 'right') continue;
+      pinnedWidth -= this.widthPx(c);
+      result[idx] = { ...c, sticky: undefined };
+    }
+    return result;
+  }
 
   readonly visibleColumns = computed(() => {
     let cols = this.pinnedColumns();
@@ -1426,6 +1456,33 @@ export class BaseTableComponent<T = BaseRow> {
     this.managePinned.set(ev.pinned);
     this.manageColumn.emit(ev.visibleKeys);
     this.pinChange.emit(ev.pinned);
+    this.layoutChange.emit({ order: ev.order, visibleKeys: ev.visibleKeys, pinned: ev.pinned });
+  }
+
+  /** The current layout as one fact — what a view's "Update"/"Save as new" should capture. Reflects the real intended arrangement (before any viewport-driven pin-budget unpinning), so restoring it later doesn't silently shrink a saved view. */
+  getColumnLayout(): BaseColumnLayout {
+    const order = this.manageOrder() ?? this.columns().map(c => c.key);
+    return { order, visibleKeys: this.manageVisibleKeys(), pinned: this.managePinned() ?? {} };
+  }
+
+  /** Restores a captured layout — a view's "Open"/"Reset", or `null` to drop back to the column defs' own defaults (order as declared, nothing hidden, only identity-locked pins). */
+  applyColumnLayout(layout: BaseColumnLayout | null): void {
+    if (!layout) {
+      this.manageOrder.set(null);
+      this.manageHidden.set(null);
+      this.managePinned.set(null);
+      return;
+    }
+    // Release drift: a column the saved layout still names but the table no
+    // longer defines is dropped from order, hidden-computation and pinned
+    // alike — silently, rather than restoring a stale/impossible layout.
+    const validKeys = new Set(this.columns().map(c => c.key));
+    const order = layout.order.filter(k => validKeys.has(k));
+    const visibleKeys = new Set(layout.visibleKeys.filter(k => validKeys.has(k)));
+    const pinned = Object.fromEntries(Object.entries(layout.pinned).filter(([k]) => validKeys.has(k)));
+    this.manageOrder.set(order);
+    this.manageHidden.set(new Set(order.filter(k => !visibleKeys.has(k))));
+    this.managePinned.set(pinned);
   }
 
   onScroll(ev: Event): void {

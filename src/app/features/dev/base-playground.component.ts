@@ -24,6 +24,7 @@ import {
   BaseCheckboxGroupComponent,
   BaseColorPickerComponent,
   BaseColumnDef,
+  BaseColumnLayout,
   BaseComboOption,
   BaseComboboxComponent,
   BaseContextMenuComponent,
@@ -744,15 +745,19 @@ function mockRows(n: number): ToolRow[] {
       </div>
 
       <!-- Saved Views & Filter Rail — fully controlled: this component only renders the rail and
-           emits intent. "Modified" here is a proxy driven off sortChange/filterChange/manageColumn
-           (see onTableStateChanged) since re-applying a saved view's filter/sort state onto the
-           live table needs those to be host-controlled inputs — a natural next step, not done here.
-           The filter-chips row below the table's search bar (on by default) shows every active
-           checkbox/calendar/range filter as a removable chip plus a non-removable sort chip. -->
+           emits intent. Column layout (visible/order/pinning) is real: Save/Update capture it via
+           getColumnLayout(), Switch/Reset restore it via applyColumnLayout() (see onView* below) —
+           the column-management flow the "Fab-A only" view exists specifically to demonstrate.
+           "Modified" is raised by sortChange/filterChange/manageColumn/layoutChange alike
+           (see onTableStateChanged); filters/sort themselves stay host-tracked-only, matching how
+           the filter-chips row below the table's search bar shows every active checkbox/calendar/
+           range filter as a removable chip plus a non-removable sort chip, without a restore path
+           of its own yet — a natural next step, not done here. -->
       <div class="panel overflow-hidden">
         <base-table-views [views]="tableViews()" [activeViewId]="activeViewId()" [modified]="viewModified()"
                            (activeViewIdChange)="onViewSwitch($event)" (save)="onViewSave($event)"
-                           (update)="onViewUpdate()" (reset)="onViewReset()" (copyLink)="onViewCopyLink()" />
+                           (update)="onViewUpdate()" (reset)="onViewReset()" (copyLink)="onViewCopyLink()"
+                           (duplicate)="onViewDuplicate()" />
 
         <base-table class="block"
           [columns]="columns()"
@@ -789,6 +794,7 @@ function mockRows(n: number): ToolRow[] {
           (selectionChange)="selectedCount.set($event.length)"
           (expandChange)="log('expandChange', $event.row.toolId + ' → ' + $event.expanded)"
           (manageColumn)="log('manageColumn', $event.join(', ')); onTableStateChanged()"
+          (layoutChange)="onTableStateChanged()"
           (handleAction)="onHandleAction($event)"
           (cellEdit)="onCellEdit($event)"
           (saveChanges)="onSaveChanges($event)"
@@ -870,39 +876,63 @@ export class BasePlaygroundComponent {
     this.tableError.set(true);
   }
 
-  readonly tableViews = signal<BaseTableView[]>([
+  /** A distinct, narrower layout so switching to "Fab-A only" visibly changes columns, not just the row filter — the exact gap the column-management feedback called out. */
+  private readonly fabAColumnLayout: BaseColumnLayout = {
+    order: ['toolId', 'photo', 'fab', 'chamber', 'status', 'healthHeat', 'uptime', 'alarms', 'downtimeCost', 'trendPct', 'history', 'lastMaint', 'quickActions', 'actions'],
+    visibleKeys: ['toolId', 'fab', 'status', 'uptime', 'quickActions', 'actions'],
+    pinned: {}
+  };
+
+  readonly tableViews = signal<BaseTableView<BaseColumnLayout>[]>([
     { id: 'all', label: 'All', isDefault: true, count: this.rows().length },
     { id: 'down-tools', label: 'Down tools', pinned: true, count: this.rows().filter(r => r.status === 'DOWN').length },
-    { id: 'shared-fab-a', label: 'Fab-A only', pinned: true, shared: true, readOnly: true, count: this.rows().filter(r => r.fab === 'Fab-A').length }
+    {
+      id: 'shared-fab-a', label: 'Fab-A only', pinned: true, shared: true, readOnly: true,
+      count: this.rows().filter(r => r.fab === 'Fab-A').length, state: this.fabAColumnLayout
+    }
   ]);
   readonly activeViewId = signal('all');
   readonly viewModified = signal(false);
 
+  /** Every trigger that should raise "Modified" funnels through here — a filter/sort change (existing) or a column layout change (new: visibility, order, or pin). */
   onTableStateChanged(): void {
     if (!this.viewModified()) this.viewModified.set(true);
   }
   onViewSwitch(id: string): void {
     this.activeViewId.set(id);
     this.viewModified.set(false);
-    this.log('table-views switch', id);
+    const view = this.tableViews().find(v => v.id === id);
+    this.editableTableRef?.applyColumnLayout(view?.state ?? null);
+    this.log('table-views switch', `${id} (${view?.state ? view.state.visibleKeys.length + ' columns from the saved layout' : 'grid default columns'})`);
   }
   onViewSave(label: string): void {
     const id = `${label.toLowerCase().replace(/\s+/g, '-')}-${Date.now().toString(36)}`;
-    this.tableViews.update(v => [...v, { id, label }]);
+    const layout = this.editableTableRef?.getColumnLayout();
+    this.tableViews.update(v => [...v, { id, label, state: layout }]);
     this.activeViewId.set(id);
     this.viewModified.set(false);
-    this.log('table-views save', label);
+    this.log('table-views save', `${label} (captured ${layout?.visibleKeys.length ?? 0} columns, filters, sort)`);
   }
   onViewUpdate(): void {
+    const id = this.activeViewId();
+    const layout = this.editableTableRef?.getColumnLayout();
+    this.tableViews.update(views => views.map(v => v.id === id ? { ...v, state: layout } : v));
     this.viewModified.set(false);
-    this.log('table-views update', this.activeViewId());
+    this.log('table-views update', `${id} (layout re-captured: ${layout?.visibleKeys.length ?? 0} columns)`);
   }
   onViewReset(): void {
+    const view = this.tableViews().find(v => v.id === this.activeViewId());
+    this.editableTableRef?.applyColumnLayout(view?.state ?? null);
     this.viewModified.set(false);
-    this.log('table-views reset', this.activeViewId());
+    this.log('table-views reset', `${this.activeViewId()} — layout restored to what was saved`);
   }
   onViewCopyLink(): void {
-    this.log('table-views copyLink', this.activeViewId());
+    const layout = this.editableTableRef?.getColumnLayout();
+    this.log('table-views copyLink', `${this.activeViewId()} + filters + sort + layout (${layout?.order.length ?? 0} columns) serialised`);
+  }
+  /** Shared/read-only view, modified: Update is unavailable, so this stands in for opening "Save view" pre-loaded with the current live state. */
+  onViewDuplicate(): void {
+    this.log('table-views duplicate', 'Shared view can\'t be written to — save the current state as a new view instead');
   }
 
   onCellEdit(e: BaseCellEditEvent<ToolRow>): void {
