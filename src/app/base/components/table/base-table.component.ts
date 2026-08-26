@@ -739,7 +739,7 @@ export class BaseTableComponent<T = BaseRow> {
 
   readonly editableRows = input(false);
   readonly cellEdit = output<BaseCellEditEvent<T>>();
-  /** Enables the whole-table save bar (Discard/Save), the leave guard, and — set — "Keep draft" persistence. Must be stable and unique per table on the page. */
+  /** The whole-table save bar and the leave guard already run off `editableRows` alone; setting this additionally offers "Keep draft" in the leave dialog and persists/restores a parked draft across visits. Must be stable and unique per table on the page. */
   readonly draftId = input<string | null>(null);
   /** Optional display label for who last changed a row on the server (e.g. "J. Reyes, 09:12"), shown in the draft-conflict dialog. */
   readonly draftAuthorOf = input<((row: T) => string | null) | null>(null);

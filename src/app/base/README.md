@@ -147,7 +147,7 @@ bucket array, so tooltips stay O(1) regardless of the raw segment count.
 | Selector | Purpose |
 |---|---|
 | `<base-table>` | Core data table — see **Quick start — table** below for the full feature list |
-| `<base-table-views>` | Saved/filtered view tab rail — pinned "All" plus saved views, Modified badge, Save/Update/Reset/Copy link |
+| `<base-table-views>` | Saved/filtered view tab rail — pinned "All" plus saved views, Modified badge, Save/Update/Reset/Duplicate/Copy link |
 | `<base-paginator>` | Standalone, fully-controlled pagination control (also used internally by the table); supports an unknown-total server mode |
 | `<base-search-input>` | Debounced quick-filter text input |
 | `<base-manage-columns>` | "Columns" toolbar button opening a panel to show/hide and drag-reorder table columns; frozen columns lock at the top |
@@ -238,6 +238,18 @@ via `[rows]`. When the total is genuinely unknown, leave `[totalItems]` at 0 (or
 below): the paginator switches to "Showing X–Y" with a Next button gated by
 `[hasNextPage]` (or an auto full-page heuristic) instead of fabricating a total.
 
+### Pagination
+
+`[paginate]="true"` (the default) pages client-side at `[initialPageSize]` (default 10, offered
+via `[pageSizeOptions]`, default `[10, 25, 50, 100]`). Changing the page size doesn't just reset to
+page 1: the table re-anchors to whichever page now contains the row that was first visible before
+the size changed, and prints a note under the paginator saying where it landed ("Page size changed
+to 25. Kept `<row>` in view — now on page 2 of 6.") — or, if that row can no longer be found (e.g.
+it dropped out from a filter in between), falls back to page 1 and says so instead of failing
+silently. The note clears on the next unrelated interaction. Once the page count reaches
+`[pageEntryThreshold]` (default 10), the paginator adds a direct "Go to page" field rather than
+leaving Prev/Next as the only way through a large result set.
+
 ### Sticky columns
 
 Set `sticky: 'left' | 'right'` **and a fixed `width`** on the column def.
@@ -254,11 +266,20 @@ non-locked column can move between groups by dragging it across, or via the
 per-row pin-left/pin-right buttons (a keyboard-reachable equivalent to
 dragging). A budget meter (`[pinBudgetPercent]`, default 40) shows what % of
 total column width is currently pinned (identity-locked + user-pinned
-combined) and tints past that threshold — advisory only, it never blocks a
-pin. Applying emits both `(manageColumn)` (visible keys, unchanged shape) and
-`(pinChange)` (`Record<string, 'left'|'right'>`) for hosts that persist pin
-state as part of a saved view. Selected/error/edit-row tints and the
-scroll-position edge shadow are preserved across pinned cells with no seam.
+combined) and tints past that threshold. The budget is also enforced on
+render: a view (or manual pin) that exceeds it un-pins from the right —
+outermost user-pinned column first — until back within budget, for that
+render only; it never touches the saved pin assignment itself, so switching
+away and back (or widening the table) brings the dropped pin(s) straight
+back. Identity-locked columns are never candidates — the budget can't unpin
+what the host declared load-bearing. Applying emits `(manageColumn)` (visible
+keys, unchanged shape), `(pinChange)` (`Record<string, 'left'|'right'>`), and
+`(layoutChange)` (`BaseColumnLayout` — order + visible keys + pinned as one
+fact) for hosts that persist column state as part of a saved view; the same
+layout is available on demand via `getColumnLayout()` and can be restored
+with `applyColumnLayout()` (see **User-created views** below). Selected/error/edit-row
+tints and the scroll-position edge shadow are preserved across pinned cells
+with no seam.
 
 ### Column filters
 
@@ -295,9 +316,60 @@ Opt in with `[editableRows]="true"` plus `editable: true` (+ `editType`, `editOp
 each column that should become a live control. A cell only swaps to its control while that
 row's `row.isEditing` is true — the host sets this, typically from a row action — and the
 table reflects state (amber tint while dirty, red via `row.hasEditError` on a failed save)
-and emits `(cellEdit)` on every change; it never commits anything itself. While any row is
-editing, sort/filter/page/Manage Columns all block with a dirty-count banner rather than risk
-losing track of an unsaved row.
+and emits `(cellEdit)` on every change; it never commits anything itself.
+
+### The eight-state machine
+
+`[editableRows]="true"` alone is enough to get the whole-table save bar and the leave guard below
+— `[draftId]` is optional and only adds cross-visit persistence (see **Where a draft lives**).
+Every editable row moves through one of eight states:
+
+| State | Reached when | Look/behavior |
+|---|---|---|
+| Read-only | default | static cell content |
+| Editing, clean | host sets `row.isEditing = true` | live controls, no dirty tint |
+| Editing, dirty | a field's value differs from its last-saved snapshot | amber row tint, per-field Revert (`isFieldDirty`/`revertTargetFor`) |
+| Saving | `saveAll()` sent this row in a `(saveChanges)` batch | dimmed and inert (`isRowSaving`) until `reportSaveResult()` is called |
+| Saved | `reportSaveResult()` reports success for this row | snapshot cleared, `row.isEditing` reset to `false` — back to read-only |
+| Save failed | `reportSaveResult()` reports failure for this row | red tint (`isRowFailed`/`rowSaveError`), stays dirty and editable for retry |
+| Parked as draft | user chose "Keep draft" while leaving | live edits reverted; values written to storage instead of the server |
+| Restored with conflict | a parked draft's field no longer matches the server value it was taken from | held in a queue instead of applied — see the conflict dialog below |
+
+While any row is dirty (`hasDirtyRows()`), a persistent bar reads "N rows edited, not saved" with
+**Navigate away** (`confirmLeave()`), **Discard changes** (`discardAll()` — the only control that
+destroys work), and **Save N changes** (`saveAll()`); sort/filter/page/Manage Columns/view
+switching all block until it clears, the same gate a single mid-edit row already applies.
+
+`saveAll()` emits one `(saveChanges)` request per dirty row (`{ key, row, changes }`, `changes`
+holding only the columns that actually differ from the snapshot) and moves every dirty row into
+the Saving state. Call `reportSaveResult(results)` once the batch settles: rows reported successful
+become the new baseline and exit edit mode; rows reported failed keep their edits and dirty state,
+get the error tint, and stay editable — a partial failure never loses or reverts anything.
+
+### Where a draft lives
+
+Set `[draftId]` (a stable id, unique per table on the page) to add "Keep draft" as a leave-dialog
+outcome. It parks every dirty row's changes — plus the server value each field was edited *from*,
+for conflict detection — into `BaseEditDraftService`, keyed by `[draftId]` in `localStorage`
+(falling back to an in-memory `Map`, this tab only, if storage is blocked). Drafts expire after 7
+days and are swept on app start. Reopening the table with a pending draft under that id shows a
+banner — "Unsaved changes from your last visit, N rows on this table · Expires in D days" — with
+**Review changes** (a per-row field-count list; applies nothing), **Discard**
+(`discardParkedDraft()` — drops it unopened), and **Restore** (`restoreDraft()`).
+
+Restoring re-applies the parked values as fresh unsaved edits, except any field whose current
+server value no longer matches the value it was parked against — that field is queued as a
+conflict instead, shown one at a time ("This row changed while your draft was parked", your
+draft's value beside the server's current one, labeled via `[draftAuthorOf]` if provided), with
+**Keep the server value** or **Restore mine as an edit**.
+
+### Leaving with work pending
+
+Call `confirmLeave()` from a router `CanDeactivate`/`beforeunload` handler. It resolves `true`
+immediately if nothing is dirty; otherwise it opens a dialog with **Stay on page** (also what
+Escape/backdrop does), **Save and leave** (runs `saveAll()`; a failed save shows "Save failed" and
+re-opens the same choice instead of leaving), **Keep draft** (only offered when `[draftId]` is
+set), and **Discard**. Every outcome except a failed "Save and leave" resolves the promise `true`.
 
 ### Row-level visual indicators
 
@@ -393,13 +465,24 @@ meant for tables that lead with a title rather than a search box.
 upload) from the row entirely, rather than merely disabling them — view/copy/download/run/
 history/more survive.
 
-### Saved views
+### User-created views
 
 `<base-table-views>` is a separate, fully controlled component — it renders the tab rail and
-emits intent (switch/save/update/reset/copy-link) but never inspects a view's `state` or
+emits intent (switch/save/update/reset/copy-link/duplicate) but never inspects a view's `state` or
 re-applies it onto a table itself; the host owns the view list and derives "modified" by
-diffing its own live filter/sort/column snapshot against the active view's saved one. See
-`base-table-views.component.ts`'s class doc for the full contract.
+diffing its own live filter/sort/column snapshot against the active view's saved one. Update/Reset
+only render for a view the host can actually write back to (`!v.isDefault && !v.readOnly`); a
+modified shared or read-only view instead offers Reset alongside `(duplicate)`, since Update isn't
+available on a view it doesn't own — the host should respond by opening "Save view" pre-filled
+with the current live state.
+
+A view's column layout — order, visible keys, and left/right pins as one stored fact
+(`BaseColumnLayout`) — is captured from `<base-table>` with `getColumnLayout()` when saving or
+updating a view, and restored with `applyColumnLayout(layout)` on switch/open (pass `null` to drop
+back to the column defs' own defaults). `<base-table>` also emits this same shape on every column
+change via `(layoutChange)`, for hosts that persist it as they go rather than pulling it on save.
+Selection, expansion, scroll position, page number and pending edits are deliberately not part of
+a view's column layout — a view is a lens on the data, not a session snapshot.
 
 ## Used throughout the app
 
