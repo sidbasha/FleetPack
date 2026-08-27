@@ -18,6 +18,7 @@ export * from './components/base-drawer.component';
 export * from './components/base-advanced-form.components';
 export * from './components/base-charts.components';
 export * from './components/base-timeline.components';
+export * from './components/chart-zoom.util';
 export * from './components/base-notification.components';
 export * from './services/base-theme.service';
 export * from './services/base-density.service';

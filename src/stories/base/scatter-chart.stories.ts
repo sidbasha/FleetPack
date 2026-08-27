@@ -17,7 +17,7 @@ const meta: Meta<BaseScatterChartComponent> = {
   parameters: {
     docs: {
       description: {
-        component: 'Drag-select a rectangle to zoom into that x/y region — both axes rescale to the selection, and points outside it drop out. "Reset Zoom" restores the full domain.'
+        component: 'Drag-select a rectangle to zoom into that x/y region — both axes rescale to the selection, and points outside it drop out. "Reset Zoom" restores the full domain. Clicking points selects which show — any number at once, with a "Reset Filter" link.'
       }
     }
   }

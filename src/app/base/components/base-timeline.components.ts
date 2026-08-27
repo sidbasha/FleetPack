@@ -18,7 +18,8 @@ import {
   BaseChartZoomBarComponent,
   fracX,
   isZoomedWindow,
-  narrowZoomWindow
+  narrowZoomWindow,
+  toggleInSet
 } from './chart-zoom.util';
 
 export type BaseMachineState =
@@ -83,7 +84,7 @@ export interface BaseHeatmapRow { label: string; cells: BaseHeatmapCell[]; }
                           class="block w-full outline-none focus-visible:ring-2 focus-visible:ring-action"
                           style="height: 14px; width: 20px;"
                           [style.background]="bg(cell.state)"
-                          [style.opacity]="hover() && hover()!.row === row.label && hover()!.col === cell.col ? 1 : 0.92"
+                          [style.opacity]="cellOpacity(row.label, cell)"
                           [attr.title]="row.label + ' · ' + cell.col + ' · ' + meta(cell.state).label"
                           (mouseenter)="hover.set({ row: row.label, col: cell.col })"
                           (mouseleave)="hover.set(null)">
@@ -97,11 +98,20 @@ export interface BaseHeatmapRow { label: string; cells: BaseHeatmapCell[]; }
     </div>
     <div class="flex flex-wrap items-center gap-x-sp-4 gap-y-1 mt-sp-3 text-[11px] text-ink-600">
       @for (s of legendStates(); track s) {
-        <span class="flex items-center gap-1.5">
+        <button type="button" class="flex items-center gap-1.5 bg-transparent border-0 p-0"
+                [class.opacity-40]="!isStateActive(s)" [class.cursor-pointer]="filterable()"
+                [attr.title]="filterable() ? 'Click to toggle ' + meta(s).label : meta(s).label"
+                (click)="toggleStateFilter(s)">
           <i class="inline-block w-2.5 h-2.5 rounded-r-xs" [style.background]="bg(s)"></i>
           <span class="icon-outline" style="font-size:12px;" [style.color]="meta(s).colorVar" aria-hidden="true">{{ meta(s).icon }}</span>
           {{ meta(s).label }}
-        </span>
+        </button>
+      }
+      @if (filterable()) {
+        <button type="button" class="text-[11px] font-semibold" [class]="isFiltered() ? 'text-action cursor-pointer' : 'text-ink-500 cursor-default'"
+                [disabled]="!isFiltered()" (click)="resetFilter()">
+          Reset Filter
+        </button>
       }
     </div>
   `
@@ -110,11 +120,36 @@ export class BaseStateHeatmapComponent {
   readonly rows = input.required<BaseHeatmapRow[]>();
   readonly columns = input.required<string[]>();
   readonly legendStates = input<BaseMachineState[]>(['production', 'engineering', 'standby', 'scheduled-dt', 'unscheduled-dt', 'non-scheduled', 'gap']);
+  /** Click a legend state to isolate it (dims every other state's cells); shows a "Reset Filter" link. */
+  readonly filterable = input(true);
 
   protected readonly hover = signal<{ row: string; col: string } | null>(null);
+  /** Any number of states can be selected at once — "isolate" means "show only the selected set". */
+  protected readonly filteredStates = signal<ReadonlySet<BaseMachineState>>(new Set());
+  protected readonly isFiltered = computed(() => this.filteredStates().size > 0);
 
   meta(s: BaseMachineState) { return BASE_MACHINE_STATE_META[s]; }
   bg(s: BaseMachineState): string { return stateBackground(s); }
+
+  isStateActive(s: BaseMachineState): boolean {
+    const f = this.filteredStates();
+    return f.size === 0 || f.has(s);
+  }
+
+  toggleStateFilter(s: BaseMachineState): void {
+    if (!this.filterable()) return;
+    this.filteredStates.update(current => toggleInSet(current, s));
+  }
+
+  resetFilter(): void {
+    this.filteredStates.set(new Set());
+  }
+
+  cellOpacity(rowLabel: string, cell: BaseHeatmapCell): number {
+    if (!this.isStateActive(cell.state)) return 0.15;
+    const h = this.hover();
+    return h && h.row === rowLabel && h.col === cell.col ? 1 : 0.92;
+  }
 }
 
 export interface BaseGanttSegment {
@@ -187,7 +222,8 @@ function drawGanttRow(
   row: BaseGanttRow,
   domainStart: number,
   domainEnd: number,
-  tiles: Map<BaseMachineState, HTMLCanvasElement>
+  tiles: Map<BaseMachineState, HTMLCanvasElement>,
+  filteredStates: ReadonlySet<BaseMachineState>
 ): (BaseGanttSegment | null)[] {
   const cssWidth = Math.max(1, Math.round(canvas.clientWidth));
   const cssHeight = Math.max(1, Math.round(canvas.clientHeight));
@@ -222,7 +258,11 @@ function drawGanttRow(
           const tile = tiles.get(seg.state);
           const pattern = tile ? ctx.createPattern(tile, 'repeat') : null;
           ctx.fillStyle = pattern ?? resolveStateColor(canvas, BASE_MACHINE_STATE_META[seg.state].colorVar);
+          // Click-to-toggle-a-state (multi-select): everything outside the selected set
+          // dims, matching the opacity-based dimming used for row/series filters elsewhere.
+          ctx.globalAlpha = filteredStates.size === 0 || filteredStates.has(seg.state) ? 1 : 0.2;
           ctx.fillRect(runStart, 0, px - runStart, cssHeight);
+          ctx.globalAlpha = 1;
         }
         runStart = px;
       }
@@ -247,7 +287,7 @@ function drawGanttRow(
               class="w-16 shrink-0 text-[11px] font-semibold truncate text-left bg-transparent border-0 p-0"
               [class.text-action]="selected()" [class.text-ink-700]="!selected()"
               [class.cursor-pointer]="filterable()" [disabled]="!filterable()"
-              [attr.title]="filterable() ? 'Click to isolate this row' : row().label"
+              [attr.title]="filterable() ? 'Click to toggle this row' : row().label"
               (click)="labelClick.emit(row().label)">
         {{ row().label }}
       </button>
@@ -283,6 +323,7 @@ export class BaseGanttRowCanvasComponent implements OnDestroy {
   readonly selected = input(false);
   readonly filterable = input(true);
   readonly dragging = input(false);
+  readonly filteredStates = input<ReadonlySet<BaseMachineState>>(new Set());
   readonly labelClick = output<string>();
 
   private readonly canvasRef = viewChild<ElementRef<HTMLCanvasElement>>('rowCanvas');
@@ -307,8 +348,9 @@ export class BaseGanttRowCanvasComponent implements OnDestroy {
       const start = this.domainStart();
       const end = this.domainEnd();
       const tiles = this.tiles();
+      const filteredStates = this.filteredStates();
       this.redrawTick();
-      if (ref) this.buckets = drawGanttRow(ref.nativeElement, row, start, end, tiles);
+      if (ref) this.buckets = drawGanttRow(ref.nativeElement, row, start, end, tiles, filteredStates);
     });
 
     effect(() => {
@@ -361,7 +403,8 @@ export class BaseGanttRowCanvasComponent implements OnDestroy {
           <base-gantt-row-canvas
             [row]="row" [domainStart]="visibleDomain().start" [domainEnd]="visibleDomain().end"
             [tiles]="tiles()" [durationFormat]="durationFormat() ?? defaultDurationFn"
-            [selected]="filteredLabel() === row.label" [filterable]="filterable()" [dragging]="isDragging()"
+            [selected]="filteredLabels().has(row.label)" [filterable]="filterable()" [dragging]="isDragging()"
+            [filteredStates]="filteredStates()"
             (labelClick)="onLabelClick($event)" />
         </div>
       </cdk-virtual-scroll-viewport>
@@ -386,11 +429,14 @@ export class BaseGanttRowCanvasComponent implements OnDestroy {
     </div>
     <div class="flex flex-wrap items-center gap-x-sp-4 gap-y-1 mt-sp-3 text-[11px] text-ink-600">
       @for (s of legendStates(); track s) {
-        <span class="flex items-center gap-1.5">
+        <button type="button" class="flex items-center gap-1.5 bg-transparent border-0 p-0"
+                [class.opacity-40]="!isStateActive(s)" [class.cursor-pointer]="filterable()"
+                [attr.title]="filterable() ? 'Click to toggle ' + meta(s).label : meta(s).label"
+                (click)="toggleStateFilter(s)">
           <i class="inline-block w-2.5 h-2.5 rounded-r-xs" [style.background]="bg(s)"></i>
           <span class="icon-outline" style="font-size:12px;" [style.color]="meta(s).colorVar" aria-hidden="true">{{ meta(s).icon }}</span>
           {{ meta(s).label }}
-        </span>
+        </button>
       }
     </div>
   `
@@ -423,9 +469,12 @@ export class BaseGanttTimelineComponent {
   protected readonly trackRef = viewChild<ElementRef<HTMLElement>>('trackRef');
 
   protected readonly zoomWindow = signal<ChartZoomWindow>(FULL_ZOOM_WINDOW);
-  protected readonly filteredLabel = signal<string | null>(null);
+  /** Any number of rows can be selected at once — "isolate" means "show only the selected set". */
+  protected readonly filteredLabels = signal<ReadonlySet<string>>(new Set());
+  /** Any number of legend states can be selected at once — every segment outside the set dims across all rows. */
+  protected readonly filteredStates = signal<ReadonlySet<BaseMachineState>>(new Set());
   protected readonly isZoomed = computed(() => isZoomedWindow(this.zoomWindow()));
-  protected readonly isFiltered = computed(() => this.filteredLabel() !== null);
+  protected readonly isFiltered = computed(() => this.filteredLabels().size > 0 || this.filteredStates().size > 0);
 
   protected readonly dragStartFrac = signal<number | null>(null);
   protected readonly dragCurrentFrac = signal<number | null>(null);
@@ -434,9 +483,9 @@ export class BaseGanttTimelineComponent {
   private dragTrackWidth = 0;
 
   protected readonly visibleRows = computed(() => {
-    const f = this.filteredLabel();
+    const f = this.filteredLabels();
     const rows = this.rows();
-    return f === null ? rows : rows.filter(r => r.label === f);
+    return f.size === 0 ? rows : rows.filter(r => f.has(r.label));
   });
 
   protected readonly viewportHeightPx = computed(() =>
@@ -481,11 +530,24 @@ export class BaseGanttTimelineComponent {
 
   onLabelClick(label: string): void {
     if (!this.filterable()) return;
-    this.filteredLabel.update(current => current === label ? null : label);
+    this.filteredLabels.update(current => toggleInSet(current, label));
   }
 
-  resetFilter(): void { this.filteredLabel.set(null); }
+  resetFilter(): void {
+    this.filteredLabels.set(new Set());
+    this.filteredStates.set(new Set());
+  }
   resetZoom(): void { this.zoomWindow.set(FULL_ZOOM_WINDOW); }
+
+  isStateActive(s: BaseMachineState): boolean {
+    const f = this.filteredStates();
+    return f.size === 0 || f.has(s);
+  }
+
+  toggleStateFilter(s: BaseMachineState): void {
+    if (!this.filterable()) return;
+    this.filteredStates.update(current => toggleInSet(current, s));
+  }
 
   onDragStart(ev: PointerEvent): void {
     if (!this.zoomable() || ev.button !== 0) return;

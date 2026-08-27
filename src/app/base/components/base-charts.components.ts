@@ -8,7 +8,8 @@ import {
   fracY,
   isZoomedWindow,
   narrowZoomWindow,
-  sliceWindow
+  sliceWindow,
+  toggleInSet
 } from './chart-zoom.util';
 
 export const SERIES_COLOR_ORDER = ['action', 'accent', 'info', 'success', 'warning', 'error'] as const;
@@ -36,6 +37,22 @@ export interface BaseChartPoint {
 
 const CHART_FONT = 'font-family:var(--font-mono);font-variant-numeric:tabular-nums;';
 
+type TrendSeriesKey = string;
+
+/**
+ * A rolling-average overlay for `base-trend-chart` — any window length works ("4W Rolling",
+ * "13W Rolling", "26W Rolling", "YTD Rolling", …), there's nothing 4/13-specific about it.
+ * Points carry their own week label rather than assuming positional alignment with `data`,
+ * since a rolling series generally starts later and runs shorter than the main series.
+ */
+export interface BaseTrendRollingSeries {
+  /** Stable identifier for this series — used for the click-to-isolate filter. */
+  key: string;
+  /** Legend label, e.g. "4W Rolling" or "13W Rolling" — whatever window this series represents. */
+  label: string;
+  data: BaseChartPoint[];
+}
+
 @Component({
   selector: 'base-trend-chart',
   standalone: true,
@@ -43,15 +60,30 @@ const CHART_FONT = 'font-family:var(--font-mono);font-variant-numeric:tabular-nu
   imports: [DecimalPipe, BaseChartZoomBarComponent],
   template: `
     <div class="relative">
-      @if (zoomable()) {
-        <base-chart-zoom-bar [zoomed]="isZoomed()" (resetZoom)="resetZoom()" />
+      @if (zoomable() || filterable()) {
+        <base-chart-zoom-bar [zoomed]="isZoomed()" [filtered]="isFiltered()" [showFilter]="filterable() && hasMultipleSeries()"
+                              (resetZoom)="resetZoom()" (resetFilter)="resetFilter()" />
       }
-      @if (rolling4w().length || rolling13w().length || target() !== undefined) {
+      @if (hasMultipleSeries()) {
         <div class="flex flex-wrap items-center gap-sp-4 mb-sp-2 text-[11px] text-ink-600">
-          <span class="flex items-center gap-1.5"><i class="inline-block w-3 h-0.5 bg-action"></i>{{ seriesLabel() }}</span>
-          @if (rolling4w().length) { <span class="flex items-center gap-1.5"><i class="inline-block w-3 h-0.5 bg-action" style="border-top:1.5px dashed var(--color-action);background:none;"></i>4W Rolling</span> }
-          @if (rolling13w().length) { <span class="flex items-center gap-1.5"><i class="inline-block w-3 h-0.5" style="border-top:1.5px dotted var(--color-accent);"></i>13W Rolling</span> }
-          @if (target() !== undefined) { <span class="flex items-center gap-1.5"><i class="inline-block w-3 h-0.5" style="border-top:1.5px dashed var(--color-neutral-400);"></i>{{ targetLabel() }}</span> }
+          <span class="flex items-center gap-1.5" [class.opacity-40]="!showSeries('actual')"
+                [class.cursor-pointer]="filterable()" (click)="onLegendClick('actual')">
+            <i class="inline-block w-3 h-0.5 bg-action"></i>{{ seriesLabel() }}
+          </span>
+          @for (s of alignedRollingSeries(); track s.key; let i = $index) {
+            @if (s.points.length) {
+              <span class="flex items-center gap-1.5" [class.opacity-40]="!showSeries(s.key)"
+                    [class.cursor-pointer]="filterable()" (click)="onLegendClick(s.key)">
+                <i class="inline-block w-3 h-0.5" [style.border-top]="'1.5px ' + dashStyleFor(i) + ' ' + colorFor(i)"></i>{{ s.label }}
+              </span>
+            }
+          }
+          @if (target() !== undefined) {
+            <span class="flex items-center gap-1.5" [class.opacity-40]="!showSeries('target')"
+                  [class.cursor-pointer]="filterable()" (click)="onLegendClick('target')">
+              <i class="inline-block w-3 h-0.5" style="border-top:1.5px dashed var(--color-neutral-400);"></i>{{ targetLabel() }}
+            </span>
+          }
         </div>
       }
       <svg [attr.viewBox]="'0 0 ' + w + ' ' + h" [attr.width]="'100%'" [attr.height]="height()" preserveAspectRatio="none"
@@ -62,15 +94,22 @@ const CHART_FONT = 'font-family:var(--font-mono);font-variant-numeric:tabular-nu
           <line [attr.x1]="padL" [attr.x2]="w - padR" [attr.y1]="gy.y" [attr.y2]="gy.y" stroke="var(--color-neutral-200)" stroke-width="1" />
           <text [attr.x]="padL - 6" [attr.y]="gy.y + 3" text-anchor="end" font-size="9" fill="var(--color-ink-500)" [attr.style]="fontStyle">{{ gy.label }}</text>
         }
-        @if (areaPoints(); as ap) { <polygon [attr.points]="ap" fill="var(--color-action)" opacity="0.08" /> }
-        @if (target() !== undefined) {
+        @if (showSeries('actual')) {
+          @if (areaPoints(); as ap) { <polygon [attr.points]="ap" fill="var(--color-action)" opacity="0.08" /> }
+        }
+        @if (showSeries('target') && target() !== undefined) {
           <line [attr.x1]="padL" [attr.x2]="w - padR" [attr.y1]="targetY()" [attr.y2]="targetY()" stroke="var(--color-neutral-400)" stroke-width="1.5" stroke-dasharray="5 3" />
         }
-        @if (windowedRolling13w().length) { <polyline [attr.points]="linePoints(windowedRolling13w())" fill="none" stroke="var(--color-accent)" stroke-width="1.5" stroke-dasharray="1 3" stroke-linecap="round" /> }
-        @if (windowedRolling4w().length) { <polyline [attr.points]="linePoints(windowedRolling4w())" fill="none" stroke="var(--color-action)" stroke-width="1.5" stroke-dasharray="5 3" stroke-linecap="round" /> }
-        <polyline [attr.points]="linePoints(values())" fill="none" stroke="var(--color-action)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        @for (s of alignedRollingSeries(); track s.key; let i = $index) {
+          @if (showSeries(s.key) && s.points.length) {
+            <polyline [attr.points]="linePointsAligned(s.points)" fill="none" [attr.stroke]="colorFor(i)" stroke-width="1.5" [attr.stroke-dasharray]="dashArrayFor(i)" stroke-linecap="round" />
+          }
+        }
+        @if (showSeries('actual')) {
+          <polyline [attr.points]="linePoints(values())" fill="none" stroke="var(--color-action)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        }
 
-        @if (hoverPoint(); as h2) {
+        @if (showSeries('actual') && hoverPoint(); as h2) {
           <line [attr.x1]="xAt(h2.i)" [attr.x2]="xAt(h2.i)" [attr.y1]="padT" [attr.y2]="h - padB" stroke="var(--color-neutral-300)" stroke-width="1" />
           <circle [attr.cx]="xAt(h2.i)" [attr.cy]="yAt(values()[h2.i])" r="3.5" fill="var(--color-action)" stroke="var(--color-neutral-0)" stroke-width="1.5" />
         }
@@ -78,7 +117,7 @@ const CHART_FONT = 'font-family:var(--font-mono);font-variant-numeric:tabular-nu
           <rect [attr.x]="ov.x" y="0" [attr.width]="ov.width" [attr.height]="h" fill="var(--color-action)" opacity="0.12" />
         }
       </svg>
-      @if (hoverPoint(); as h2) {
+      @if (showSeries('actual') && hoverPoint(); as h2) {
         <div class="absolute pointer-events-none bg-ink-900 text-neutral-0 text-[11px] font-semibold rounded-r-xs px-sp-2 py-1 mono-data"
              [style.left.%]="xAt(h2.i) / w * 100" [style.top.%]="(yAt(values()[h2.i]) - 34) / h * 100" style="transform: translateX(-50%);">
           {{ windowedData()[h2.i].x }} · {{ windowedData()[h2.i].y | number: '1.1-1' }}%
@@ -92,8 +131,16 @@ const CHART_FONT = 'font-family:var(--font-mono);font-variant-numeric:tabular-nu
 })
 export class BaseTrendChartComponent {
   readonly data = input.required<BaseChartPoint[]>();
-  readonly rolling4w = input<number[]>([]);
-  readonly rolling13w = input<number[]>([]);
+  /**
+   * Any number of rolling-average overlays — not fixed to 4-week/13-week, a series can
+   * represent any window length. Each point carries its own week label (`x`) rather than
+   * assuming positional alignment with `data`, since a rolling average "warms up" late
+   * (an N-week rolling value only exists once N weeks of history exist) and generally
+   * won't have the same length or start week as the main series or each other. Points are
+   * matched to `data`'s x-labels, so a series can start/end on any week and still land in
+   * the right place, including after a zoom.
+   */
+  readonly rollingSeries = input<BaseTrendRollingSeries[]>([]);
   readonly target = input<number | undefined>(undefined);
   readonly targetLabel = input('Target');
   readonly seriesLabel = input('Actual');
@@ -101,6 +148,8 @@ export class BaseTrendChartComponent {
   readonly showArea = input(true);
   /** Drag-select on the chart to zoom into a range of points; shows a "Reset Zoom" link. */
   readonly zoomable = input(true);
+  /** Click legend entries to select which series show (any number at once); shows a "Reset Filter" link. */
+  readonly filterable = input(true);
 
   protected readonly fontStyle = CHART_FONT;
   protected readonly w = 480;
@@ -113,9 +162,15 @@ export class BaseTrendChartComponent {
   protected readonly dragStartFrac = signal<number | null>(null);
   protected readonly dragCurrentFrac = signal<number | null>(null);
 
+  /** Any number of series can be selected at once — "isolate" means "show only the selected set". */
+  protected readonly filteredSeries = signal<ReadonlySet<TrendSeriesKey>>(new Set());
+  protected readonly isFiltered = computed(() => this.filteredSeries().size > 0);
+  protected readonly hasMultipleSeries = computed(() => this.rollingSeries().length > 0 || this.target() !== undefined);
+
   protected readonly windowedData = computed(() => sliceWindow(this.data(), this.zoomWindow()));
-  protected readonly windowedRolling4w = computed(() => this.windowAligned(this.rolling4w()));
-  protected readonly windowedRolling13w = computed(() => this.windowAligned(this.rolling13w()));
+  protected readonly alignedRollingSeries = computed(() =>
+    this.rollingSeries().map(s => ({ key: s.key, label: s.label, points: this.alignToWindow(s.data) }))
+  );
   protected readonly values = computed(() => this.windowedData().map(d => d.y));
 
   // Wrapped in an object so index 0 still reads as "present" (a bare number is falsy in @if).
@@ -124,17 +179,41 @@ export class BaseTrendChartComponent {
     return i !== null && i < this.windowedData().length ? { i } : null;
   });
 
-  private windowAligned(series: number[]): number[] {
-    // Rolling series are assumed index-aligned with `data`; only window them when the lengths agree.
-    return series.length === this.data().length ? sliceWindow(series, this.zoomWindow()) : series;
+  /**
+   * Match each rolling point to the currently-visible week by its own x-label (not by
+   * index) — a rolling series can be shorter than `data`, start on a later week, or
+   * skip weeks entirely, and this still places every point on the correct tick.
+   * Points whose label falls outside the current zoom window are simply dropped,
+   * which is exactly right: the rolling line just starts/ends where its data does.
+   */
+  private alignToWindow(series: BaseChartPoint[]): { index: number; y: number }[] {
+    const indexByLabel = new Map(this.windowedData().map((d, i) => [d.x, i]));
+    return series
+      .filter(p => indexByLabel.has(p.x))
+      .map(p => ({ index: indexByLabel.get(p.x)!, y: p.y }))
+      .sort((a, b) => a.index - b.index);
   }
 
   private readonly domain = computed(() => {
-    const all = [...this.values(), ...this.windowedRolling4w(), ...this.windowedRolling13w()];
+    const all = [...this.values(), ...this.alignedRollingSeries().flatMap(s => s.points.map(p => p.y))];
     if (this.target() !== undefined) all.push(this.target()!);
     const min = Math.min(0, ...all), max = Math.max(100, ...all);
     return { min, max };
   });
+
+  /** Cycle the shared series palette for each rolling overlay, offset by 1 so the first doesn't collide with the main (action-colored) line. */
+  protected colorFor(i: number): string {
+    return seriesColor(i + 1);
+  }
+
+  /** Alternate dash patterns so adjacent rolling overlays stay visually distinct even when colors repeat past the palette length. */
+  protected dashArrayFor(i: number): string {
+    return i % 2 === 0 ? '5 3' : '1 3';
+  }
+
+  protected dashStyleFor(i: number): string {
+    return i % 2 === 0 ? 'dashed' : 'dotted';
+  }
 
   protected readonly gridLines = computed(() => {
     const { min, max } = this.domain();
@@ -169,6 +248,11 @@ export class BaseTrendChartComponent {
 
   protected linePoints(series: number[]): string {
     return series.map((v, i) => `${this.xAt(i)},${this.yAtValue(v)}`).join(' ');
+  }
+
+  /** Like linePoints(), but each point already carries its own x-index (see alignToWindow) rather than assuming positional order. */
+  protected linePointsAligned(points: { index: number; y: number }[]): string {
+    return points.map(p => `${this.xAt(p.index)},${this.yAtValue(p.y)}`).join(' ');
   }
 
   protected readonly areaPoints = computed(() => {
@@ -225,6 +309,20 @@ export class BaseTrendChartComponent {
   resetZoom(): void {
     this.zoomWindow.set(FULL_ZOOM_WINDOW);
   }
+
+  showSeries(key: TrendSeriesKey): boolean {
+    const f = this.filteredSeries();
+    return f.size === 0 || f.has(key);
+  }
+
+  onLegendClick(key: TrendSeriesKey): void {
+    if (!this.filterable()) return;
+    this.filteredSeries.update(current => toggleInSet(current, key));
+  }
+
+  resetFilter(): void {
+    this.filteredSeries.set(new Set());
+  }
 }
 
 @Component({
@@ -235,15 +333,16 @@ export class BaseTrendChartComponent {
   template: `
     @if (orientation() === 'horizontal') {
       <div class="relative">
-        @if (zoomable()) {
-          <base-chart-zoom-bar [zoomed]="isZoomed()" (resetZoom)="resetZoom()" />
+        @if (zoomable() || filterable()) {
+          <base-chart-zoom-bar [zoomed]="isZoomed()" [filtered]="isFiltered()" [showFilter]="filterable()"
+                                (resetZoom)="resetZoom()" (resetFilter)="resetFilter()" />
         }
         <div class="relative flex flex-col gap-sp-2.5"
              (pointerdown)="onHPointerDown($event)" (pointermove)="onHPointerMove($event)"
              (pointerup)="onPointerUp()" (pointerleave)="onPointerUp()">
           @for (d of visibleData(); track d.x; let i = $index) {
-            <div class="flex items-center gap-sp-2">
-              <span class="w-24 shrink-0 text-[11px] text-ink-600 text-right truncate">{{ d.x }}</span>
+            <div class="flex items-center gap-sp-2" [class.cursor-pointer]="filterable()" (click)="onBarClick(d.x)">
+              <span class="w-24 shrink-0 text-[11px] text-right truncate" [class.text-action]="filteredKeys().has(d.x)" [class.text-ink-600]="!filteredKeys().has(d.x)">{{ d.x }}</span>
               <div class="relative flex-1 h-5 rounded-r-xs overflow-hidden bg-neutral-100">
                 @if (d.segments?.length) {
                   @for (seg of d.segments; track $index; let si = $index) {
@@ -270,8 +369,9 @@ export class BaseTrendChartComponent {
       </div>
     } @else {
       <div class="relative">
-        @if (zoomable()) {
-          <base-chart-zoom-bar [zoomed]="isZoomed()" (resetZoom)="resetZoom()" />
+        @if (zoomable() || filterable()) {
+          <base-chart-zoom-bar [zoomed]="isZoomed()" [filtered]="isFiltered()" [showFilter]="filterable()"
+                                (resetZoom)="resetZoom()" (resetFilter)="resetFilter()" />
         }
         <svg [attr.viewBox]="'0 0 ' + w + ' ' + h" width="100%" [attr.height]="height()" preserveAspectRatio="none" (mouseleave)="hoverIndex.set(null)"
              (pointerdown)="onVPointerDown($event)" (pointermove)="onVPointerMove($event)" (pointerup)="onPointerUp()"
@@ -283,12 +383,14 @@ export class BaseTrendChartComponent {
             @if (d.segments?.length) {
               @for (seg of d.segments; track $index; let si = $index) {
                 <rect [attr.x]="xAt(i)" [attr.y]="vSegY(d, si)" [attr.width]="barWidth()" [attr.height]="vSegHeight(d, si)"
-                      [attr.fill]="SERIES_COLOR_VAR[seg.tone]" stroke="var(--color-neutral-0)" stroke-width="1" />
+                      [attr.fill]="SERIES_COLOR_VAR[seg.tone]" stroke="var(--color-neutral-0)" stroke-width="1"
+                      [style.cursor]="filterable() ? 'pointer' : null" (click)="onBarClick(d.x)" />
               }
             } @else {
               <rect [attr.x]="xAt(i)" [attr.y]="yAt(d.y)" [attr.width]="barWidth()" [attr.height]="h - padB - yAt(d.y)"
                     [attr.fill]="i === hoverPoint()?.i ? 'var(--color-action-hover)' : toneVar(d)" rx="2"
-                    (mouseenter)="onBarEnter(i)" />
+                    [style.cursor]="filterable() ? 'pointer' : null"
+                    (mouseenter)="onBarEnter(i)" (click)="onBarClick(d.x)" />
             }
           }
           @if (dragOverlayV(); as ov) {
@@ -316,6 +418,8 @@ export class BaseBarChartComponent {
   readonly valueSuffix = input('');
   /** Drag-select to zoom into a range of bars/categories; shows a "Reset Zoom" link. */
   readonly zoomable = input(true);
+  /** Click bars/categories to select which show (any number at once); shows a "Reset Filter" link. */
+  readonly filterable = input(true);
 
   protected readonly SERIES_COLOR_VAR = SERIES_COLOR_VAR;
   protected readonly fontStyle = CHART_FONT;
@@ -324,7 +428,15 @@ export class BaseBarChartComponent {
 
   protected readonly zoomWindow = signal<ChartZoomWindow>(FULL_ZOOM_WINDOW);
   protected readonly isZoomed = computed(() => isZoomedWindow(this.zoomWindow()));
-  protected readonly visibleData = computed(() => sliceWindow(this.data(), this.zoomWindow()));
+  /** Any number of categories can be selected at once — "isolate" means "show only the selected set". */
+  protected readonly filteredKeys = signal<ReadonlySet<string>>(new Set());
+  protected readonly isFiltered = computed(() => this.filteredKeys().size > 0);
+  protected readonly visibleData = computed(() => {
+    const windowed = sliceWindow(this.data(), this.zoomWindow());
+    const f = this.filteredKeys();
+    return f.size === 0 ? windowed : windowed.filter(d => f.has(d.x));
+  });
+  private wasDrag = false;
 
   // Wrapped in an object so index 0 still reads as "present" (a bare number is falsy in @if),
   // and clamped against visibleData() so a hover set mid-drag can't outlive a zoom that shrinks it.
@@ -425,8 +537,9 @@ export class BaseBarChartComponent {
 
   onPointerUp(): void {
     const s = this.dragStartFrac(), c = this.dragCurrentFrac();
-    if (s !== null && c !== null && Math.abs(c - s) > 0.02) {
-      this.zoomWindow.set(narrowZoomWindow(this.zoomWindow(), s, c));
+    this.wasDrag = s !== null && c !== null && Math.abs(c - s) > 0.02;
+    if (this.wasDrag) {
+      this.zoomWindow.set(narrowZoomWindow(this.zoomWindow(), s!, c!));
     }
     this.dragStartFrac.set(null);
     this.dragCurrentFrac.set(null);
@@ -437,6 +550,17 @@ export class BaseBarChartComponent {
     // Ignore hover while a drag-zoom is in progress — mouseenter fires on whatever bar
     // the cursor passes over mid-drag, independent of the pointer-down/up handlers.
     if (this.dragStartFrac() === null) this.hoverIndex.set(i);
+  }
+
+  onBarClick(x: string): void {
+    // A drag-to-zoom ends with a click on whatever bar the cursor lands on — don't
+    // let that also toggle the filter; only a genuine (non-drag) click selects.
+    if (!this.filterable() || this.wasDrag) return;
+    this.filteredKeys.update(current => toggleInSet(current, x));
+  }
+
+  resetFilter(): void {
+    this.filteredKeys.set(new Set());
   }
 
   resetZoom(): void {
@@ -453,8 +577,9 @@ export interface BaseScatterPoint { x: number; y: number; label?: string; }
   imports: [BaseChartZoomBarComponent],
   template: `
     <div class="relative">
-      @if (zoomable()) {
-        <base-chart-zoom-bar [zoomed]="isZoomed()" (resetZoom)="resetZoom()" />
+      @if (zoomable() || filterable()) {
+        <base-chart-zoom-bar [zoomed]="isZoomed()" [filtered]="isFiltered()" [showFilter]="filterable()"
+                              (resetZoom)="resetZoom()" (resetFilter)="resetFilter()" />
       }
       <svg [attr.viewBox]="'0 0 ' + w + ' ' + h" width="100%" [attr.height]="height()" preserveAspectRatio="none" role="img" aria-label="Scatter chart"
            (pointerdown)="onPointerDown($event)" (pointermove)="onPointerMove($event)"
@@ -465,7 +590,8 @@ export interface BaseScatterPoint { x: number; y: number; label?: string; }
         @for (p of visibleData(); track $index; let i = $index) {
           <circle [attr.cx]="xAt(p.x)" [attr.cy]="yAt(p.y)" r="4"
                   [attr.fill]="i === hoverPoint()?.i ? 'var(--color-action-hover)' : 'var(--color-action)'" opacity="0.75"
-                  (mouseenter)="onPointEnter(i)" (mouseleave)="hoverIndex.set(null)" />
+                  [style.cursor]="filterable() ? 'pointer' : null"
+                  (mouseenter)="onPointEnter(i)" (mouseleave)="hoverIndex.set(null)" (click)="onPointClick(i)" />
         }
         @if (dragOverlay(); as ov) {
           <rect [attr.x]="ov.x" [attr.y]="ov.y" [attr.width]="ov.width" [attr.height]="ov.height" fill="var(--color-action)" opacity="0.12" />
@@ -485,16 +611,23 @@ export class BaseScatterChartComponent {
   readonly height = input(160);
   /** Drag-select a rectangle to zoom into that x/y region; shows a "Reset Zoom" link. */
   readonly zoomable = input(true);
+  /** Click points to select which show (any number at once); shows a "Reset Filter" link. */
+  readonly filterable = input(true);
 
   protected readonly w = 320; protected readonly h = 160;
   protected readonly hoverIndex = signal<number | null>(null);
+  private wasDrag = false;
 
   protected readonly zoomRect = signal<{ xMin: number; xMax: number; yMin: number; yMax: number } | null>(null);
   protected readonly isZoomed = computed(() => this.zoomRect() !== null);
+  /** Any number of points can be selected at once — "isolate" means "show only the selected set". */
+  protected readonly filteredPoints = signal<ReadonlySet<BaseScatterPoint>>(new Set());
+  protected readonly isFiltered = computed(() => this.filteredPoints().size > 0);
   protected readonly visibleData = computed(() => {
     const z = this.zoomRect();
-    if (!z) return this.data();
-    return this.data().filter(p => p.x >= z.xMin && p.x <= z.xMax && p.y >= z.yMin && p.y <= z.yMax);
+    const zoomed = !z ? this.data() : this.data().filter(p => p.x >= z.xMin && p.x <= z.xMax && p.y >= z.yMin && p.y <= z.yMax);
+    const f = this.filteredPoints();
+    return f.size === 0 ? zoomed : zoomed.filter(p => f.has(p));
   });
 
   // Wrapped in an object so index 0 still reads as "present", and clamped against
@@ -572,16 +705,29 @@ export class BaseScatterChartComponent {
 
   onPointerUp(): void {
     const a = this.dragStart(), b = this.dragCurrent();
-    if (a && b && Math.hypot(b.x - a.x, b.y - a.y) > 6) {
-      const xMin = this.dataXFromSvgX(Math.min(a.x, b.x));
-      const xMax = this.dataXFromSvgX(Math.max(a.x, b.x));
-      const yMin = this.dataYFromSvgY(Math.max(a.y, b.y));
-      const yMax = this.dataYFromSvgY(Math.min(a.y, b.y));
+    this.wasDrag = !!(a && b && Math.hypot(b.x - a.x, b.y - a.y) > 6);
+    if (this.wasDrag) {
+      const xMin = this.dataXFromSvgX(Math.min(a!.x, b!.x));
+      const xMax = this.dataXFromSvgX(Math.max(a!.x, b!.x));
+      const yMin = this.dataYFromSvgY(Math.max(a!.y, b!.y));
+      const yMax = this.dataYFromSvgY(Math.min(a!.y, b!.y));
       this.zoomRect.set({ xMin, xMax, yMin, yMax });
     }
     this.dragStart.set(null);
     this.dragCurrent.set(null);
     this.hoverIndex.set(null);
+  }
+
+  onPointClick(i: number): void {
+    // A drag-to-zoom ends with a click on whatever point the cursor lands on — don't
+    // let that also toggle the filter; only a genuine (non-drag) click selects.
+    if (!this.filterable() || this.wasDrag) return;
+    const point = this.visibleData()[i];
+    this.filteredPoints.update(current => toggleInSet(current, point));
+  }
+
+  resetFilter(): void {
+    this.filteredPoints.set(new Set());
   }
 
   resetZoom(): void {
@@ -596,8 +742,9 @@ export class BaseScatterChartComponent {
   imports: [BaseChartZoomBarComponent],
   template: `
     <div class="relative">
-      @if (zoomable()) {
-        <base-chart-zoom-bar [zoomed]="isZoomed()" (resetZoom)="resetZoom()" />
+      @if (zoomable() || filterable()) {
+        <base-chart-zoom-bar [zoomed]="isZoomed()" [filtered]="isFiltered()" [showFilter]="filterable()"
+                              (resetZoom)="resetZoom()" (resetFilter)="resetFilter()" />
       }
       <svg [attr.viewBox]="'0 0 ' + w + ' ' + h" width="100%" [attr.height]="height()" preserveAspectRatio="none" role="img" aria-label="Histogram"
            (pointerdown)="onPointerDown($event)" (pointermove)="onPointerMove($event)"
@@ -605,7 +752,8 @@ export class BaseScatterChartComponent {
         @for (b of visibleBins(); track $index; let i = $index) {
           <rect [attr.x]="xAt(i)" [attr.y]="yAt(b.count)" [attr.width]="binWidth()" [attr.height]="h - 4 - yAt(b.count)"
                 [attr.fill]="i === hoverPoint()?.i ? 'var(--color-accent-hover)' : 'var(--color-accent)'"
-                (mouseenter)="onBinEnter(i)" (mouseleave)="hoverIndex.set(null)" />
+                [style.cursor]="filterable() ? 'pointer' : null"
+                (mouseenter)="onBinEnter(i)" (mouseleave)="hoverIndex.set(null)" (click)="onBinClick(b.label)" />
         }
         @if (dragOverlay(); as ov) {
           <rect [attr.x]="ov.x" y="0" [attr.width]="ov.width" [attr.height]="h" fill="var(--color-accent)" opacity="0.14" />
@@ -625,13 +773,23 @@ export class BaseHistogramComponent {
   readonly height = input(140);
   /** Drag-select on the chart to zoom into a range of bins; shows a "Reset Zoom" link. */
   readonly zoomable = input(true);
+  /** Click bins to select which show (any number at once); shows a "Reset Filter" link. */
+  readonly filterable = input(true);
 
   protected readonly w = 320; protected readonly h = 140;
   protected readonly hoverIndex = signal<number | null>(null);
+  private wasDrag = false;
 
   protected readonly zoomWindow = signal<ChartZoomWindow>(FULL_ZOOM_WINDOW);
   protected readonly isZoomed = computed(() => isZoomedWindow(this.zoomWindow()));
-  protected readonly visibleBins = computed(() => sliceWindow(this.bins(), this.zoomWindow()));
+  /** Any number of bins can be selected at once — "isolate" means "show only the selected set". */
+  protected readonly filteredKeys = signal<ReadonlySet<string>>(new Set());
+  protected readonly isFiltered = computed(() => this.filteredKeys().size > 0);
+  protected readonly visibleBins = computed(() => {
+    const windowed = sliceWindow(this.bins(), this.zoomWindow());
+    const f = this.filteredKeys();
+    return f.size === 0 ? windowed : windowed.filter(b => f.has(b.label));
+  });
 
   // Wrapped in an object so index 0 still reads as "present", and clamped against
   // visibleBins() so a hover set mid-drag can't outlive a zoom that shrinks it.
@@ -671,8 +829,9 @@ export class BaseHistogramComponent {
 
   onPointerUp(): void {
     const s = this.dragStartFrac(), c = this.dragCurrentFrac();
-    if (s !== null && c !== null && Math.abs(c - s) > 0.02) {
-      this.zoomWindow.set(narrowZoomWindow(this.zoomWindow(), s, c));
+    this.wasDrag = s !== null && c !== null && Math.abs(c - s) > 0.02;
+    if (this.wasDrag) {
+      this.zoomWindow.set(narrowZoomWindow(this.zoomWindow(), s!, c!));
     }
     this.dragStartFrac.set(null);
     this.dragCurrentFrac.set(null);
@@ -683,6 +842,17 @@ export class BaseHistogramComponent {
     // Ignore hover while a drag-zoom is in progress — mouseenter fires on whatever bin
     // the cursor passes over mid-drag, independent of the pointer-down/up handlers.
     if (this.dragStartFrac() === null) this.hoverIndex.set(i);
+  }
+
+  onBinClick(label: string): void {
+    // A drag-to-zoom ends with a click on whatever bin the cursor lands on — don't
+    // let that also toggle the filter; only a genuine (non-drag) click selects.
+    if (!this.filterable() || this.wasDrag) return;
+    this.filteredKeys.update(current => toggleInSet(current, label));
+  }
+
+  resetFilter(): void {
+    this.filteredKeys.set(new Set());
   }
 
   resetZoom(): void {

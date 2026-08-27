@@ -14,9 +14,23 @@ const meta: Meta<BaseStateHeatmapComponent> = {
   title: 'Base/Charts & Visualization/State Heatmap',
   component: BaseStateHeatmapComponent,
   tags: ['autodocs'],
-  args: { rows, columns: HOURS }
+  argTypes: {
+    filterable: { control: 'boolean' }
+  },
+  args: { rows, columns: HOURS },
+  parameters: {
+    docs: {
+      description: {
+        component: 'Click legend states to select which show — any number at once (click again to deselect). Every cell outside the selected states dims to 15% opacity while the matching cells (and hover highlight) stay fully visible. A "Reset Filter" link appears once anything is selected.'
+      }
+    }
+  }
 };
 export default meta;
 type Story = StoryObj<BaseStateHeatmapComponent>;
 
 export const Default: Story = {};
+export const NonInteractive: Story = {
+  name: 'Filter disabled',
+  args: { filterable: false }
+};

@@ -55,6 +55,18 @@ export function sliceWindow<T>(items: readonly T[], w: ChartZoomWindow): T[] {
   return items.slice(startIndex, endIndex);
 }
 
+/**
+ * Immutably toggle membership of `item` in a Set-based multi-select filter — every
+ * click-to-isolate filter in the base charts allows selecting more than one item at
+ * once, so "isolate" means "show only the selected set" rather than "show only one".
+ * Always returns a new Set (signals need a new reference to detect the change).
+ */
+export function toggleInSet<T>(set: ReadonlySet<T>, item: T): Set<T> {
+  const next = new Set(set);
+  if (next.has(item)) next.delete(item); else next.add(item);
+  return next;
+}
+
 /** Fraction (0..1, clamped) of clientX/clientY across a DOMRect — the basis for all drag math. */
 export function fracX(clientX: number, rect: DOMRect): number {
   return Math.max(0, Math.min(1, rect.width ? (clientX - rect.left) / rect.width : 0));

@@ -19,7 +19,7 @@ const meta: Meta<BaseBarChartComponent> = {
   parameters: {
     docs: {
       description: {
-        component: 'Drag-select to zoom: horizontally across the bars in vertical mode, vertically down the category list in horizontal mode. A "Reset Zoom" link appears once zoomed.'
+        component: 'Drag-select to zoom: horizontally across the bars in vertical mode, vertically down the category list in horizontal mode. A "Reset Zoom" link appears once zoomed. Clicking bars/categories selects which show — any number at once, with a "Reset Filter" link.'
       }
     }
   }

@@ -1,8 +1,8 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges, computed, signal, viewChild } from '@angular/core';
 import { BaseChartDirective } from 'ng2-charts';
 import { ActiveElement } from 'chart.js';
-import { BaseKpiCardComponent, BaseProgressBarComponent, BaseTrendComponent } from '../../base';
-import { ChartWidget, KpiGridWidget, RankedListWidget } from './widget.model';
+import { BaseKpiCardComponent, BaseProgressBarComponent, BaseTrendComponent, toggleInSet } from '../../base';
+import { ChartWidget, KpiGridWidget, LegendItem, RankedListWidget } from './widget.model';
 
 @Component({
   selector: 'fam-kpi-grid-widget',
@@ -35,9 +35,21 @@ export class KpiGridWidgetComponent {
               (chartClick)="onClick($event)"></canvas>
     </div>
     @if (widget.legend?.length) {
-      <div class="flex items-center flex-wrap gap-4 px-4 pb-3 border-t border-slate-100 pt-3">
-        @for (l of widget.legend; track l.label) {
-          <span class="chip"><i class="chip-dot" [style.background]="l.color"></i>{{ l.label }}</span>
+      <div class="flex items-center justify-between flex-wrap gap-3 px-4 pb-3 border-t border-slate-100 pt-3">
+        <div class="flex items-center flex-wrap gap-4">
+          @for (l of widget.legend; track l.label) {
+            <span class="chip" [class.cursor-pointer]="hasDataset(l)" [class.opacity-40]="isDimmed(l)"
+                  [attr.title]="hasDataset(l) ? 'Click to toggle ' + l.label : null"
+                  (click)="toggleLegend(l)">
+              <i class="chip-dot" [style.background]="l.color"></i>{{ l.label }}
+            </span>
+          }
+        </div>
+        @if (hasFilterableDataset()) {
+          <button type="button" class="text-[11px] font-semibold" [class]="isFiltered() ? 'text-action cursor-pointer' : 'text-slate-300 cursor-default'"
+                  [disabled]="!isFiltered()" (click)="resetFilter()">
+            Reset Filter
+          </button>
         }
       </div>
     }
@@ -46,8 +58,23 @@ export class KpiGridWidgetComponent {
     }
   `
 })
-export class ChartWidgetComponent {
+export class ChartWidgetComponent implements OnChanges {
   @Input({ required: true }) widget!: ChartWidget;
+
+  private readonly chartRef = viewChild(BaseChartDirective);
+  /**
+   * Click legend chips to select which datasets show — any number at once, matched by
+   * label since legend/dataset order isn't guaranteed to line up (some legend entries
+   * have no dataset at all).
+   */
+  protected readonly filteredLabels = signal<ReadonlySet<string>>(new Set());
+  protected readonly isFiltered = computed(() => this.filteredLabels().size > 0);
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // A new widget (different data/datasets) starts unfiltered — stale labels could
+    // otherwise mismatch a completely different dataset list.
+    if (changes['widget']) this.filteredLabels.set(new Set());
+  }
 
   onClick(e: { active?: object[] }): void {
     const active = e.active as ActiveElement[] | undefined;
@@ -55,6 +82,40 @@ export class ChartWidgetComponent {
     if (hit && this.widget.onPointClick) {
       this.widget.onPointClick(hit.datasetIndex, hit.index);
     }
+  }
+
+  hasDataset(item: LegendItem): boolean {
+    return (this.widget.data.datasets ?? []).some(d => d.label === item.label);
+  }
+
+  hasFilterableDataset(): boolean {
+    return (this.widget.legend ?? []).some(l => this.hasDataset(l));
+  }
+
+  isDimmed(item: LegendItem): boolean {
+    const f = this.filteredLabels();
+    return f.size > 0 && !f.has(item.label);
+  }
+
+  toggleLegend(item: LegendItem): void {
+    if (!this.hasDataset(item)) return;
+    this.filteredLabels.update(current => toggleInSet(current, item.label));
+    this.applyVisibility();
+  }
+
+  resetFilter(): void {
+    this.filteredLabels.set(new Set());
+    this.applyVisibility();
+  }
+
+  private applyVisibility(): void {
+    const directive = this.chartRef();
+    if (!directive) return;
+    const f = this.filteredLabels();
+    (this.widget.data.datasets ?? []).forEach((d, i) => {
+      directive.hideDataset(i, f.size > 0 && !f.has(d.label ?? ''));
+    });
+    directive.update();
   }
 }
 

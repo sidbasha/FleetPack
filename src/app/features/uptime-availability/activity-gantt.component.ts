@@ -1,8 +1,8 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DecimalPipe, NgClass } from '@angular/common';
 import { UptimeStore } from '../../core/state/uptime.store';
-import { StateLegendComponent } from '../../shared/components/ui.components';
-import { GanttSegment } from '../../core/models/models';
+import { GanttSegment, ToolState } from '../../core/models/models';
+import { toggleInSet } from '../../base';
 
 const STATE_BG: Record<string, string> = {
   'Production': 'bg-state-production',
@@ -12,11 +12,19 @@ const STATE_BG: Record<string, string> = {
   'Unscheduled Downtime': 'bg-state-unscheduled'
 };
 
+const FILTER_STATES: { state: ToolState; label: string; dot: string }[] = [
+  { state: 'Production', label: 'Production', dot: 'bg-state-production' },
+  { state: 'Engineering', label: 'Engineering', dot: 'bg-state-engineering' },
+  { state: 'Standby', label: 'Standby', dot: 'bg-state-standby' },
+  { state: 'Scheduled Downtime', label: 'Scheduled DT', dot: 'bg-state-scheduled' },
+  { state: 'Unscheduled Downtime', label: 'Unscheduled DT', dot: 'bg-state-unscheduled' }
+];
+
 @Component({
   selector: 'fam-activity-gantt',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DecimalPipe, NgClass, StateLegendComponent],
+  imports: [DecimalPipe, NgClass],
   template: `
     <div class="flex flex-wrap items-start gap-x-12 gap-y-3 pb-4 mb-4 border-b border-slate-100">
       <div>
@@ -60,6 +68,7 @@ const STATE_BG: Record<string, string> = {
                   <div class="absolute inset-y-0 group" [ngClass]="bg(s)"
                        [style.left.%]="s.startHour / 24 * 100"
                        [style.width.%]="(s.endHour - s.startHour) / 24 * 100"
+                       [style.opacity]="isActive(s.state) ? 1 : 0.2"
                        [title]="tooltip(s)">
                     @if (s.label) { <span class="absolute inset-0 grid place-items-center text-[9px] font-semibold text-white/95">{{ s.label }}</span> }
                   </div>
@@ -73,6 +82,7 @@ const STATE_BG: Record<string, string> = {
                   <div class="absolute inset-y-0" [ngClass]="bg(s)"
                        [style.left.%]="s.startHour / 24 * 100"
                        [style.width.%]="(s.endHour - s.startHour) / 24 * 100"
+                       [style.opacity]="isActive(s.state) ? 1 : 0.2"
                        [title]="tooltip(s)">
                     @if (s.label) { <span class="absolute inset-0 grid place-items-center text-[9px] font-semibold text-white/95">{{ s.label }}</span> }
                   </div>
@@ -91,8 +101,20 @@ const STATE_BG: Record<string, string> = {
       }
     </div>
 
-    <div class="mt-4 flex items-center justify-between">
-      <fam-state-legend withDayShift />
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex flex-wrap items-center gap-1.5">
+        @for (st of filterStates; track st.state) {
+          <button type="button" class="chip-toggle" [class]="isActive(st.state) ? 'chip-toggle-active' : 'chip-toggle-inactive'"
+                  [attr.title]="'Click to toggle ' + st.label" (click)="toggleFilter(st.state)">
+            <i class="chip-dot" [ngClass]="st.dot"></i>{{ st.label }}
+          </button>
+        }
+        <span class="chip"><i class="chip-dot bg-slate-100 border border-slate-200"></i>Day Shift</span>
+        <button type="button" class="text-[11px] font-semibold ml-1" [class]="isFiltered() ? 'text-action cursor-pointer' : 'text-slate-300 cursor-default'"
+                [disabled]="!isFiltered()" (click)="resetFilter()">
+          Reset Filter
+        </button>
+      </div>
       <div class="flex items-center gap-1 text-xs text-slate-500">
         <button class="btn-ghost" (click)="prev()">‹</button>
         <span class="font-medium">05-03 → 05-09 ({{ page() }}/13)</span>
@@ -104,8 +126,12 @@ const STATE_BG: Record<string, string> = {
 export class ActivityGanttComponent {
   private store = inject(UptimeStore);
   hourTicks = ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'];
+  readonly filterStates = FILTER_STATES;
 
   page = signal(1);
+  /** Click legend states to select which show (any number at once, dims every other state's segments); Reset Filter restores. */
+  readonly filteredStates = signal<ReadonlySet<ToolState>>(new Set());
+  readonly isFiltered = computed(() => this.filteredStates().size > 0);
 
   gantt = this.store.gantt;
   summary = this.store.ganttSummary;
@@ -124,4 +150,15 @@ export class ActivityGanttComponent {
   }
   prev(): void { this.page.update(p => Math.max(1, p - 1)); }
   next(): void { this.page.update(p => Math.min(13, p + 1)); }
+
+  isActive(state: string): boolean {
+    const f = this.filteredStates();
+    return f.size === 0 || f.has(state as ToolState);
+  }
+  toggleFilter(state: ToolState): void {
+    this.filteredStates.update(current => toggleInSet(current, state));
+  }
+  resetFilter(): void {
+    this.filteredStates.set(new Set());
+  }
 }

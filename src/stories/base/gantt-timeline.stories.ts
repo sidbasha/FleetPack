@@ -49,10 +49,14 @@ const meta: Meta<BaseGanttTimelineComponent> = {
         component:
           'Canvas-rendered swimlane timeline built for large datasets: rows are virtualized ' +
           '(`@angular/cdk` virtual scroll) so hundreds of rows stay smooth, drag-select on the ' +
-          'timeline zooms into a time range ("Reset Zoom"), and clicking a row label isolates it ' +
-          '("Reset Filter"). `startHour`/`endHour` are just numbers in whatever unit `totalHours` ' +
-          'is — hours-in-a-day by default, but `domainStart` + a custom `axisTickFormat`/`durationFormat` ' +
-          'let the same component plot real epoch-ms timestamps (see "Real timestamp domain" below).'
+          'timeline zooms into a time range ("Reset Zoom"), and clicking row labels or legend ' +
+          'states selects which show — any number of rows and any number of states can be ' +
+          'selected at once (click again to deselect), dimming every segment outside the ' +
+          'selected states across all rows. Both filters share the same "Reset Filter" link and ' +
+          'can combine with each other and with zoom. `startHour`/`endHour` are just numbers ' +
+          'in whatever unit `totalHours` is — hours-in-a-day by default, but `domainStart` + a custom ' +
+          '`axisTickFormat`/`durationFormat` let the same component plot real epoch-ms timestamps ' +
+          '(see "Real timestamp domain" below).'
       }
     }
   }
@@ -218,6 +222,6 @@ export const NonInteractive: Story = {
   name: 'Zoom & filter disabled',
   args: { zoomable: false, filterable: false },
   parameters: {
-    docs: { description: { story: 'For read-only embeds (report snapshots, print views) — disables drag-to-zoom and row-click-to-isolate, hiding the Reset Zoom/Reset Filter links.' } }
+    docs: { description: { story: 'For read-only embeds (report snapshots, print views) — disables drag-to-zoom and the row/state multi-select filter, hiding the Reset Zoom/Reset Filter links.' } }
   }
 };

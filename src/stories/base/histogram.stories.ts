@@ -17,7 +17,7 @@ const meta: Meta<BaseHistogramComponent> = {
   parameters: {
     docs: {
       description: {
-        component: 'Drag-select across the bins to zoom into a range; a "Reset Zoom" link appears once zoomed.'
+        component: 'Drag-select across the bins to zoom into a range; a "Reset Zoom" link appears once zoomed. Clicking bins selects which show — any number at once, with a "Reset Filter" link.'
       }
     }
   }
