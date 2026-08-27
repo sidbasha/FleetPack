@@ -1,4 +1,5 @@
 import { GanttDay, GanttSegment, SegmentActivity, StateSegment, ToolEvent, ToolState } from '../models/models';
+import { BaseGanttRow, BaseGanttSegment } from '../../base';
 
 
 const STATE_NAME_MAP: Record<string, ToolState> = {
@@ -90,6 +91,75 @@ export function deriveGanttSummary(gantt: GanttDay[]): { avgProductionPct: numbe
   const totalDowntimeHrs = Math.round(gantt.reduce((sum, d) => sum + d.downtimeHrs, 0) * 10) / 10;
   const avgProductionPct = Math.round((gantt.reduce((sum, d) => sum + d.availabilityPct, 0) / gantt.length) * 10) / 10;
   return { avgProductionPct, totalDowntimeHrs };
+}
+
+/**
+ * Row/segment data for a `base-gantt-timeline` view of task-level segment activities —
+ * one row per distinct SegmentName (recipe step), one bar per occurrence, timestamped
+ * on a real epoch-ms domain so the chart's drag-zoom and axis work down to the millisecond.
+ */
+export interface SegmentTimeline {
+  rows: BaseGanttRow[];
+  domainStart: number;
+  domainSpan: number;
+}
+
+export function deriveSegmentTimeline(activities: SegmentActivity[]): SegmentTimeline {
+  if (!activities.length) return { rows: [], domainStart: 0, domainSpan: 1 };
+
+  const byName = new Map<string, BaseGanttSegment[]>();
+  let minStart = Infinity;
+  let maxEnd = -Infinity;
+
+  for (const a of activities) {
+    const start = new Date(a.eventStart).getTime();
+    const end = Math.max(start + 1, new Date(a.eventEnd).getTime());
+    if (start < minStart) minStart = start;
+    if (end > maxEnd) maxEnd = end;
+
+    const segments = byName.get(a.SegmentName) ?? [];
+    segments.push({
+      startHour: start,
+      endHour: end,
+      state: isFailedActivity(a) ? 'unscheduled-dt' : 'production',
+      label: isFailedActivity(a) ? 'Fail' : undefined
+    });
+    byName.set(a.SegmentName, segments);
+  }
+
+  const rows: BaseGanttRow[] = Array.from(byName.entries())
+    .map(([label, segments]) => ({
+      label,
+      segments: segments.sort((x, y) => x.startHour - y.startHour)
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
+  return { rows, domainStart: minStart, domainSpan: Math.max(1, maxEnd - minStart) };
+}
+
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Tick formatter for the segment timeline's axis — HH:MM:SS:mmm (matching the reference
+ * design) once zoomed into a single day; a leading M/D date is prefixed whenever the
+ * currently-visible window still spans more than a day, so ticks never look like they
+ * run backwards just because time-of-day wrapped past midnight.
+ */
+export function formatSegmentTimelineTick(epochMs: number, visibleSpanMs = 0): string {
+  const d = new Date(epochMs);
+  const p = (n: number, len = 2) => String(n).padStart(len, '0');
+  const time = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}:${p(d.getMilliseconds(), 3)}`;
+  if (visibleSpanMs <= ONE_DAY_MS) return time;
+  return `${p(d.getMonth() + 1)}/${p(d.getDate())} ${time}`;
+}
+
+/** Duration formatter for the segment timeline's hover tooltip — span is in ms. */
+export function formatSegmentDuration(spanMs: number): string {
+  const totalSec = spanMs / 1000;
+  if (totalSec < 60) return `${totalSec.toFixed(1)}s`;
+  const min = Math.floor(totalSec / 60);
+  const sec = Math.round(totalSec % 60);
+  return `${min}m ${sec}s`;
 }
 
 export function deriveEvents(segments: StateSegment[], activities: SegmentActivity[] = []): ToolEvent[] {

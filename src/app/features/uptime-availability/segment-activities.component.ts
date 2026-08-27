@@ -1,9 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { UptimeStore } from '../../core/state/uptime.store';
 import { DynamicWidgetComponent } from '../../shared/dynamic/dynamic-page.component';
 import { TableWidget } from '../../shared/dynamic/widget.model';
 import { SegmentActivity } from '../../core/models/models';
 import { downloadCsv } from '../../shared/utils/csv.util';
+import { formatSegmentDuration, formatSegmentTimelineTick } from '../../core/state/segment-derivation.util';
+import { BaseChartFrameComponent, BaseGanttTimelineComponent } from '../../base';
 
 function isFailed(row: SegmentActivity): boolean {
   return String(row.params['Error Code'] ?? '0x0') !== '0x0';
@@ -13,22 +15,48 @@ function isFailed(row: SegmentActivity): boolean {
  * Segment Activities tab — task/recipe-level detail from getSegmentActivities,
  * correlated with the Production windows behind the Gantt/Event Details tabs.
  * Registered as the 4th routed tab on the Availability page.
+ *
+ * Offers both a table (grouped by day, paginated) and a swimlane timeline
+ * (one row per recipe step, drag-to-zoom on time, click a row to isolate it) —
+ * the timeline is what scales to a large number of steps/occurrences.
  */
 @Component({
   selector: 'fam-segment-activities',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DynamicWidgetComponent],
+  imports: [DynamicWidgetComponent, BaseChartFrameComponent, BaseGanttTimelineComponent],
   template: `
     <div class="flex items-center justify-between mb-3">
       <p class="text-[11px] text-slate-400">{{ total() }} task activities · grouped by day, most recent first</p>
       <button class="btn-ghost" (click)="exportCsv()">↓ Download CSV</button>
     </div>
-    <fam-dynamic-widget [widget]="tableWidget()" />
+    <base-chart-frame [(tableView)]="tableView" title="Segment Activities" [subtitle]="total() + ' task activities'">
+      <div chart>
+        @if (timeline().rows.length) {
+          <base-gantt-timeline
+            [rows]="timeline().rows"
+            [domainStart]="timeline().domainStart"
+            [totalHours]="timeline().domainSpan"
+            [axisTickFormat]="tickFormat"
+            [durationFormat]="durationFormat"
+            [legendStates]="['production', 'unscheduled-dt']" />
+        } @else {
+          <p class="text-[11px] text-slate-400 py-6 text-center">No task activities in range.</p>
+        }
+      </div>
+      <div table>
+        <fam-dynamic-widget [widget]="tableWidget()" />
+      </div>
+    </base-chart-frame>
   `
 })
 export class SegmentActivitiesComponent {
   store = inject(UptimeStore);
+
+  readonly tableView = signal(false);
+  readonly timeline = this.store.segmentTimeline;
+  protected readonly tickFormat = formatSegmentTimelineTick;
+  protected readonly durationFormat = formatSegmentDuration;
 
   total = computed(() => this.store.segmentActivities().length);
 

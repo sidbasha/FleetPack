@@ -179,7 +179,19 @@ export function buildStateSegments(toolId: string, days = 14): StateSegmentsResp
   return { stateSegments };
 }
 
-const RECIPE_SEGMENT_NAMES = ['Recipe Editor', 'Recipe Run', 'Wafer Process', 'Lot Load', 'Lot Unload'];
+// Recipe/task step names — mirrors the granularity of a real metrology tool's step trace
+// (dozens of distinct steps per lot cycle), not just a handful of coarse phases.
+const RECIPE_SEGMENT_NAMES = [
+  'Load First Wafer', 'Wafer Origin', 'RIC Step', 'Optimization RIC', 'AutoRun',
+  'AutoCalibration Noise', 'Load Next Wafer', 'Optimization', 'AutoCalibration Position',
+  'AutoCalibration Box', 'AutoCalib', 'AutoCal', 'Auto Run Wafer', 'Eye-Point Alignment',
+  'Alignment Point', 'Alignment', 'Path Optimization', 'MAM', 'MFG Site (PZT)',
+  'Site to Site Scan(Z)', 'Site to Site (XY)', 'Site to Site', 'Acquisition Focus',
+  'ARO Acquisition Shutter', 'ARO Site to Site (XY)', 'Acquisition Position',
+  'Acquisition Image', 'Acquisition (XY)', 'Acquisition', 'ARO Acquisition Focus',
+  'MFG Set LEDs', 'Measurement Image', 'MFG Mirror (S)', 'Measurement', 'Computation',
+  'AutoRun AROL', 'One Wafer', 'ARO Acquisition Scatter'
+];
 const RECIPE_IDS = [
   'Chelsie\\MetroHost\\2_XYS_TIS_fail_UI',
   'KT_CSE\\Config\\DAD Calibration\\DAD_Calibration',
@@ -209,10 +221,12 @@ function buildSegmentActivitiesRaw(toolId: string): SegmentActivity[] {
   for (const win of productionWindows) {
     const start = new Date(win.start);
     const totalMin = win.segmentDurationHrs * 60;
-    const count = 1 + Math.floor(rand() * 3);
+    // Several dozen short recipe steps per production window — enough to populate
+    // the full RECIPE_SEGMENT_NAMES catalog densely, matching a real step trace.
+    const count = 8 + Math.floor(rand() * 12);
     let cursorMin = 0;
     for (let i = 0; i < count && cursorMin < totalMin; i++) {
-      const durMin = Math.min(totalMin - cursorMin, Math.round(5 + rand() * 40));
+      const durMin = Math.min(totalMin - cursorMin, Math.round(1 + rand() * 8));
       const actStart = new Date(start.getTime() + cursorMin * 60000);
       const actEnd = new Date(actStart.getTime() + durMin * 60000);
       const failed = rand() < 0.12;

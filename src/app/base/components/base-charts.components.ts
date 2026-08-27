@@ -1,5 +1,15 @@
 import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input, model, output, signal } from '@angular/core';
+import {
+  BaseChartZoomBarComponent,
+  ChartZoomWindow,
+  FULL_ZOOM_WINDOW,
+  fracX,
+  fracY,
+  isZoomedWindow,
+  narrowZoomWindow,
+  sliceWindow
+} from './chart-zoom.util';
 
 export const SERIES_COLOR_ORDER = ['action', 'accent', 'info', 'success', 'warning', 'error'] as const;
 export type SeriesTone = typeof SERIES_COLOR_ORDER[number];
@@ -30,9 +40,12 @@ const CHART_FONT = 'font-family:var(--font-mono);font-variant-numeric:tabular-nu
   selector: 'base-trend-chart',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DecimalPipe],
+  imports: [DecimalPipe, BaseChartZoomBarComponent],
   template: `
     <div class="relative">
+      @if (zoomable()) {
+        <base-chart-zoom-bar [zoomed]="isZoomed()" (resetZoom)="resetZoom()" />
+      }
       @if (rolling4w().length || rolling13w().length || target() !== undefined) {
         <div class="flex flex-wrap items-center gap-sp-4 mb-sp-2 text-[11px] text-ink-600">
           <span class="flex items-center gap-1.5"><i class="inline-block w-3 h-0.5 bg-action"></i>{{ seriesLabel() }}</span>
@@ -41,8 +54,10 @@ const CHART_FONT = 'font-family:var(--font-mono);font-variant-numeric:tabular-nu
           @if (target() !== undefined) { <span class="flex items-center gap-1.5"><i class="inline-block w-3 h-0.5" style="border-top:1.5px dashed var(--color-neutral-400);"></i>{{ targetLabel() }}</span> }
         </div>
       }
-      <svg [attr.viewBox]="'0 0 ' + w + ' ' + h" [attr.width]="'100%'" [attr.height]="height()"
-           (mousemove)="onMove($event)" (mouseleave)="hoverIndex.set(null)" role="img" [attr.aria-label]="seriesLabel() + ' trend chart'">
+      <svg [attr.viewBox]="'0 0 ' + w + ' ' + h" [attr.width]="'100%'" [attr.height]="height()" preserveAspectRatio="none"
+           (mousemove)="onMove($event)" (mouseleave)="onLeave()"
+           (pointerdown)="onPointerDown($event)" (pointerup)="onPointerUp()"
+           role="img" [attr.aria-label]="seriesLabel() + ' trend chart'">
         @for (gy of gridLines(); track gy.y) {
           <line [attr.x1]="padL" [attr.x2]="w - padR" [attr.y1]="gy.y" [attr.y2]="gy.y" stroke="var(--color-neutral-200)" stroke-width="1" />
           <text [attr.x]="padL - 6" [attr.y]="gy.y + 3" text-anchor="end" font-size="9" fill="var(--color-ink-500)" [attr.style]="fontStyle">{{ gy.label }}</text>
@@ -51,19 +66,22 @@ const CHART_FONT = 'font-family:var(--font-mono);font-variant-numeric:tabular-nu
         @if (target() !== undefined) {
           <line [attr.x1]="padL" [attr.x2]="w - padR" [attr.y1]="targetY()" [attr.y2]="targetY()" stroke="var(--color-neutral-400)" stroke-width="1.5" stroke-dasharray="5 3" />
         }
-        @if (rolling13w().length) { <polyline [attr.points]="linePoints(rolling13w())" fill="none" stroke="var(--color-accent)" stroke-width="1.5" stroke-dasharray="1 3" stroke-linecap="round" /> }
-        @if (rolling4w().length) { <polyline [attr.points]="linePoints(rolling4w())" fill="none" stroke="var(--color-action)" stroke-width="1.5" stroke-dasharray="5 3" stroke-linecap="round" /> }
+        @if (windowedRolling13w().length) { <polyline [attr.points]="linePoints(windowedRolling13w())" fill="none" stroke="var(--color-accent)" stroke-width="1.5" stroke-dasharray="1 3" stroke-linecap="round" /> }
+        @if (windowedRolling4w().length) { <polyline [attr.points]="linePoints(windowedRolling4w())" fill="none" stroke="var(--color-action)" stroke-width="1.5" stroke-dasharray="5 3" stroke-linecap="round" /> }
         <polyline [attr.points]="linePoints(values())" fill="none" stroke="var(--color-action)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
 
-        @if (hoverIndex(); as i) {
-          <line [attr.x1]="xAt(i)" [attr.x2]="xAt(i)" [attr.y1]="padT" [attr.y2]="h - padB" stroke="var(--color-neutral-300)" stroke-width="1" />
-          <circle [attr.cx]="xAt(i)" [attr.cy]="yAt(values()[i])" r="3.5" fill="var(--color-action)" stroke="var(--color-neutral-0)" stroke-width="1.5" />
+        @if (hoverPoint(); as h2) {
+          <line [attr.x1]="xAt(h2.i)" [attr.x2]="xAt(h2.i)" [attr.y1]="padT" [attr.y2]="h - padB" stroke="var(--color-neutral-300)" stroke-width="1" />
+          <circle [attr.cx]="xAt(h2.i)" [attr.cy]="yAt(values()[h2.i])" r="3.5" fill="var(--color-action)" stroke="var(--color-neutral-0)" stroke-width="1.5" />
+        }
+        @if (dragOverlay(); as ov) {
+          <rect [attr.x]="ov.x" y="0" [attr.width]="ov.width" [attr.height]="h" fill="var(--color-action)" opacity="0.12" />
         }
       </svg>
-      @if (hoverIndex(); as i) {
+      @if (hoverPoint(); as h2) {
         <div class="absolute pointer-events-none bg-ink-900 text-neutral-0 text-[11px] font-semibold rounded-r-xs px-sp-2 py-1 mono-data"
-             [style.left.px]="xAt(i)" [style.top.px]="yAt(values()[i]) - 34" style="transform: translateX(-50%);">
-          {{ data()[i].x }} · {{ data()[i].y | number: '1.1-1' }}%
+             [style.left.%]="xAt(h2.i) / w * 100" [style.top.%]="(yAt(values()[h2.i]) - 34) / h * 100" style="transform: translateX(-50%);">
+          {{ windowedData()[h2.i].x }} · {{ windowedData()[h2.i].y | number: '1.1-1' }}%
         </div>
       }
       <div class="flex justify-between mt-1 text-[9px] text-ink-500" [style]="fontStyle">
@@ -81,6 +99,8 @@ export class BaseTrendChartComponent {
   readonly seriesLabel = input('Actual');
   readonly height = input(180);
   readonly showArea = input(true);
+  /** Drag-select on the chart to zoom into a range of points; shows a "Reset Zoom" link. */
+  readonly zoomable = input(true);
 
   protected readonly fontStyle = CHART_FONT;
   protected readonly w = 480;
@@ -88,10 +108,29 @@ export class BaseTrendChartComponent {
   protected readonly padL = 32; protected readonly padR = 8; protected readonly padT = 8; protected readonly padB = 8;
 
   protected readonly hoverIndex = signal<number | null>(null);
-  protected readonly values = computed(() => this.data().map(d => d.y));
+  protected readonly zoomWindow = signal<ChartZoomWindow>(FULL_ZOOM_WINDOW);
+  protected readonly isZoomed = computed(() => isZoomedWindow(this.zoomWindow()));
+  protected readonly dragStartFrac = signal<number | null>(null);
+  protected readonly dragCurrentFrac = signal<number | null>(null);
+
+  protected readonly windowedData = computed(() => sliceWindow(this.data(), this.zoomWindow()));
+  protected readonly windowedRolling4w = computed(() => this.windowAligned(this.rolling4w()));
+  protected readonly windowedRolling13w = computed(() => this.windowAligned(this.rolling13w()));
+  protected readonly values = computed(() => this.windowedData().map(d => d.y));
+
+  // Wrapped in an object so index 0 still reads as "present" (a bare number is falsy in @if).
+  protected readonly hoverPoint = computed(() => {
+    const i = this.hoverIndex();
+    return i !== null && i < this.windowedData().length ? { i } : null;
+  });
+
+  private windowAligned(series: number[]): number[] {
+    // Rolling series are assumed index-aligned with `data`; only window them when the lengths agree.
+    return series.length === this.data().length ? sliceWindow(series, this.zoomWindow()) : series;
+  }
 
   private readonly domain = computed(() => {
-    const all = [...this.values(), ...this.rolling4w(), ...this.rolling13w()];
+    const all = [...this.values(), ...this.windowedRolling4w(), ...this.windowedRolling13w()];
     if (this.target() !== undefined) all.push(this.target()!);
     const min = Math.min(0, ...all), max = Math.max(100, ...all);
     return { min, max };
@@ -107,7 +146,7 @@ export class BaseTrendChartComponent {
   });
 
   protected readonly tickLabels = computed(() => {
-    const d = this.data();
+    const d = this.windowedData();
     if (d.length <= 6) return d.map(p => p.x);
     const step = Math.ceil(d.length / 6);
     return d.filter((_, i) => i % step === 0).map(p => p.x);
@@ -123,7 +162,7 @@ export class BaseTrendChartComponent {
   protected targetY = computed(() => this.target() !== undefined ? this.yAtValue(this.target()!) : 0);
 
   protected xAt(i: number): number {
-    const n = this.data().length;
+    const n = this.windowedData().length;
     const step = n > 1 ? (this.w - this.padL - this.padR) / (n - 1) : 0;
     return this.padL + i * step;
   }
@@ -140,15 +179,51 @@ export class BaseTrendChartComponent {
     return `${this.xAt(0)},${base} ` + v.map((val, i) => `${this.xAt(i)},${this.yAtValue(val)}`).join(' ') + ` ${this.xAt(v.length - 1)},${base}`;
   });
 
+  protected readonly dragOverlay = computed(() => {
+    const s = this.dragStartFrac(), c = this.dragCurrentFrac();
+    if (s === null || c === null) return null;
+    return { x: Math.min(s, c) * this.w, width: Math.abs(c - s) * this.w };
+  });
+
   onMove(ev: MouseEvent): void {
     const svg = ev.currentTarget as SVGSVGElement;
     const rect = svg.getBoundingClientRect();
+    if (this.dragStartFrac() !== null) {
+      this.dragCurrentFrac.set(fracX(ev.clientX, rect));
+      return;
+    }
     const px = ((ev.clientX - rect.left) / rect.width) * this.w;
-    const n = this.data().length;
+    const n = this.windowedData().length;
     if (!n) return;
     const step = n > 1 ? (this.w - this.padL - this.padR) / (n - 1) : 1;
     const i = Math.round((px - this.padL) / step);
     this.hoverIndex.set(Math.min(n - 1, Math.max(0, i)));
+  }
+
+  onLeave(): void {
+    this.hoverIndex.set(null);
+  }
+
+  onPointerDown(ev: PointerEvent): void {
+    if (!this.zoomable() || ev.button !== 0) return;
+    const rect = (ev.currentTarget as Element).getBoundingClientRect();
+    const f = fracX(ev.clientX, rect);
+    this.dragStartFrac.set(f);
+    this.dragCurrentFrac.set(f);
+    this.hoverIndex.set(null);
+  }
+
+  onPointerUp(): void {
+    const s = this.dragStartFrac(), c = this.dragCurrentFrac();
+    if (s !== null && c !== null && Math.abs(c - s) > 0.02) {
+      this.zoomWindow.set(narrowZoomWindow(this.zoomWindow(), s, c));
+    }
+    this.dragStartFrac.set(null);
+    this.dragCurrentFrac.set(null);
+  }
+
+  resetZoom(): void {
+    this.zoomWindow.set(FULL_ZOOM_WINDOW);
   }
 }
 
@@ -156,38 +231,55 @@ export class BaseTrendChartComponent {
   selector: 'base-bar-chart',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [BaseChartZoomBarComponent],
   template: `
     @if (orientation() === 'horizontal') {
-      <div class="flex flex-col gap-sp-2.5">
-        @for (d of data(); track d.x; let i = $index) {
-          <div class="flex items-center gap-sp-2">
-            <span class="w-24 shrink-0 text-[11px] text-ink-600 text-right truncate">{{ d.x }}</span>
-            <div class="relative flex-1 h-5 rounded-r-xs overflow-hidden bg-neutral-100">
-              @if (d.segments?.length) {
-                @for (seg of d.segments; track $index; let si = $index) {
-                  <span class="absolute top-0 h-full" [style.left.%]="hSegStart(d, si)" [style.width.%]="hSegWidth(d, si)"
-                        [style.background]="SERIES_COLOR_VAR[seg.tone]"
-                        [style.border-left]="si > 0 ? '1px solid var(--color-neutral-0)' : 'none'"
-                        [attr.title]="(seg.label || d.x) + ' · ' + seg.value"></span>
-                }
-              } @else {
-                <span class="absolute top-0 left-0 h-full rounded-r-xs transition-colors" [style.width.%]="hWidth(d)"
-                      [style.background]="toneVar(d)"></span>
-              }
-            </div>
-            <span class="w-12 shrink-0 text-[11px] font-semibold text-ink-900 tabular-nums" style="font-family:var(--font-mono);">
-              {{ total(d) }}{{ valueSuffix() }}
-            </span>
-          </div>
+      <div class="relative">
+        @if (zoomable()) {
+          <base-chart-zoom-bar [zoomed]="isZoomed()" (resetZoom)="resetZoom()" />
         }
+        <div class="relative flex flex-col gap-sp-2.5"
+             (pointerdown)="onHPointerDown($event)" (pointermove)="onHPointerMove($event)"
+             (pointerup)="onPointerUp()" (pointerleave)="onPointerUp()">
+          @for (d of visibleData(); track d.x; let i = $index) {
+            <div class="flex items-center gap-sp-2">
+              <span class="w-24 shrink-0 text-[11px] text-ink-600 text-right truncate">{{ d.x }}</span>
+              <div class="relative flex-1 h-5 rounded-r-xs overflow-hidden bg-neutral-100">
+                @if (d.segments?.length) {
+                  @for (seg of d.segments; track $index; let si = $index) {
+                    <span class="absolute top-0 h-full" [style.left.%]="hSegStart(d, si)" [style.width.%]="hSegWidth(d, si)"
+                          [style.background]="SERIES_COLOR_VAR[seg.tone]"
+                          [style.border-left]="si > 0 ? '1px solid var(--color-neutral-0)' : 'none'"
+                          [attr.title]="(seg.label || d.x) + ' · ' + seg.value"></span>
+                  }
+                } @else {
+                  <span class="absolute top-0 left-0 h-full rounded-r-xs transition-colors" [style.width.%]="hWidth(d)"
+                        [style.background]="toneVar(d)"></span>
+                }
+              </div>
+              <span class="w-12 shrink-0 text-[11px] font-semibold text-ink-900 tabular-nums" style="font-family:var(--font-mono);">
+                {{ total(d) }}{{ valueSuffix() }}
+              </span>
+            </div>
+          }
+          @if (dragOverlayH(); as ov) {
+            <div class="absolute inset-x-0 z-10 pointer-events-none bg-action/12 border-y border-action"
+                 [style.top.px]="ov.top" [style.height.px]="ov.height"></div>
+          }
+        </div>
       </div>
     } @else {
       <div class="relative">
-        <svg [attr.viewBox]="'0 0 ' + w + ' ' + h" width="100%" [attr.height]="height()" (mouseleave)="hoverIndex.set(null)" role="img" [attr.aria-label]="'Bar chart'">
+        @if (zoomable()) {
+          <base-chart-zoom-bar [zoomed]="isZoomed()" (resetZoom)="resetZoom()" />
+        }
+        <svg [attr.viewBox]="'0 0 ' + w + ' ' + h" width="100%" [attr.height]="height()" preserveAspectRatio="none" (mouseleave)="hoverIndex.set(null)"
+             (pointerdown)="onVPointerDown($event)" (pointermove)="onVPointerMove($event)" (pointerup)="onPointerUp()"
+             role="img" [attr.aria-label]="'Bar chart'">
           @for (gy of gridLines(); track gy) {
             <line x1="0" [attr.x2]="w" [attr.y1]="gy" [attr.y2]="gy" stroke="var(--color-neutral-200)" stroke-width="1" />
           }
-          @for (d of data(); track d.x; let i = $index) {
+          @for (d of visibleData(); track d.x; let i = $index) {
             @if (d.segments?.length) {
               @for (seg of d.segments; track $index; let si = $index) {
                 <rect [attr.x]="xAt(i)" [attr.y]="vSegY(d, si)" [attr.width]="barWidth()" [attr.height]="vSegHeight(d, si)"
@@ -195,19 +287,22 @@ export class BaseTrendChartComponent {
               }
             } @else {
               <rect [attr.x]="xAt(i)" [attr.y]="yAt(d.y)" [attr.width]="barWidth()" [attr.height]="h - padB - yAt(d.y)"
-                    [attr.fill]="i === hoverIndex() ? 'var(--color-action-hover)' : toneVar(d)" rx="2"
-                    (mouseenter)="hoverIndex.set(i)" />
+                    [attr.fill]="i === hoverPoint()?.i ? 'var(--color-action-hover)' : toneVar(d)" rx="2"
+                    (mouseenter)="onBarEnter(i)" />
             }
           }
+          @if (dragOverlayV(); as ov) {
+            <rect [attr.x]="ov.x" y="0" [attr.width]="ov.width" [attr.height]="h" fill="var(--color-action)" opacity="0.12" />
+          }
         </svg>
-        @if (hoverIndex(); as i) {
+        @if (hoverPoint(); as h2) {
           <div class="absolute pointer-events-none bg-ink-900 text-neutral-0 text-[11px] font-semibold rounded-r-xs px-sp-2 py-1 mono-data"
-               [style.left.px]="xAt(i) + barWidth() / 2" [style.top.px]="yAt(data()[i].y) - 26" style="transform: translateX(-50%);">
-            {{ data()[i].y }}
+               [style.left.%]="(xAt(h2.i) + barWidth() / 2) / w * 100" [style.top.%]="(yAt(visibleData()[h2.i].y) - 26) / h * 100" style="transform: translateX(-50%);">
+            {{ visibleData()[h2.i].y }}
           </div>
         }
         <div class="flex mt-1 text-[9px] text-ink-500" [style]="fontStyle">
-          @for (d of data(); track d.x) { <span class="flex-1 text-center truncate">{{ d.x }}</span> }
+          @for (d of visibleData(); track d.x) { <span class="flex-1 text-center truncate">{{ d.x }}</span> }
         </div>
       </div>
     }
@@ -219,22 +314,39 @@ export class BaseBarChartComponent {
   readonly orientation = input<'vertical' | 'horizontal'>('vertical');
   readonly defaultTone = input<SeriesTone>('action');
   readonly valueSuffix = input('');
+  /** Drag-select to zoom into a range of bars/categories; shows a "Reset Zoom" link. */
+  readonly zoomable = input(true);
 
   protected readonly SERIES_COLOR_VAR = SERIES_COLOR_VAR;
   protected readonly fontStyle = CHART_FONT;
   protected readonly w = 320; protected readonly h = 160; protected readonly padB = 4; protected readonly padT = 8;
   protected readonly hoverIndex = signal<number | null>(null);
 
-  private readonly max = computed(() => Math.max(1, ...this.data().map(d => this.total(d))));
+  protected readonly zoomWindow = signal<ChartZoomWindow>(FULL_ZOOM_WINDOW);
+  protected readonly isZoomed = computed(() => isZoomedWindow(this.zoomWindow()));
+  protected readonly visibleData = computed(() => sliceWindow(this.data(), this.zoomWindow()));
+
+  // Wrapped in an object so index 0 still reads as "present" (a bare number is falsy in @if),
+  // and clamped against visibleData() so a hover set mid-drag can't outlive a zoom that shrinks it.
+  protected readonly hoverPoint = computed(() => {
+    const i = this.hoverIndex();
+    return i !== null && i < this.visibleData().length ? { i } : null;
+  });
+
+  protected readonly dragStartFrac = signal<number | null>(null);
+  protected readonly dragCurrentFrac = signal<number | null>(null);
+  private dragExtentPx = 0;
+
+  private readonly max = computed(() => Math.max(1, ...this.visibleData().map(d => this.total(d))));
   protected readonly gridLines = computed(() => Array.from({ length: 4 }, (_, i) => this.padT + (i * (this.h - this.padT - this.padB)) / 3));
 
   protected barWidth = computed(() => {
-    const n = this.data().length || 1;
+    const n = this.visibleData().length || 1;
     return (this.w / n) * 0.6;
   });
 
   protected xAt(i: number): number {
-    const n = this.data().length || 1;
+    const n = this.visibleData().length || 1;
     const slot = this.w / n;
     return i * slot + (slot - this.barWidth()) / 2;
   }
@@ -265,6 +377,71 @@ export class BaseBarChartComponent {
   protected hWidth(d: BaseChartPoint): number { return (this.total(d) / this.max()) * 100; }
   protected hSegStart(d: BaseChartPoint, si: number): number { return (this.cumulative(d, si) / this.max()) * 100; }
   protected hSegWidth(d: BaseChartPoint, si: number): number { return (d.segments![si].value / this.max()) * 100; }
+
+  protected readonly dragOverlayH = computed(() => {
+    if (this.orientation() !== 'horizontal') return null;
+    const s = this.dragStartFrac(), c = this.dragCurrentFrac();
+    if (s === null || c === null) return null;
+    return { top: Math.min(s, c) * this.dragExtentPx, height: Math.abs(c - s) * this.dragExtentPx };
+  });
+
+  protected readonly dragOverlayV = computed(() => {
+    if (this.orientation() === 'horizontal') return null;
+    const s = this.dragStartFrac(), c = this.dragCurrentFrac();
+    if (s === null || c === null) return null;
+    return { x: Math.min(s, c) * this.w, width: Math.abs(c - s) * this.w };
+  });
+
+  onHPointerDown(ev: PointerEvent): void {
+    if (!this.zoomable() || ev.button !== 0) return;
+    const rect = (ev.currentTarget as Element).getBoundingClientRect();
+    this.dragExtentPx = rect.height;
+    const f = fracY(ev.clientY, rect);
+    this.dragStartFrac.set(f);
+    this.dragCurrentFrac.set(f);
+  }
+
+  onHPointerMove(ev: PointerEvent): void {
+    if (this.dragStartFrac() === null) return;
+    const rect = (ev.currentTarget as Element).getBoundingClientRect();
+    this.dragCurrentFrac.set(fracY(ev.clientY, rect));
+  }
+
+  onVPointerDown(ev: PointerEvent): void {
+    if (!this.zoomable() || ev.button !== 0) return;
+    const rect = (ev.currentTarget as Element).getBoundingClientRect();
+    this.dragExtentPx = rect.width;
+    const f = fracX(ev.clientX, rect);
+    this.dragStartFrac.set(f);
+    this.dragCurrentFrac.set(f);
+    this.hoverIndex.set(null);
+  }
+
+  onVPointerMove(ev: PointerEvent): void {
+    if (this.dragStartFrac() === null) return;
+    const rect = (ev.currentTarget as Element).getBoundingClientRect();
+    this.dragCurrentFrac.set(fracX(ev.clientX, rect));
+  }
+
+  onPointerUp(): void {
+    const s = this.dragStartFrac(), c = this.dragCurrentFrac();
+    if (s !== null && c !== null && Math.abs(c - s) > 0.02) {
+      this.zoomWindow.set(narrowZoomWindow(this.zoomWindow(), s, c));
+    }
+    this.dragStartFrac.set(null);
+    this.dragCurrentFrac.set(null);
+    this.hoverIndex.set(null);
+  }
+
+  onBarEnter(i: number): void {
+    // Ignore hover while a drag-zoom is in progress — mouseenter fires on whatever bar
+    // the cursor passes over mid-drag, independent of the pointer-down/up handlers.
+    if (this.dragStartFrac() === null) this.hoverIndex.set(i);
+  }
+
+  resetZoom(): void {
+    this.zoomWindow.set(FULL_ZOOM_WINDOW);
+  }
 }
 
 export interface BaseScatterPoint { x: number; y: number; label?: string; }
@@ -273,22 +450,31 @@ export interface BaseScatterPoint { x: number; y: number; label?: string; }
   selector: 'base-scatter-chart',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [BaseChartZoomBarComponent],
   template: `
     <div class="relative">
-      <svg [attr.viewBox]="'0 0 ' + w + ' ' + h" width="100%" [attr.height]="height()" role="img" aria-label="Scatter chart">
+      @if (zoomable()) {
+        <base-chart-zoom-bar [zoomed]="isZoomed()" (resetZoom)="resetZoom()" />
+      }
+      <svg [attr.viewBox]="'0 0 ' + w + ' ' + h" width="100%" [attr.height]="height()" preserveAspectRatio="none" role="img" aria-label="Scatter chart"
+           (pointerdown)="onPointerDown($event)" (pointermove)="onPointerMove($event)"
+           (pointerup)="onPointerUp()" (pointerleave)="onPointerUp()">
         @for (gy of [0,1,2,3]; track gy) {
           <line x1="0" [attr.x2]="w" [attr.y1]="4 + gy * (h - 8) / 3" [attr.y2]="4 + gy * (h - 8) / 3" stroke="var(--color-neutral-200)" stroke-width="1" />
         }
-        @for (p of data(); track $index; let i = $index) {
+        @for (p of visibleData(); track $index; let i = $index) {
           <circle [attr.cx]="xAt(p.x)" [attr.cy]="yAt(p.y)" r="4"
-                  [attr.fill]="i === hoverIndex() ? 'var(--color-action-hover)' : 'var(--color-action)'" opacity="0.75"
-                  (mouseenter)="hoverIndex.set(i)" (mouseleave)="hoverIndex.set(null)" />
+                  [attr.fill]="i === hoverPoint()?.i ? 'var(--color-action-hover)' : 'var(--color-action)'" opacity="0.75"
+                  (mouseenter)="onPointEnter(i)" (mouseleave)="hoverIndex.set(null)" />
+        }
+        @if (dragOverlay(); as ov) {
+          <rect [attr.x]="ov.x" [attr.y]="ov.y" [attr.width]="ov.width" [attr.height]="ov.height" fill="var(--color-action)" opacity="0.12" />
         }
       </svg>
-      @if (hoverIndex(); as i) {
+      @if (hoverPoint(); as h2) {
         <div class="absolute pointer-events-none bg-ink-900 text-neutral-0 text-[11px] font-semibold rounded-r-xs px-sp-2 py-1 mono-data"
-             [style.left.px]="xAt(data()[i].x)" [style.top.px]="yAt(data()[i].y) - 30" style="transform: translateX(-50%);">
-          {{ data()[i].label ?? (data()[i].x + ', ' + data()[i].y) }}
+             [style.left.%]="xAt(visibleData()[h2.i].x) / w * 100" [style.top.%]="(yAt(visibleData()[h2.i].y) - 30) / h * 100" style="transform: translateX(-50%);">
+          {{ visibleData()[h2.i].label ?? (visibleData()[h2.i].x + ', ' + visibleData()[h2.i].y) }}
         </div>
       }
     </div>
@@ -297,17 +483,43 @@ export interface BaseScatterPoint { x: number; y: number; label?: string; }
 export class BaseScatterChartComponent {
   readonly data = input.required<BaseScatterPoint[]>();
   readonly height = input(160);
+  /** Drag-select a rectangle to zoom into that x/y region; shows a "Reset Zoom" link. */
+  readonly zoomable = input(true);
 
   protected readonly w = 320; protected readonly h = 160;
   protected readonly hoverIndex = signal<number | null>(null);
 
-  private readonly xDomain = computed(() => {
+  protected readonly zoomRect = signal<{ xMin: number; xMax: number; yMin: number; yMax: number } | null>(null);
+  protected readonly isZoomed = computed(() => this.zoomRect() !== null);
+  protected readonly visibleData = computed(() => {
+    const z = this.zoomRect();
+    if (!z) return this.data();
+    return this.data().filter(p => p.x >= z.xMin && p.x <= z.xMax && p.y >= z.yMin && p.y <= z.yMax);
+  });
+
+  // Wrapped in an object so index 0 still reads as "present", and clamped against
+  // visibleData() so a hover set mid-drag can't outlive a zoom that shrinks it.
+  protected readonly hoverPoint = computed(() => {
+    const i = this.hoverIndex();
+    return i !== null && i < this.visibleData().length ? { i } : null;
+  });
+
+  private readonly fullXDomain = computed(() => {
     const xs = this.data().map(p => p.x);
     return { min: Math.min(0, ...xs), max: Math.max(1, ...xs) };
   });
-  private readonly yDomain = computed(() => {
+  private readonly fullYDomain = computed(() => {
     const ys = this.data().map(p => p.y);
     return { min: Math.min(0, ...ys), max: Math.max(1, ...ys) };
+  });
+
+  private readonly xDomain = computed(() => {
+    const z = this.zoomRect();
+    return z ? { min: z.xMin, max: z.xMax } : this.fullXDomain();
+  });
+  private readonly yDomain = computed(() => {
+    const z = this.zoomRect();
+    return z ? { min: z.yMin, max: z.yMax } : this.fullYDomain();
   });
 
   protected xAt(v: number): number {
@@ -318,25 +530,91 @@ export class BaseScatterChartComponent {
     const { min, max } = this.yDomain();
     return this.h - 8 - ((v - min) / ((max - min) || 1)) * (this.h - 16);
   }
+
+  private dataXFromSvgX(sx: number): number {
+    const { min, max } = this.xDomain();
+    return min + ((sx - 8) / (this.w - 16)) * ((max - min) || 1);
+  }
+  private dataYFromSvgY(sy: number): number {
+    const { min, max } = this.yDomain();
+    return min + ((this.h - 8 - sy) / (this.h - 16)) * ((max - min) || 1);
+  }
+
+  protected readonly dragStart = signal<{ x: number; y: number } | null>(null);
+  protected readonly dragCurrent = signal<{ x: number; y: number } | null>(null);
+
+  protected readonly dragOverlay = computed(() => {
+    const a = this.dragStart(), b = this.dragCurrent();
+    if (!a || !b) return null;
+    return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), width: Math.abs(b.x - a.x), height: Math.abs(b.y - a.y) };
+  });
+
+  onPointerDown(ev: PointerEvent): void {
+    if (!this.zoomable() || ev.button !== 0) return;
+    const rect = (ev.currentTarget as Element).getBoundingClientRect();
+    const p = { x: fracX(ev.clientX, rect) * this.w, y: fracY(ev.clientY, rect) * this.h };
+    this.dragStart.set(p);
+    this.dragCurrent.set(p);
+    this.hoverIndex.set(null);
+  }
+
+  onPointEnter(i: number): void {
+    // Ignore hover while a drag-select is in progress — mouseenter fires on whatever point
+    // the cursor passes over mid-drag, independent of the pointer-down/up handlers.
+    if (!this.dragStart()) this.hoverIndex.set(i);
+  }
+
+  onPointerMove(ev: PointerEvent): void {
+    if (!this.dragStart()) return;
+    const rect = (ev.currentTarget as Element).getBoundingClientRect();
+    this.dragCurrent.set({ x: fracX(ev.clientX, rect) * this.w, y: fracY(ev.clientY, rect) * this.h });
+  }
+
+  onPointerUp(): void {
+    const a = this.dragStart(), b = this.dragCurrent();
+    if (a && b && Math.hypot(b.x - a.x, b.y - a.y) > 6) {
+      const xMin = this.dataXFromSvgX(Math.min(a.x, b.x));
+      const xMax = this.dataXFromSvgX(Math.max(a.x, b.x));
+      const yMin = this.dataYFromSvgY(Math.max(a.y, b.y));
+      const yMax = this.dataYFromSvgY(Math.min(a.y, b.y));
+      this.zoomRect.set({ xMin, xMax, yMin, yMax });
+    }
+    this.dragStart.set(null);
+    this.dragCurrent.set(null);
+    this.hoverIndex.set(null);
+  }
+
+  resetZoom(): void {
+    this.zoomRect.set(null);
+  }
 }
 
 @Component({
   selector: 'base-histogram',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [BaseChartZoomBarComponent],
   template: `
     <div class="relative">
-      <svg [attr.viewBox]="'0 0 ' + w + ' ' + h" width="100%" [attr.height]="height()" role="img" aria-label="Histogram">
-        @for (b of bins(); track $index; let i = $index) {
+      @if (zoomable()) {
+        <base-chart-zoom-bar [zoomed]="isZoomed()" (resetZoom)="resetZoom()" />
+      }
+      <svg [attr.viewBox]="'0 0 ' + w + ' ' + h" width="100%" [attr.height]="height()" preserveAspectRatio="none" role="img" aria-label="Histogram"
+           (pointerdown)="onPointerDown($event)" (pointermove)="onPointerMove($event)"
+           (pointerup)="onPointerUp()" (pointerleave)="onPointerUp()">
+        @for (b of visibleBins(); track $index; let i = $index) {
           <rect [attr.x]="xAt(i)" [attr.y]="yAt(b.count)" [attr.width]="binWidth()" [attr.height]="h - 4 - yAt(b.count)"
-                [attr.fill]="i === hoverIndex() ? 'var(--color-accent-hover)' : 'var(--color-accent)'"
-                (mouseenter)="hoverIndex.set(i)" (mouseleave)="hoverIndex.set(null)" />
+                [attr.fill]="i === hoverPoint()?.i ? 'var(--color-accent-hover)' : 'var(--color-accent)'"
+                (mouseenter)="onBinEnter(i)" (mouseleave)="hoverIndex.set(null)" />
+        }
+        @if (dragOverlay(); as ov) {
+          <rect [attr.x]="ov.x" y="0" [attr.width]="ov.width" [attr.height]="h" fill="var(--color-accent)" opacity="0.14" />
         }
       </svg>
-      @if (hoverIndex(); as i) {
+      @if (hoverPoint(); as h2) {
         <div class="absolute pointer-events-none bg-ink-900 text-neutral-0 text-[11px] font-semibold rounded-r-xs px-sp-2 py-1 mono-data"
-             [style.left.px]="xAt(i) + binWidth() / 2" [style.top.px]="yAt(bins()[i].count) - 26" style="transform: translateX(-50%);">
-          {{ bins()[i].label }}: {{ bins()[i].count }}
+             [style.left.%]="(xAt(h2.i) + binWidth() / 2) / w * 100" [style.top.%]="(yAt(visibleBins()[h2.i].count) - 26) / h * 100" style="transform: translateX(-50%);">
+          {{ visibleBins()[h2.i].label }}: {{ visibleBins()[h2.i].count }}
         </div>
       }
     </div>
@@ -345,14 +623,71 @@ export class BaseScatterChartComponent {
 export class BaseHistogramComponent {
   readonly bins = input.required<{ label: string; count: number }[]>();
   readonly height = input(140);
+  /** Drag-select on the chart to zoom into a range of bins; shows a "Reset Zoom" link. */
+  readonly zoomable = input(true);
 
   protected readonly w = 320; protected readonly h = 140;
   protected readonly hoverIndex = signal<number | null>(null);
-  private readonly max = computed(() => Math.max(1, ...this.bins().map(b => b.count)));
 
-  protected binWidth = computed(() => this.w / (this.bins().length || 1));
+  protected readonly zoomWindow = signal<ChartZoomWindow>(FULL_ZOOM_WINDOW);
+  protected readonly isZoomed = computed(() => isZoomedWindow(this.zoomWindow()));
+  protected readonly visibleBins = computed(() => sliceWindow(this.bins(), this.zoomWindow()));
+
+  // Wrapped in an object so index 0 still reads as "present", and clamped against
+  // visibleBins() so a hover set mid-drag can't outlive a zoom that shrinks it.
+  protected readonly hoverPoint = computed(() => {
+    const i = this.hoverIndex();
+    return i !== null && i < this.visibleBins().length ? { i } : null;
+  });
+
+  private readonly max = computed(() => Math.max(1, ...this.visibleBins().map(b => b.count)));
+
+  protected binWidth = computed(() => this.w / (this.visibleBins().length || 1));
   protected xAt(i: number): number { return i * this.binWidth(); }
   protected yAt(v: number): number { return this.h - 4 - (v / this.max()) * (this.h - 8); }
+
+  protected readonly dragStartFrac = signal<number | null>(null);
+  protected readonly dragCurrentFrac = signal<number | null>(null);
+  protected readonly dragOverlay = computed(() => {
+    const s = this.dragStartFrac(), c = this.dragCurrentFrac();
+    if (s === null || c === null) return null;
+    return { x: Math.min(s, c) * this.w, width: Math.abs(c - s) * this.w };
+  });
+
+  onPointerDown(ev: PointerEvent): void {
+    if (!this.zoomable() || ev.button !== 0) return;
+    const rect = (ev.currentTarget as Element).getBoundingClientRect();
+    const f = fracX(ev.clientX, rect);
+    this.dragStartFrac.set(f);
+    this.dragCurrentFrac.set(f);
+    this.hoverIndex.set(null);
+  }
+
+  onPointerMove(ev: PointerEvent): void {
+    if (this.dragStartFrac() === null) return;
+    const rect = (ev.currentTarget as Element).getBoundingClientRect();
+    this.dragCurrentFrac.set(fracX(ev.clientX, rect));
+  }
+
+  onPointerUp(): void {
+    const s = this.dragStartFrac(), c = this.dragCurrentFrac();
+    if (s !== null && c !== null && Math.abs(c - s) > 0.02) {
+      this.zoomWindow.set(narrowZoomWindow(this.zoomWindow(), s, c));
+    }
+    this.dragStartFrac.set(null);
+    this.dragCurrentFrac.set(null);
+    this.hoverIndex.set(null);
+  }
+
+  onBinEnter(i: number): void {
+    // Ignore hover while a drag-zoom is in progress — mouseenter fires on whatever bin
+    // the cursor passes over mid-drag, independent of the pointer-down/up handlers.
+    if (this.dragStartFrac() === null) this.hoverIndex.set(i);
+  }
+
+  resetZoom(): void {
+    this.zoomWindow.set(FULL_ZOOM_WINDOW);
+  }
 }
 
 @Component({

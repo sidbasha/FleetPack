@@ -2,7 +2,7 @@ import { Injectable, computed, effect, inject, signal, untracked } from '@angula
 import { ApiService } from '../services/api.service';
 import { FilterStore } from './filter.store';
 import { createPagination, createQuery } from './base.store';
-import { deriveEvents, deriveGantt, deriveGanttSummary } from './segment-derivation.util';
+import { deriveEvents, deriveGantt, deriveGanttSummary, deriveSegmentTimeline } from './segment-derivation.util';
 
 const FULL_RANGE_START = '1970-01-01T00:00:00.000Z';
 const FULL_RANGE_END = '2999-01-01T00:00:00.000Z';
@@ -60,6 +60,7 @@ export class UptimeStore {
   readonly gantt = computed(() => deriveGantt(this.stateSegments(), this.segmentActivities()));
   readonly ganttSummary = computed(() => deriveGanttSummary(this.gantt()));
   readonly events = computed(() => deriveEvents(this.stateSegments(), this.segmentActivities()));
+  readonly segmentTimeline = computed(() => deriveSegmentTimeline(this.segmentActivities()));
 
   readonly eventsPager = createPagination(this.events, 20);
   readonly pagedEvents = this.eventsPager.paged;

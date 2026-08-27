@@ -7,9 +7,19 @@ import {
   effect,
   inject,
   input,
+  output,
   signal,
-  viewChildren
+  viewChild
 } from '@angular/core';
+import { CdkFixedSizeVirtualScroll, CdkVirtualForOf, CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
+import {
+  ChartZoomWindow,
+  FULL_ZOOM_WINDOW,
+  BaseChartZoomBarComponent,
+  fracX,
+  isZoomedWindow,
+  narrowZoomWindow
+} from './chart-zoom.util';
 
 export type BaseMachineState =
   | 'production' | 'engineering' | 'standby'
@@ -160,91 +170,150 @@ function buildPatternTile(pattern: BaseStatePattern, resolved: string): HTMLCanv
   return tile;
 }
 
+function defaultDurationLabel(span: number): string {
+  return Number.isInteger(span) ? `${span}h` : `${span.toFixed(1)}h`;
+}
+
+function resolveBadgeTone(badge: string): string {
+  const pct = parseFloat(badge);
+  if (Number.isNaN(pct)) return 'text-ink-600';
+  if (pct >= 95) return 'text-success';
+  if (pct >= 80) return 'text-warning';
+  return 'text-error';
+}
+
+function drawGanttRow(
+  canvas: HTMLCanvasElement,
+  row: BaseGanttRow,
+  domainStart: number,
+  domainEnd: number,
+  tiles: Map<BaseMachineState, HTMLCanvasElement>
+): (BaseGanttSegment | null)[] {
+  const cssWidth = Math.max(1, Math.round(canvas.clientWidth));
+  const cssHeight = Math.max(1, Math.round(canvas.clientHeight));
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = cssWidth * dpr;
+  canvas.height = cssHeight * dpr;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return [];
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+  const span = domainEnd - domainStart;
+  const buckets: (BaseGanttSegment | null)[] = new Array(cssWidth).fill(null);
+  if (!row.noData && span > 0) {
+    const pxPerUnit = cssWidth / span;
+    for (const seg of row.segments) {
+      if (seg.endHour <= domainStart || seg.startHour >= domainEnd) continue;
+      const startPx = Math.max(0, Math.min(cssWidth - 1, Math.floor((seg.startHour - domainStart) * pxPerUnit)));
+      const endPx = Math.max(startPx + 1, Math.min(cssWidth, Math.ceil((seg.endHour - domainStart) * pxPerUnit)));
+      for (let px = startPx; px < endPx; px++) {
+        const current = buckets[px];
+        if (!current || STATE_PRIORITY[seg.state] >= STATE_PRIORITY[current.state]) buckets[px] = seg;
+      }
+    }
+
+    let runStart = 0;
+    for (let px = 1; px <= cssWidth; px++) {
+      const sameRun = px < cssWidth && buckets[px]?.state === buckets[runStart]?.state;
+      if (!sameRun) {
+        const seg = buckets[runStart];
+        if (seg) {
+          const tile = tiles.get(seg.state);
+          const pattern = tile ? ctx.createPattern(tile, 'repeat') : null;
+          ctx.fillStyle = pattern ?? resolveStateColor(canvas, BASE_MACHINE_STATE_META[seg.state].colorVar);
+          ctx.fillRect(runStart, 0, px - runStart, cssHeight);
+        }
+        runStart = px;
+      }
+    }
+  }
+  return buckets;
+}
+
+/**
+ * One row's canvas + hover tooltip. Split out from the timeline so `*cdkVirtualFor`
+ * can create/destroy/recycle rows independently as the viewport scrolls — the parent
+ * no longer needs every row's canvas to exist at once, which is what makes hundreds
+ * of rows affordable.
+ */
 @Component({
-  selector: 'base-gantt-timeline',
+  selector: 'base-gantt-row-canvas',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="relative flex flex-col gap-sp-2">
-      @for (row of rows(); track row.label) {
-        <div class="flex items-center gap-sp-3">
-          <span class="w-16 shrink-0 text-[11px] font-semibold text-ink-700 truncate">{{ row.label }}</span>
-          <div class="relative flex-1 h-5 rounded-r-xs overflow-hidden bg-neutral-100">
-            <canvas #rowCanvas class="absolute inset-0 block w-full h-full"
-                    role="img" [attr.aria-label]="row.label + ' timeline, ' + row.segments.length + ' state change(s)'"
-                    (mousemove)="onCanvasMove($event, rowCanvas, row)" (mouseleave)="onCanvasLeave()"></canvas>
-            @if (row.noData) {
-              <div class="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-neutral-400 bg-neutral-200">
-                No telemetry
-              </div>
-            }
+    <div class="flex items-center gap-sp-3">
+      <button type="button"
+              class="w-16 shrink-0 text-[11px] font-semibold truncate text-left bg-transparent border-0 p-0"
+              [class.text-action]="selected()" [class.text-ink-700]="!selected()"
+              [class.cursor-pointer]="filterable()" [disabled]="!filterable()"
+              [attr.title]="filterable() ? 'Click to isolate this row' : row().label"
+              (click)="labelClick.emit(row().label)">
+        {{ row().label }}
+      </button>
+      <div class="relative flex-1 h-5 rounded-r-xs overflow-hidden bg-neutral-100">
+        <canvas #rowCanvas class="absolute inset-0 block w-full h-full"
+                role="img" [attr.aria-label]="row().label + ' timeline, ' + row().segments.length + ' state change(s)'"
+                (mousemove)="onMove($event, rowCanvas)" (mouseleave)="hover.set(null)"></canvas>
+        @if (row().noData) {
+          <div class="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-neutral-400 bg-neutral-200">
+            No telemetry
           </div>
-          @if (row.badge) {
-            <span class="w-12 shrink-0 text-right text-[11px] font-semibold tabular-nums" style="font-family:var(--font-mono);"
-                  [class]="badgeTone(row.badge)">{{ row.badge }}</span>
-          }
-        </div>
-      }
-      <div class="flex items-center gap-sp-3 mt-1">
-        <span class="w-16 shrink-0"></span>
-        <div class="relative flex-1 flex justify-between text-[9px] text-ink-500" style="font-family:var(--font-mono);">
-          @for (t of axisTicks(); track $index) { <span>{{ t }}</span> }
-        </div>
-        <span class="w-12 shrink-0"></span>
+        }
+        @if (hover(); as h) {
+          <div class="absolute pointer-events-none z-10 bg-ink-900 text-neutral-0 text-[11px] font-semibold rounded-r-xs px-sp-2 py-1 mono-data whitespace-nowrap"
+               [style.left.px]="h.left" style="bottom: 100%; margin-bottom: 4px; transform: translateX(-50%);">
+            {{ h.seg.label || meta(h.seg.state).label }} · {{ durationFormat()(h.seg.endHour - h.seg.startHour) }}
+          </div>
+        }
       </div>
-      @if (hover(); as h) {
-        <div class="absolute pointer-events-none z-10 bg-ink-900 text-neutral-0 text-[11px] font-semibold rounded-r-xs px-sp-2 py-1 mono-data whitespace-nowrap"
-             [style.left.px]="h.left" [style.top.px]="h.top" style="transform: translate(-50%, -100%);">
-          {{ h.seg.label || meta(h.seg.state).label }} · {{ durationLabel(h.seg.endHour - h.seg.startHour) }}
-        </div>
-      }
-    </div>
-    <div class="flex flex-wrap items-center gap-x-sp-4 gap-y-1 mt-sp-3 text-[11px] text-ink-600">
-      @for (s of legendStates(); track s) {
-        <span class="flex items-center gap-1.5">
-          <i class="inline-block w-2.5 h-2.5 rounded-r-xs" [style.background]="bg(s)"></i>
-          <span class="icon-outline" style="font-size:12px;" [style.color]="meta(s).colorVar" aria-hidden="true">{{ meta(s).icon }}</span>
-          {{ meta(s).label }}
-        </span>
+      @if (row().badge) {
+        <span class="w-12 shrink-0 text-right text-[11px] font-semibold tabular-nums" style="font-family:var(--font-mono);"
+              [class]="badgeTone(row().badge!)">{{ row().badge }}</span>
       }
     </div>
   `
 })
-export class BaseGanttTimelineComponent implements OnDestroy {
-  readonly rows = input.required<BaseGanttRow[]>();
-  readonly legendStates = input<BaseMachineState[]>(['production', 'standby', 'scheduled-dt', 'unscheduled-dt']);
-  readonly totalHours = input(24);
+export class BaseGanttRowCanvasComponent implements OnDestroy {
+  readonly row = input.required<BaseGanttRow>();
+  readonly domainStart = input.required<number>();
+  readonly domainEnd = input.required<number>();
+  readonly tiles = input.required<Map<BaseMachineState, HTMLCanvasElement>>();
+  readonly durationFormat = input<(span: number) => string>(defaultDurationLabel);
+  readonly selected = input(false);
+  readonly filterable = input(true);
+  readonly dragging = input(false);
+  readonly labelClick = output<string>();
 
-  private readonly host = inject(ElementRef<HTMLElement>);
-  protected readonly canvasRefs = viewChildren<ElementRef<HTMLCanvasElement>>('rowCanvas');
-  private readonly bucketsByRow = new Map<BaseGanttRow, (BaseGanttSegment | null)[]>();
-  protected readonly hover = signal<{ seg: BaseGanttSegment; left: number; top: number } | null>(null);
+  private readonly canvasRef = viewChild<ElementRef<HTMLCanvasElement>>('rowCanvas');
+  private buckets: (BaseGanttSegment | null)[] = [];
+  protected readonly hover = signal<{ seg: BaseGanttSegment; left: number } | null>(null);
   private readonly redrawTick = signal(0);
   private resizeObserver: ResizeObserver | null = null;
   private rafId: number | null = null;
 
-  protected readonly axisTicks = computed(() => {
-    const total = this.totalHours();
-    const steps = 6;
-    return Array.from({ length: steps + 1 }, (_, i) => {
-      const h = (total / steps) * i;
-      return total <= 48 ? this.fmt(h % 24) : `${Math.round(h)}h`;
-    });
-  });
-
   constructor() {
     effect(() => {
-      const canvases = this.canvasRefs();
-      const rowsData = this.rows();
-      const hours = this.totalHours();
-      this.redrawTick();
-      this.drawAll(canvases, rowsData, hours);
+      const ref = this.canvasRef();
+      if (ref && !this.resizeObserver && typeof ResizeObserver !== 'undefined') {
+        this.resizeObserver = new ResizeObserver(() => this.scheduleRedraw());
+        this.resizeObserver.observe(ref.nativeElement);
+      }
     });
 
-    if (typeof ResizeObserver !== 'undefined') {
-      this.resizeObserver = new ResizeObserver(() => this.scheduleRedraw());
-      this.resizeObserver.observe(this.host.nativeElement);
-    }
+    effect(() => {
+      const ref = this.canvasRef();
+      const row = this.row();
+      const start = this.domainStart();
+      const end = this.domainEnd();
+      const tiles = this.tiles();
+      this.redrawTick();
+      if (ref) this.buckets = drawGanttRow(ref.nativeElement, row, start, end, tiles);
+    });
+
+    effect(() => {
+      if (this.dragging()) this.hover.set(null);
+    });
   }
 
   ngOnDestroy(): void {
@@ -260,17 +329,143 @@ export class BaseGanttTimelineComponent implements OnDestroy {
     });
   }
 
-  private drawAll(canvasRefs: readonly ElementRef<HTMLCanvasElement>[], rowsData: BaseGanttRow[], totalHours: number): void {
-    this.bucketsByRow.clear();
-    if (!canvasRefs.length) return;
-    const tiles = this.buildTiles();
-    canvasRefs.forEach((ref, i) => {
-      const row = rowsData[i];
-      if (!row) return;
-      const buckets = this.drawRow(ref.nativeElement, row, totalHours, tiles);
-      this.bucketsByRow.set(row, buckets);
-    });
+  onMove(ev: MouseEvent, canvas: HTMLCanvasElement): void {
+    if (this.dragging() || !this.buckets.length) { this.hover.set(null); return; }
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.min(this.buckets.length - 1, Math.max(0, Math.floor(ev.clientX - rect.left)));
+    const seg = this.buckets[x];
+    if (!seg) { this.hover.set(null); return; }
+    this.hover.set({ seg, left: x });
   }
+
+  meta(s: BaseMachineState) { return BASE_MACHINE_STATE_META[s]; }
+  badgeTone(badge: string): string { return resolveBadgeTone(badge); }
+}
+
+@Component({
+  selector: 'base-gantt-timeline',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CdkVirtualScrollViewport, CdkFixedSizeVirtualScroll, CdkVirtualForOf, BaseGanttRowCanvasComponent, BaseChartZoomBarComponent],
+  template: `
+    <div class="relative flex flex-col gap-sp-2"
+         (pointerdown)="onDragStart($event)" (pointermove)="onDragMove($event)"
+         (pointerup)="onDragEnd()" (pointerleave)="onDragEnd()">
+      @if (zoomable() || filterable()) {
+        <base-chart-zoom-bar [zoomed]="isZoomed()" [filtered]="isFiltered()" [showFilter]="filterable()"
+                              (resetZoom)="resetZoom()" (resetFilter)="resetFilter()" />
+      }
+
+      <cdk-virtual-scroll-viewport [itemSize]="rowHeight()" [style.height.px]="viewportHeightPx()" class="gantt-viewport">
+        <div *cdkVirtualFor="let row of visibleRows(); trackBy: trackByLabel" [style.height.px]="rowHeight()">
+          <base-gantt-row-canvas
+            [row]="row" [domainStart]="visibleDomain().start" [domainEnd]="visibleDomain().end"
+            [tiles]="tiles()" [durationFormat]="durationFormat() ?? defaultDurationFn"
+            [selected]="filteredLabel() === row.label" [filterable]="filterable()" [dragging]="isDragging()"
+            (labelClick)="onLabelClick($event)" />
+        </div>
+      </cdk-virtual-scroll-viewport>
+
+      <div class="flex items-center gap-sp-3 mt-1">
+        <span class="w-16 shrink-0"></span>
+        <div #trackRef class="relative flex-1 flex justify-between text-[9px] text-ink-500" style="font-family:var(--font-mono);">
+          @for (t of axisTicks(); track $index) { <span>{{ t }}</span> }
+        </div>
+        <span class="w-12 shrink-0"></span>
+      </div>
+
+      @if (zoomable() || filterable()) {
+        <base-chart-zoom-bar [zoomed]="isZoomed()" [filtered]="isFiltered()" [showFilter]="filterable()"
+                              (resetZoom)="resetZoom()" (resetFilter)="resetFilter()" />
+      }
+
+      @if (dragOverlay(); as ov) {
+        <div class="absolute inset-y-0 z-20 pointer-events-none bg-action/15 border-x border-action"
+             [style.left.px]="ov.left" [style.width.px]="ov.width"></div>
+      }
+    </div>
+    <div class="flex flex-wrap items-center gap-x-sp-4 gap-y-1 mt-sp-3 text-[11px] text-ink-600">
+      @for (s of legendStates(); track s) {
+        <span class="flex items-center gap-1.5">
+          <i class="inline-block w-2.5 h-2.5 rounded-r-xs" [style.background]="bg(s)"></i>
+          <span class="icon-outline" style="font-size:12px;" [style.color]="meta(s).colorVar" aria-hidden="true">{{ meta(s).icon }}</span>
+          {{ meta(s).label }}
+        </span>
+      }
+    </div>
+  `
+})
+export class BaseGanttTimelineComponent {
+  readonly rows = input.required<BaseGanttRow[]>();
+  readonly legendStates = input<BaseMachineState[]>(['production', 'standby', 'scheduled-dt', 'unscheduled-dt']);
+  /** Total width of the domain, in the same unit as segment startHour/endHour (hours by default; epoch ms works too). */
+  readonly totalHours = input(24);
+  /** Absolute offset added to every segment's startHour/endHour — lets segments hold epoch-ms timestamps. */
+  readonly domainStart = input(0);
+  /**
+   * Custom tick formatter: receives the absolute (domainStart-adjusted) tick value and the
+   * currently-visible span (post-zoom), so it can vary granularity as the user zooms in.
+   * Defaults to HH:MM / "Nh".
+   */
+  readonly axisTickFormat = input<((v: number, visibleSpan: number) => string) | null>(null);
+  /** Custom duration formatter for the hover tooltip, receives the segment span in domain units. */
+  readonly durationFormat = input<((span: number) => string) | null>(null);
+  /** Click a row label to isolate it; shows a "Reset Filter" link. */
+  readonly filterable = input(true);
+  /** Drag-select on the timeline to zoom in; shows a "Reset Zoom" link. */
+  readonly zoomable = input(true);
+  readonly rowHeight = input(32);
+  /** Rows viewport caps out at this height and scrolls — keeps hundreds of rows smooth. */
+  readonly maxViewportHeight = input(420);
+
+  protected readonly defaultDurationFn = defaultDurationLabel;
+  private readonly host = inject(ElementRef<HTMLElement>);
+  protected readonly trackRef = viewChild<ElementRef<HTMLElement>>('trackRef');
+
+  protected readonly zoomWindow = signal<ChartZoomWindow>(FULL_ZOOM_WINDOW);
+  protected readonly filteredLabel = signal<string | null>(null);
+  protected readonly isZoomed = computed(() => isZoomedWindow(this.zoomWindow()));
+  protected readonly isFiltered = computed(() => this.filteredLabel() !== null);
+
+  protected readonly dragStartFrac = signal<number | null>(null);
+  protected readonly dragCurrentFrac = signal<number | null>(null);
+  protected readonly isDragging = computed(() => this.dragStartFrac() !== null);
+  private dragOffsetLeft = 0;
+  private dragTrackWidth = 0;
+
+  protected readonly visibleRows = computed(() => {
+    const f = this.filteredLabel();
+    const rows = this.rows();
+    return f === null ? rows : rows.filter(r => r.label === f);
+  });
+
+  protected readonly viewportHeightPx = computed(() =>
+    Math.max(this.rowHeight(), Math.min(this.visibleRows().length * this.rowHeight(), this.maxViewportHeight()))
+  );
+
+  protected readonly visibleDomain = computed(() => {
+    const total = this.totalHours();
+    const start0 = this.domainStart();
+    const w = this.zoomWindow();
+    return { start: start0 + w.start * total, end: start0 + w.end * total };
+  });
+
+  protected readonly axisTicks = computed(() => {
+    const { start, end } = this.visibleDomain();
+    const total = this.totalHours();
+    const steps = 6;
+    const span = end - start;
+    const formatter = this.axisTickFormat() ?? ((v: number, _span: number) => total <= 48 ? this.fmt(((v % 24) + 24) % 24) : `${Math.round(v)}h`);
+    return Array.from({ length: steps + 1 }, (_, i) => formatter(start + (span / steps) * i, span));
+  });
+
+  protected readonly dragOverlay = computed(() => {
+    const s = this.dragStartFrac(), c = this.dragCurrentFrac();
+    if (s === null || c === null) return null;
+    return { left: this.dragOffsetLeft + Math.min(s, c) * this.dragTrackWidth, width: Math.abs(c - s) * this.dragTrackWidth };
+  });
+
+  protected readonly tiles = computed(() => this.buildTiles());
 
   private buildTiles(): Map<BaseMachineState, HTMLCanvasElement> {
     const tiles = new Map<BaseMachineState, HTMLCanvasElement>();
@@ -282,69 +477,42 @@ export class BaseGanttTimelineComponent implements OnDestroy {
     return tiles;
   }
 
-  private drawRow(
-    canvas: HTMLCanvasElement,
-    row: BaseGanttRow,
-    totalHours: number,
-    tiles: Map<BaseMachineState, HTMLCanvasElement>
-  ): (BaseGanttSegment | null)[] {
-    const cssWidth = Math.max(1, Math.round(canvas.clientWidth));
-    const cssHeight = Math.max(1, Math.round(canvas.clientHeight));
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = cssWidth * dpr;
-    canvas.height = cssHeight * dpr;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return [];
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, cssWidth, cssHeight);
+  trackByLabel(_: number, row: BaseGanttRow): string { return row.label; }
 
-    const buckets: (BaseGanttSegment | null)[] = new Array(cssWidth).fill(null);
-    if (!row.noData && totalHours > 0) {
-      const pxPerHour = cssWidth / totalHours;
-      for (const seg of row.segments) {
-        const startPx = Math.max(0, Math.min(cssWidth - 1, Math.floor(seg.startHour * pxPerHour)));
-        const endPx = Math.max(startPx + 1, Math.min(cssWidth, Math.ceil(seg.endHour * pxPerHour)));
-        for (let px = startPx; px < endPx; px++) {
-          const current = buckets[px];
-          if (!current || STATE_PRIORITY[seg.state] >= STATE_PRIORITY[current.state]) buckets[px] = seg;
-        }
-      }
+  onLabelClick(label: string): void {
+    if (!this.filterable()) return;
+    this.filteredLabel.update(current => current === label ? null : label);
+  }
 
-      let runStart = 0;
-      for (let px = 1; px <= cssWidth; px++) {
-        const sameRun = px < cssWidth && buckets[px]?.state === buckets[runStart]?.state;
-        if (!sameRun) {
-          const seg = buckets[runStart];
-          if (seg) {
-            const tile = tiles.get(seg.state);
-            const pattern = tile ? ctx.createPattern(tile, 'repeat') : null;
-            ctx.fillStyle = pattern ?? resolveStateColor(canvas, BASE_MACHINE_STATE_META[seg.state].colorVar);
-            ctx.fillRect(runStart, 0, px - runStart, cssHeight);
-          }
-          runStart = px;
-        }
-      }
+  resetFilter(): void { this.filteredLabel.set(null); }
+  resetZoom(): void { this.zoomWindow.set(FULL_ZOOM_WINDOW); }
+
+  onDragStart(ev: PointerEvent): void {
+    if (!this.zoomable() || ev.button !== 0) return;
+    const track = this.trackRef()?.nativeElement;
+    if (!track) return;
+    const rect = track.getBoundingClientRect();
+    const hostRect = this.host.nativeElement.getBoundingClientRect();
+    this.dragOffsetLeft = rect.left - hostRect.left;
+    this.dragTrackWidth = rect.width;
+    const f = fracX(ev.clientX, rect);
+    this.dragStartFrac.set(f);
+    this.dragCurrentFrac.set(f);
+  }
+
+  onDragMove(ev: PointerEvent): void {
+    if (this.dragStartFrac() === null || !this.dragTrackWidth) return;
+    const f = Math.max(0, Math.min(1, (ev.clientX - (this.host.nativeElement.getBoundingClientRect().left + this.dragOffsetLeft)) / this.dragTrackWidth));
+    this.dragCurrentFrac.set(f);
+  }
+
+  onDragEnd(): void {
+    const s = this.dragStartFrac(), e = this.dragCurrentFrac();
+    if (s !== null && e !== null && Math.abs(e - s) > 0.01) {
+      this.zoomWindow.set(narrowZoomWindow(this.zoomWindow(), s, e));
     }
-    return buckets;
-  }
-
-  onCanvasMove(ev: MouseEvent, canvas: HTMLCanvasElement, row: BaseGanttRow): void {
-    const buckets = this.bucketsByRow.get(row);
-    if (!buckets || buckets.length === 0) { this.hover.set(null); return; }
-    const rect = canvas.getBoundingClientRect();
-    const x = Math.min(buckets.length - 1, Math.max(0, Math.floor(ev.clientX - rect.left)));
-    const seg = buckets[x];
-    if (!seg) { this.hover.set(null); return; }
-    const containerRect = this.host.nativeElement.getBoundingClientRect();
-    this.hover.set({
-      seg,
-      left: rect.left - containerRect.left + x,
-      top: rect.top - containerRect.top
-    });
-  }
-
-  onCanvasLeave(): void {
-    this.hover.set(null);
+    this.dragStartFrac.set(null);
+    this.dragCurrentFrac.set(null);
   }
 
   meta(s: BaseMachineState) { return BASE_MACHINE_STATE_META[s]; }
@@ -354,17 +522,5 @@ export class BaseGanttTimelineComponent implements OnDestroy {
     const hh = Math.floor(h).toString().padStart(2, '0');
     const mm = Math.round((h % 1) * 60).toString().padStart(2, '0');
     return `${hh}:${mm}`;
-  }
-
-  durationLabel(hours: number): string {
-    return Number.isInteger(hours) ? `${hours}h` : `${hours.toFixed(1)}h`;
-  }
-
-  badgeTone(badge: string): string {
-    const pct = parseFloat(badge);
-    if (Number.isNaN(pct)) return 'text-ink-600';
-    if (pct >= 95) return 'text-success';
-    if (pct >= 80) return 'text-warning';
-    return 'text-error';
   }
 }

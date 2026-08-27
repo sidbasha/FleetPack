@@ -6,7 +6,8 @@ const meta: Meta<BaseBarChartComponent> = {
   component: BaseBarChartComponent,
   tags: ['autodocs'],
   argTypes: {
-    orientation: { control: 'select', options: ['vertical', 'horizontal'] }
+    orientation: { control: 'select', options: ['vertical', 'horizontal'] },
+    zoomable: { control: 'boolean' }
   },
   args: {
     data: [
@@ -14,6 +15,13 @@ const meta: Meta<BaseBarChartComponent> = {
     ],
     orientation: 'vertical',
     valueSuffix: ''
+  },
+  parameters: {
+    docs: {
+      description: {
+        component: 'Drag-select to zoom: horizontally across the bars in vertical mode, vertically down the category list in horizontal mode. A "Reset Zoom" link appears once zoomed.'
+      }
+    }
   }
 };
 export default meta;
@@ -64,3 +72,27 @@ export const StackedHorizontal: Story = {
     ]
   }
 };
+
+const TONES = ['action', 'accent', 'info', 'success', 'warning', 'error'] as const;
+
+export const LargeDatasetVertical: Story = {
+  name: 'Large dataset · 60 bars (drag to zoom)',
+  args: {
+    data: Array.from({ length: 60 }, (_, i) => ({ x: `W${i + 1}`, y: Math.round(20 + Math.random() * 80) }))
+  }
+};
+
+export const LargeDatasetHorizontal: Story = {
+  name: 'Large dataset · 40 rows (drag to zoom)',
+  args: {
+    orientation: 'horizontal',
+    valueSuffix: ' h',
+    data: Array.from({ length: 40 }, (_, i) => ({
+      x: `TOOL-${(i + 1).toString().padStart(3, '0')}`,
+      y: Math.round(2 + Math.random() * 48),
+      tone: TONES[i % TONES.length]
+    }))
+  }
+};
+
+export const ZoomDisabled: Story = { args: { zoomable: false } };
