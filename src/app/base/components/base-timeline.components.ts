@@ -9,7 +9,8 @@ import {
   input,
   output,
   signal,
-  viewChild
+  viewChild,
+  viewChildren
 } from '@angular/core';
 import { CdkFixedSizeVirtualScroll, CdkVirtualForOf, CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import {
@@ -158,11 +159,43 @@ export interface BaseGanttSegment {
   state: BaseMachineState;
   label?: string;
 }
+export interface BaseGanttMarker {
+  /** Point in time, same domain units as segment `startHour`/`endHour`. */
+  hour: number;
+  label?: string;
+  /** CSS color or `var(--...)`; defaults to `var(--color-success)`. */
+  colorVar?: string;
+}
+/**
+ * One sub-row ("lane") stacked inside a `BaseGanttRow`. Lanes let a single logical row show more
+ * than one independent track — e.g. a "System" state lane stacked above a "Tool" state lane for
+ * the same day — without merging their segments through `STATE_PRIORITY` collision handling. A
+ * lane's own segments/markers are expected to be mutually exclusive in time (they don't overlap
+ * each other); different lanes are drawn independently and are free to overlap one another.
+ * Use `segments` for a bar-style lane (colored state blocks, same rendering as a single-lane
+ * row) or `markers` for a tick-style lane (thin vertical lines at a point in time — events,
+ * manual edits, annotations).
+ */
+export interface BaseGanttLane {
+  /** Shown at the trailing edge of this lane, e.g. "System E10". Omit for an unlabeled lane. */
+  label?: string;
+  segments?: BaseGanttSegment[];
+  markers?: BaseGanttMarker[];
+  noData?: boolean;
+}
 export interface BaseGanttRow {
   label: string;
+  /** Single-lane rows: segments drawn directly on the row. Ignored once `lanes` is set. */
   segments: BaseGanttSegment[];
+  /** Stacked mutually-exclusive sub-rows sharing this row's label — see `BaseGanttLane`. */
+  lanes?: BaseGanttLane[];
   badge?: string;
   noData?: boolean;
+}
+
+/** Rows without `lanes` behave exactly as before: a single implicit lane over `segments`. */
+function rowLanes(row: BaseGanttRow): BaseGanttLane[] {
+  return row.lanes?.length ? row.lanes : [{ segments: row.segments, noData: row.noData }];
 }
 
 const STATE_PRIORITY: Record<BaseMachineState, number> = {
@@ -175,7 +208,7 @@ const STATE_PRIORITY: Record<BaseMachineState, number> = {
   gap: 0
 };
 
-function resolveStateColor(el: Element, colorVar: string): string {
+function resolveCssColor(el: Element, colorVar: string): string {
   const match = /^var\((--[\w-]+)\)$/.exec(colorVar);
   const propName = match ? match[1] : colorVar;
   const value = getComputedStyle(el).getPropertyValue(propName).trim();
@@ -219,7 +252,8 @@ function resolveBadgeTone(badge: string): string {
 
 function drawGanttRow(
   canvas: HTMLCanvasElement,
-  row: BaseGanttRow,
+  segments: BaseGanttSegment[],
+  noData: boolean,
   domainStart: number,
   domainEnd: number,
   tiles: Map<BaseMachineState, HTMLCanvasElement>,
@@ -237,9 +271,9 @@ function drawGanttRow(
 
   const span = domainEnd - domainStart;
   const buckets: (BaseGanttSegment | null)[] = new Array(cssWidth).fill(null);
-  if (!row.noData && span > 0) {
+  if (!noData && span > 0) {
     const pxPerUnit = cssWidth / span;
-    for (const seg of row.segments) {
+    for (const seg of segments) {
       if (seg.endHour <= domainStart || seg.startHour >= domainEnd) continue;
       const startPx = Math.max(0, Math.min(cssWidth - 1, Math.floor((seg.startHour - domainStart) * pxPerUnit)));
       const endPx = Math.max(startPx + 1, Math.min(cssWidth, Math.ceil((seg.endHour - domainStart) * pxPerUnit)));
@@ -249,20 +283,35 @@ function drawGanttRow(
       }
     }
 
+    // The bar doesn't fill the lane edge-to-edge vertically — it stops short of the bottom,
+    // leaving a baseline gap under it (matching the reference design). Hit-testing stays keyed
+    // on x only, so the inset doesn't affect hover.
+    const barHeight = Math.max(1, cssHeight - Math.min(4, Math.max(1, Math.round(cssHeight * 0.18))));
+
+    // A 1px seam between adjacent *different* segments — same-state runs still merge into one
+    // unbroken block (nothing changed to show a boundary for), but a genuine state change gets
+    // a sliver of the track's background between the two blocks so it reads as two discrete
+    // segments rather than one bar that happens to change color, matching the reference design.
+    const boundaryGapPx = 1;
     let runStart = 0;
     for (let px = 1; px <= cssWidth; px++) {
       const sameRun = px < cssWidth && buckets[px]?.state === buckets[runStart]?.state;
       if (!sameRun) {
         const seg = buckets[runStart];
         if (seg) {
-          const tile = tiles.get(seg.state);
-          const pattern = tile ? ctx.createPattern(tile, 'repeat') : null;
-          ctx.fillStyle = pattern ?? resolveStateColor(canvas, BASE_MACHINE_STATE_META[seg.state].colorVar);
-          // Click-to-toggle-a-state (multi-select): everything outside the selected set
-          // dims, matching the opacity-based dimming used for row/series filters elsewhere.
-          ctx.globalAlpha = filteredStates.size === 0 || filteredStates.has(seg.state) ? 1 : 0.2;
-          ctx.fillRect(runStart, 0, px - runStart, cssHeight);
-          ctx.globalAlpha = 1;
+          const isLastRun = px >= cssWidth;
+          const gap = isLastRun ? 0 : boundaryGapPx;
+          const width = Math.max(0, (px - runStart) - gap);
+          if (width > 0) {
+            const tile = tiles.get(seg.state);
+            const pattern = tile ? ctx.createPattern(tile, 'repeat') : null;
+            ctx.fillStyle = pattern ?? resolveCssColor(canvas, BASE_MACHINE_STATE_META[seg.state].colorVar);
+            // Click-to-toggle-a-state (multi-select): everything outside the selected set
+            // dims, matching the opacity-based dimming used for row/series filters elsewhere.
+            ctx.globalAlpha = filteredStates.size === 0 || filteredStates.has(seg.state) ? 1 : 0.2;
+            ctx.fillRect(runStart, 0, width, barHeight);
+            ctx.globalAlpha = 1;
+          }
         }
         runStart = px;
       }
@@ -270,6 +319,44 @@ function drawGanttRow(
   }
   return buckets;
 }
+
+/** Tick-style lane: thin vertical line per marker instead of filled state blocks. */
+function drawGanttMarkers(
+  canvas: HTMLCanvasElement,
+  markers: BaseGanttMarker[],
+  domainStart: number,
+  domainEnd: number
+): (BaseGanttMarker | null)[] {
+  const cssWidth = Math.max(1, Math.round(canvas.clientWidth));
+  const cssHeight = Math.max(1, Math.round(canvas.clientHeight));
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = cssWidth * dpr;
+  canvas.height = cssHeight * dpr;
+  const ctx = canvas.getContext('2d');
+  const buckets: (BaseGanttMarker | null)[] = new Array(cssWidth).fill(null);
+  if (!ctx) return buckets;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+  const span = domainEnd - domainStart;
+  if (span <= 0) return buckets;
+  const pxPerUnit = cssWidth / span;
+  const tickWidthPx = 2;
+  const hitRadiusPx = 3;
+  for (const marker of markers) {
+    if (marker.hour < domainStart || marker.hour > domainEnd) continue;
+    const px = Math.max(0, Math.min(cssWidth - 1, Math.round((marker.hour - domainStart) * pxPerUnit)));
+    ctx.fillStyle = resolveCssColor(canvas, marker.colorVar ?? 'var(--color-success)');
+    ctx.fillRect(px - tickWidthPx / 2, 0, tickWidthPx, cssHeight);
+    for (let dx = -hitRadiusPx; dx <= hitRadiusPx; dx++) {
+      const bx = px + dx;
+      if (bx >= 0 && bx < cssWidth) buckets[bx] = marker;
+    }
+  }
+  return buckets;
+}
+
+interface LaneHover { laneIndex: number; kind: 'segment' | 'marker'; data: BaseGanttSegment | BaseGanttMarker; left: number; }
 
 /**
  * One row's canvas + hover tooltip. Split out from the timeline so `*cdkVirtualFor`
@@ -282,33 +369,46 @@ function drawGanttRow(
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="flex items-center gap-sp-3">
+    <div #rowRoot class="flex items-stretch gap-sp-3">
       <button type="button"
-              class="w-16 shrink-0 text-[11px] font-semibold truncate text-left bg-transparent border-0 p-0"
+              class="w-16 shrink-0 self-center text-[11px] font-semibold truncate text-left bg-transparent border-0 p-0"
               [class.text-action]="selected()" [class.text-ink-700]="!selected()"
               [class.cursor-pointer]="filterable()" [disabled]="!filterable()"
               [attr.title]="filterable() ? 'Click to toggle this row' : row().label"
               (click)="labelClick.emit(row().label)">
         {{ row().label }}
       </button>
-      <div class="relative flex-1 h-5 rounded-r-xs overflow-hidden bg-neutral-100">
-        <canvas #rowCanvas class="absolute inset-0 block w-full h-full"
-                role="img" [attr.aria-label]="row().label + ' timeline, ' + row().segments.length + ' state change(s)'"
-                (mousemove)="onMove($event, rowCanvas)" (mouseleave)="hover.set(null)"></canvas>
-        @if (row().noData) {
-          <div class="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-neutral-400 bg-neutral-200">
-            No telemetry
-          </div>
-        }
-        @if (hover(); as h) {
-          <div class="absolute pointer-events-none z-10 bg-ink-900 text-neutral-0 text-[11px] font-semibold rounded-r-xs px-sp-2 py-1 mono-data whitespace-nowrap"
-               [style.left.px]="h.left" style="bottom: 100%; margin-bottom: 4px; transform: translateX(-50%);">
-            {{ h.seg.label || meta(h.seg.state).label }} · {{ durationFormat()(h.seg.endHour - h.seg.startHour) }}
+
+      <div class="flex-1 min-w-0 flex flex-col justify-center" [style.gap.px]="lanes().length > 1 ? 3 : 0">
+        @for (lane of lanes(); track $index; let li = $index) {
+          <div class="flex items-center gap-sp-2" [style.height.px]="laneHeightPx()">
+            <div class="relative flex-1 h-full rounded-r-xs overflow-hidden bg-neutral-100">
+              <canvas #laneCanvas class="absolute inset-0 block w-full h-full"
+                      role="img" [attr.aria-label]="laneAriaLabel(lane)"
+                      (mousemove)="onLaneMove($event, laneCanvas, li)" (mouseleave)="hover.set(null)"></canvas>
+              @if (lane.noData) {
+                <div class="absolute inset-0 flex items-center justify-center text-[9px] font-semibold text-neutral-400 bg-neutral-200">
+                  No telemetry
+                </div>
+              }
+              @if (hover(); as h) {
+                @if (h.laneIndex === li) {
+                  <div class="absolute pointer-events-none z-10 bg-ink-900 text-neutral-0 text-[11px] font-semibold rounded-r-xs px-sp-2 py-1 mono-data whitespace-nowrap"
+                       [style.left.px]="h.left" style="bottom: 100%; margin-bottom: 4px; transform: translateX(-50%);">
+                    {{ hoverText(h) }}
+                  </div>
+                }
+              }
+            </div>
+            @if (lane.label) {
+              <span class="w-16 shrink-0 text-[10px] font-semibold text-ink-500 truncate text-right">{{ lane.label }}</span>
+            }
           </div>
         }
       </div>
+
       @if (row().badge) {
-        <span class="w-12 shrink-0 text-right text-[11px] font-semibold tabular-nums" style="font-family:var(--font-mono);"
+        <span class="w-12 shrink-0 self-center text-right text-[11px] font-semibold tabular-nums" style="font-family:var(--font-mono);"
               [class]="badgeTone(row().badge!)">{{ row().badge }}</span>
       }
     </div>
@@ -324,18 +424,23 @@ export class BaseGanttRowCanvasComponent implements OnDestroy {
   readonly filterable = input(true);
   readonly dragging = input(false);
   readonly filteredStates = input<ReadonlySet<BaseMachineState>>(new Set());
+  /** Vertical budget shared across this row's lane(s); a single-lane row ignores it (fixed 20px, as before). */
+  readonly rowHeight = input(32);
   readonly labelClick = output<string>();
 
-  private readonly canvasRef = viewChild<ElementRef<HTMLCanvasElement>>('rowCanvas');
-  private buckets: (BaseGanttSegment | null)[] = [];
-  protected readonly hover = signal<{ seg: BaseGanttSegment; left: number } | null>(null);
+  protected readonly lanes = computed<BaseGanttLane[]>(() => rowLanes(this.row()));
+
+  private readonly rowRootRef = viewChild<ElementRef<HTMLElement>>('rowRoot');
+  private readonly laneCanvasRefs = viewChildren<ElementRef<HTMLCanvasElement>>('laneCanvas');
+  private laneBuckets: ((BaseGanttSegment | BaseGanttMarker | null)[])[] = [];
+  protected readonly hover = signal<LaneHover | null>(null);
   private readonly redrawTick = signal(0);
   private resizeObserver: ResizeObserver | null = null;
   private rafId: number | null = null;
 
   constructor() {
     effect(() => {
-      const ref = this.canvasRef();
+      const ref = this.rowRootRef();
       if (ref && !this.resizeObserver && typeof ResizeObserver !== 'undefined') {
         this.resizeObserver = new ResizeObserver(() => this.scheduleRedraw());
         this.resizeObserver.observe(ref.nativeElement);
@@ -343,14 +448,20 @@ export class BaseGanttRowCanvasComponent implements OnDestroy {
     });
 
     effect(() => {
-      const ref = this.canvasRef();
-      const row = this.row();
+      const refs = this.laneCanvasRefs();
+      const lanes = this.lanes();
       const start = this.domainStart();
       const end = this.domainEnd();
       const tiles = this.tiles();
       const filteredStates = this.filteredStates();
       this.redrawTick();
-      if (ref) this.buckets = drawGanttRow(ref.nativeElement, row, start, end, tiles, filteredStates);
+      this.laneBuckets = refs.map((ref, i) => {
+        const lane = lanes[i];
+        if (!lane) return [];
+        return lane.markers
+          ? drawGanttMarkers(ref.nativeElement, lane.markers, start, end)
+          : drawGanttRow(ref.nativeElement, lane.segments ?? [], lane.noData ?? false, start, end, tiles, filteredStates);
+      });
     });
 
     effect(() => {
@@ -371,13 +482,37 @@ export class BaseGanttRowCanvasComponent implements OnDestroy {
     });
   }
 
-  onMove(ev: MouseEvent, canvas: HTMLCanvasElement): void {
-    if (this.dragging() || !this.buckets.length) { this.hover.set(null); return; }
+  /** Single-lane rows keep the original fixed 20px bar; multi-lane rows split `rowHeight` between lanes. */
+  laneHeightPx(): number {
+    const n = this.lanes().length;
+    if (n <= 1) return 20;
+    return Math.max(9, Math.floor((this.rowHeight() - 3 * (n - 1)) / n));
+  }
+
+  laneAriaLabel(lane: BaseGanttLane): string {
+    const label = lane.label ?? this.row().label;
+    const count = lane.markers?.length ?? lane.segments?.length ?? 0;
+    return lane.markers ? `${label} timeline, ${count} event(s)` : `${label} timeline, ${count} state change(s)`;
+  }
+
+  onLaneMove(ev: MouseEvent, canvas: HTMLCanvasElement, laneIndex: number): void {
+    const buckets = this.laneBuckets[laneIndex];
+    if (this.dragging() || !buckets?.length) { this.hover.set(null); return; }
     const rect = canvas.getBoundingClientRect();
-    const x = Math.min(this.buckets.length - 1, Math.max(0, Math.floor(ev.clientX - rect.left)));
-    const seg = this.buckets[x];
-    if (!seg) { this.hover.set(null); return; }
-    this.hover.set({ seg, left: x });
+    const x = Math.min(buckets.length - 1, Math.max(0, Math.floor(ev.clientX - rect.left)));
+    const data = buckets[x];
+    if (!data) { this.hover.set(null); return; }
+    const kind: LaneHover['kind'] = 'startHour' in data ? 'segment' : 'marker';
+    this.hover.set({ laneIndex, kind, data, left: x });
+  }
+
+  hoverText(h: LaneHover): string {
+    if (h.kind === 'segment') {
+      const seg = h.data as BaseGanttSegment;
+      return `${seg.label || this.meta(seg.state).label} · ${this.durationFormat()(seg.endHour - seg.startHour)}`;
+    }
+    const marker = h.data as BaseGanttMarker;
+    return marker.label ?? 'Event';
   }
 
   meta(s: BaseMachineState) { return BASE_MACHINE_STATE_META[s]; }
@@ -402,7 +537,7 @@ export class BaseGanttRowCanvasComponent implements OnDestroy {
         <div *cdkVirtualFor="let row of visibleRows(); trackBy: trackByLabel" [style.height.px]="rowHeight()">
           <base-gantt-row-canvas
             [row]="row" [domainStart]="visibleDomain().start" [domainEnd]="visibleDomain().end"
-            [tiles]="tiles()" [durationFormat]="durationFormat() ?? defaultDurationFn"
+            [tiles]="tiles()" [durationFormat]="durationFormat() ?? defaultDurationFn" [rowHeight]="rowHeight()"
             [selected]="filteredLabels().has(row.label)" [filterable]="filterable()" [dragging]="isDragging()"
             [filteredStates]="filteredStates()"
             (labelClick)="onLabelClick($event)" />
@@ -521,7 +656,7 @@ export class BaseGanttTimelineComponent {
     const el = this.host.nativeElement;
     for (const state of Object.keys(BASE_MACHINE_STATE_META) as BaseMachineState[]) {
       const meta = BASE_MACHINE_STATE_META[state];
-      tiles.set(state, buildPatternTile(meta.pattern, resolveStateColor(el, meta.colorVar)));
+      tiles.set(state, buildPatternTile(meta.pattern, resolveCssColor(el, meta.colorVar)));
     }
     return tiles;
   }

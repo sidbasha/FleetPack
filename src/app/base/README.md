@@ -125,7 +125,7 @@ All form controls expose a two-way `[(value)]` / `[(checked)]` model **and** imp
 | `<base-histogram>` | Distribution of one metric into touching bars/buckets |
 | `<base-chart-frame>` | Chart panel chrome — title/subtitle, export button, optional table/chart view toggle |
 | `<base-state-heatmap>` | Day × hour grid colored by dominant machine state, for spotting recurring patterns |
-| `<base-gantt-timeline>` | Per-row state segments over `[totalHours]` (24h by default, any span — e.g. 168 for a week) — the detail view a heatmap cell expands into |
+| `<base-gantt-timeline>` | Per-row state segments over `[totalHours]` (24h by default, any span — e.g. 168 for a week) — the detail view a heatmap cell expands into. A row can carry `lanes` for stacked, mutually-exclusive sub-rows (e.g. a "System" lane above a "Tool" lane) instead of one flat segment list |
 
 Machine-state color (`BaseMachineState`, `base-timeline.components.ts`) differentiates by hue,
 fill pattern (solid up-time / hatched planned-vs-unplanned downtime / dotted non-state), and a
@@ -140,7 +140,23 @@ slot per device pixel; when several land in the same pixel the most severe state
 neighboring segment. This keeps 100,000+ segments (a week of dense per-tool telemetry) smooth to
 render and hover — see `HighVolumeWeek` in `gantt-timeline.stories.ts` for a live 50-row ×
 2,000-segment stress case. Hover still resolves to the winning segment per pixel via the same
-bucket array, so tooltips stay O(1) regardless of the raw segment count.
+bucket array, so tooltips stay O(1) regardless of the raw segment count. Wherever the winning
+state actually changes between two adjacent pixel runs, a 1px seam of the track's background is
+left between them so the two segments read as discrete blocks rather than one bar that happens to
+change color; two adjacent runs of the *same* state still draw as one unbroken block. The bar also
+stops short of the lane's bottom edge (roughly an 18% inset, 1–4px) rather than filling it
+edge-to-edge, leaving a baseline gap under the color — hover hit-testing stays keyed on x only, so
+the inset doesn't affect it.
+
+A row's `lanes` (`BaseGanttLane[]`) stack sub-rows under one shared row label instead of forcing
+every track into its own top-level row — each lane gets its own canvas and hover, drawn and
+hit-tested independently (no `STATE_PRIORITY` collision handling across lanes, only within one
+lane's own segments). A lane is either bar-style (`segments`, rendered like a single-lane row) or
+tick-style (`markers`, thin vertical lines for point-in-time events). This is the pattern for data
+that is genuinely two (or more) parallel, mutually-exclusive-in-time tracks per row — e.g. a
+"System" state lane and a "Tool" event lane for the same day — see `MutuallyExclusiveSubRows` in
+`gantt-timeline.stories.ts`. `rowHeight` is the vertical budget shared across a row's lanes; bump
+it when using more than one lane so each stays legible.
 
 ### Table
 

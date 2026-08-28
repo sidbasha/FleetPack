@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/angular';
-import { BaseGanttRow, BaseGanttSegment, BaseGanttTimelineComponent, BaseMachineState } from '../../app/base';
+import { BASE_MACHINE_STATE_META, BaseGanttMarker, BaseGanttRow, BaseGanttSegment, BaseGanttTimelineComponent, BaseMachineState } from '../../app/base';
 
 const rows: BaseGanttRow[] = [
   {
@@ -56,7 +56,14 @@ const meta: Meta<BaseGanttTimelineComponent> = {
           'can combine with each other and with zoom. `startHour`/`endHour` are just numbers ' +
           'in whatever unit `totalHours` is — hours-in-a-day by default, but `domainStart` + a custom ' +
           '`axisTickFormat`/`durationFormat` let the same component plot real epoch-ms timestamps ' +
-          '(see "Real timestamp domain" below).'
+          '(see "Real timestamp domain" below). Wherever the winning state actually changes between ' +
+          'two adjacent segments, a 1px seam of the track\'s background separates them so they read ' +
+          'as discrete blocks instead of one bar that changes color, and the bar itself stops short ' +
+          'of the lane\'s bottom edge rather than filling it edge-to-edge, leaving a baseline gap ' +
+          'under the color (see "Segment boundaries" below) — same-state runs still merge into one ' +
+          'unbroken block. A row can also carry `lanes` — stacked, mutually-exclusive sub-rows ' +
+          'sharing one row label, e.g. a "System" state lane above a "Tool" event lane (see ' +
+          '"Mutually exclusive sub-rows" below).'
       }
     }
   }
@@ -223,5 +230,152 @@ export const NonInteractive: Story = {
   args: { zoomable: false, filterable: false },
   parameters: {
     docs: { description: { story: 'For read-only embeds (report snapshots, print views) — disables drag-to-zoom and the row/state multi-select filter, hiding the Reset Zoom/Reset Filter links.' } }
+  }
+};
+
+export const SegmentBoundaries: Story = {
+  name: 'Segment boundaries (state-change seam + baseline inset)',
+  args: {
+    rows: [
+      {
+        label: 'ARC-11', badge: '88%',
+        segments: [
+          { startHour: 0, endHour: 4, state: 'production' },
+          { startHour: 4, endHour: 4.6, state: 'standby' },
+          { startHour: 4.6, endHour: 9, state: 'production' },
+          { startHour: 9, endHour: 9.4, state: 'scheduled-dt' },
+          { startHour: 9.4, endHour: 16, state: 'production' },
+          { startHour: 16, endHour: 16.3, state: 'unscheduled-dt' },
+          { startHour: 16.3, endHour: 24, state: 'production' }
+        ]
+      }
+    ]
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Every time the winning state actually changes between two adjacent segments, a 1px seam ' +
+          "of the track's background shows through so the two blocks read as discrete segments " +
+          'rather than one bar that happens to change color — matching the white gaps between state ' +
+          'blocks called out in the C9 design review. Two adjacent segments that share the same ' +
+          'state still merge into one unbroken block; there is nothing to show a boundary for. Each ' +
+          "bar also stops short of the lane's bottom edge instead of filling it edge-to-edge, so a " +
+          'thin baseline gap shows under the color the whole way across — hover hit-testing is keyed ' +
+          'on x only, so the inset has no effect on it.'
+      }
+    }
+  }
+};
+
+// Per-day rows that each hold two mutually-exclusive tracks: a "System" state-bar lane and a
+// "Tool" event-marker lane. Neither lane's own content overlaps itself, and the two lanes are
+// independent of each other — exactly the shape called out in the C9 design review ("two
+// levels/lines per row ... our lines are mutually exclusive and do not overlap"). Each day is
+// deliberately built from several short segments (not just one downtime window) so the System
+// lane shows multiple state-change seams, and the Tool lane's markers are derived FROM those same
+// transitions — one at every boundary where System actually changes state — so the two lanes read
+// as correlated (a tool action logged against each system state change) rather than unrelated data.
+interface LaneDay { date: string; badge: string; segments: { endHour: number; state: BaseMachineState; label?: string }[]; }
+
+const LANE_DAYS: LaneDay[] = [
+  {
+    date: '07-13', badge: '89%',
+    segments: [
+      { endHour: 4, state: 'production' },
+      { endHour: 4.6, state: 'standby' },
+      { endHour: 9, state: 'production' },
+      { endHour: 9.6, state: 'unscheduled-dt', label: 'Chamber interlock' },
+      { endHour: 16, state: 'production' },
+      { endHour: 16.4, state: 'scheduled-dt' },
+      { endHour: 24, state: 'production' }
+    ]
+  },
+  {
+    date: '07-14', badge: '100%',
+    segments: [{ endHour: 24, state: 'production' }]
+  },
+  {
+    date: '07-15', badge: '81%',
+    segments: [
+      { endHour: 2, state: 'production' },
+      { endHour: 2.4, state: 'standby' },
+      { endHour: 11, state: 'production' },
+      { endHour: 15, state: 'unscheduled-dt', label: 'Robot fault' },
+      { endHour: 20, state: 'production' },
+      { endHour: 20.3, state: 'standby' },
+      { endHour: 24, state: 'production' }
+    ]
+  },
+  {
+    date: '07-16', badge: '96%',
+    segments: [
+      { endHour: 6, state: 'production' },
+      { endHour: 6.4, state: 'scheduled-dt' },
+      { endHour: 24, state: 'production' }
+    ]
+  }
+];
+
+function buildLaneRows(): BaseGanttRow[] {
+  return LANE_DAYS.map(day => {
+    const systemSegments: BaseGanttSegment[] = [];
+    let hour = 0;
+    for (const seg of day.segments) {
+      systemSegments.push({ startHour: hour, endHour: seg.endHour, state: seg.state, label: seg.label });
+      hour = seg.endHour;
+    }
+
+    // One Tool marker per System boundary that's an actual state change — the same transitions
+    // that draw a segment-boundary seam above — so each green tick sits directly under the seam
+    // it corresponds to.
+    const toolMarkers: BaseGanttMarker[] = [];
+    for (let i = 1; i < systemSegments.length; i++) {
+      const curr = systemSegments[i];
+      const enteringDowntime = curr.state !== 'production';
+      toolMarkers.push({
+        hour: curr.startHour,
+        label: enteringDowntime
+          ? `Tool paused · ${curr.label ?? BASE_MACHINE_STATE_META[curr.state].label}`
+          : `Tool resumed · ${curr.startHour.toFixed(1)}h`
+      });
+    }
+
+    return {
+      label: day.date,
+      badge: day.badge,
+      segments: [],
+      lanes: [
+        { label: 'System E10', segments: systemSegments },
+        { label: 'Tool E10', markers: toolMarkers }
+      ]
+    };
+  });
+}
+
+export const MutuallyExclusiveSubRows: Story = {
+  name: 'Mutually exclusive sub-rows (System + Tool lanes)',
+  args: {
+    rows: buildLaneRows(),
+    rowHeight: 40
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Each `BaseGanttRow` can carry `lanes` instead of (or in addition to) a flat `segments` list — ' +
+          'stacked sub-rows sharing one row label, e.g. a "System" state lane above a "Tool" event lane. ' +
+          "A lane's own content is expected to be mutually exclusive in time (it never overlaps itself), " +
+          "and lanes don't merge into each other via `STATE_PRIORITY` collision handling the way segments " +
+          'on a single lane do — each is drawn and hover-tested independently. Segment lanes (`segments`) ' +
+          'render as colored state blocks — including the 1px boundary seam between state changes, see ' +
+          '"Segment boundaries" above; marker lanes (`markers`) render as thin event ticks. The System ' +
+          "lane here is built from several short segments (not one downtime block) so its boundary " +
+          "seams show clearly, and the Tool lane's markers are generated from those same System " +
+          'transitions — one "Tool paused"/"Tool resumed" tick per System state change — so each tick ' +
+          "lines up under the seam it corresponds to instead of showing unrelated data. Bump " +
+          '`rowHeight` to give multi-lane rows more vertical room — it splits evenly across the lane count.'
+      }
+    }
   }
 };
