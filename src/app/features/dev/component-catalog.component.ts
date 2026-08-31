@@ -37,6 +37,7 @@ import {
   BaseCheckboxFilterComponent,
   BaseCheckboxGroupComponent,
   BaseColorPickerComponent,
+  BaseColumnDef,
   BaseComboboxComponent,
   BaseDatepickerComponent,
   BaseDateRangePickerComponent,
@@ -59,6 +60,7 @@ import {
   BaseNotificationsPanelComponent,
   BaseNumericStepperComponent,
   BaseOtpInputComponent,
+  BasePageEvent,
   BasePaginatorComponent,
   BasePopoverComponent,
   BaseProgressBarComponent,
@@ -76,6 +78,7 @@ import {
   BaseSplitButtonComponent,
   BaseStatBarComponent,
   BaseStateHeatmapComponent,
+  BaseTableComponent,
   BaseTableView,
   BaseTableViewsComponent,
   BaseTabsComponent,
@@ -131,7 +134,7 @@ const BASE_PLAYGROUND_ROUTE = '/dev/base';
     BaseSearchInputComponent, BaseSegmentedControlComponent, BaseSelectComponent, BaseSelectionCardComponent,
     BaseSkeletonComponent,
     BaseSliderComponent, BaseSparklineComponent, BaseSplitButtonComponent, BaseStatBarComponent,
-    BaseStateHeatmapComponent, BaseTableViewsComponent, BaseTabsComponent, BaseTagComponent, BaseTextInputComponent,
+    BaseStateHeatmapComponent, BaseTableComponent, BaseTableViewsComponent, BaseTabsComponent, BaseTagComponent, BaseTextInputComponent,
     BaseTextareaComponent, BaseTimePickerComponent, BaseToggleComponent, BaseTooltipDirective, BaseTrendChartComponent,
     BaseTrendComponent
   ],
@@ -289,7 +292,23 @@ const BASE_PLAYGROUND_ROUTE = '/dev/base';
                       </base-chart-frame>
                     }
 
-                    @case ('BasePaginatorComponent') { <base-paginator [page]="1" [total]="42" /> }
+                    @case ('BaseTableComponent') {
+                      <div class="w-full rounded-lg border border-neutral-200 overflow-hidden">
+                        <base-table [columns]="baseTablePreviewColumns" [rows]="baseTablePreviewRows"
+                                    trackKey="tool" [paginate]="false" [showSearch]="false" />
+                      </div>
+                    }
+                    @case ('BasePaginatorComponent') {
+                      <!-- w-full + overflow-x-auto: a flex item's default auto min-width refuses to
+                           shrink below its content, so without this the button row (page-size select
+                           + up to 9 step buttons) pushes past this narrow card's edge instead of
+                           wrapping. Setting overflow here resets that min-width to 0, so it shrinks
+                           to the card and scrolls internally if it still doesn't fit. -->
+                      <div class="w-full overflow-x-auto">
+                        <base-paginator [page]="paginatorPreviewPage()" [pageSize]="paginatorPreviewPageSize()" [total]="paginatorPreviewTotal"
+                                        (pageChange)="onPaginatorPreviewChange($event)" />
+                      </div>
+                    }
                     @case ('BaseSearchInputComponent') { <base-search-input placeholder="Search tools…" /> }
                     @case ('BaseManageColumnsComponent') { <base-manage-columns [items]="[{key:'a',header:'Tool ID',locked:true,pin:'left',widthPx:130},{key:'b',header:'Status',locked:false,widthPx:120}]" [visibleKeys]="['b']" /> }
                     @case ('BaseCheckboxFilterComponent') { <base-checkbox-filter header="Status" [options]="[{value:'PRODUCTION',label:'Production'},{value:'DOWN',label:'Down'}]" /> }
@@ -377,6 +396,21 @@ const BASE_PLAYGROUND_ROUTE = '/dev/base';
 export class ComponentCatalogComponent {
   readonly search = signal('');
 
+  // Live-wired so clicking through the BasePaginatorComponent preview below
+  // actually pages, instead of every button being visibly clickable but inert.
+  readonly paginatorPreviewTotal = 42;
+  readonly paginatorPreviewPage = signal(1);
+  readonly paginatorPreviewPageSize = signal(10);
+
+  /** BasePaginatorComponent hands page-size-change reconciliation to its host (see
+   * its onPageSize() comment) — a raw pass-through here would leave `page` pointing
+   * past the new page count (e.g. page 3 of 25/page's 2 pages), so clamp it. */
+  onPaginatorPreviewChange(ev: BasePageEvent): void {
+    const pageCount = Math.max(1, Math.ceil(this.paginatorPreviewTotal / ev.pageSize));
+    this.paginatorPreviewPageSize.set(ev.pageSize);
+    this.paginatorPreviewPage.set(Math.min(ev.page, pageCount));
+  }
+
   readonly sampleFleetId = 'fleet-001';
   readonly sampleToolId = 'TOOL-1140';
   readonly sampleAlarmId = 'ALM-4521';
@@ -406,6 +440,16 @@ export class ComponentCatalogComponent {
 
   readonly groupedBaseModule = computed(() => this.groupBySearch(this.baseModuleEntries));
   readonly groupedFeatures = computed(() => this.groupBySearch(this.featureEntries));
+
+  readonly baseTablePreviewColumns: BaseColumnDef<Record<string, unknown>>[] = [
+    { key: 'tool', header: 'Tool' },
+    { key: 'state', header: 'State', kind: 'dot', dotClassMap: { Production: 'bg-state-production', Standby: 'bg-state-standby' } },
+    { key: 'trend', header: 'Trend', align: 'right', kind: 'trend' }
+  ];
+  readonly baseTablePreviewRows: Record<string, unknown>[] = [
+    { tool: 'Axion_T2500', state: 'Production', trend: 3.2 },
+    { tool: 'Axion_T1800', state: 'Standby', trend: -1.4 }
+  ];
 
   readonly heatmapColumnsSample = ['00:00', '04:00', '08:00'];
   readonly heatmapRowsSample: BaseHeatmapRow[] = [

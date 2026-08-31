@@ -1337,7 +1337,8 @@ export class BaseTableComponent<T = BaseRow> {
   }
 
   removeChip(chip: FilterChip): void {
-    if (this.interactionBlocked()) return;
+  
+    if (this.hasEditingRows() || this.hasDirtyRows()) return;
     if (chip.kind === 'checkbox') {
       this.checkboxFilters.update(f => {
         const next = { ...f };
@@ -1358,7 +1359,8 @@ export class BaseTableComponent<T = BaseRow> {
   }
 
   clearAllFilters(): void {
-    if (this.interactionBlocked()) return;
+   
+    if (this.hasEditingRows() || this.hasDirtyRows()) return;
     this.pageNote.set(null);
     this.quickText.set('');
     this.columnFilters.set({});
