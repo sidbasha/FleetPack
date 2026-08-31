@@ -39,6 +39,7 @@ const meta: Meta<BaseGanttTimelineComponent> = {
   argTypes: {
     zoomable: { control: 'boolean' },
     filterable: { control: 'boolean' },
+    showDurationOnBar: { control: 'boolean' },
     rowHeight: { control: 'number' },
     maxViewportHeight: { control: 'number' }
   },
@@ -63,7 +64,10 @@ const meta: Meta<BaseGanttTimelineComponent> = {
           'under the color (see "Segment boundaries" below) — same-state runs still merge into one ' +
           'unbroken block. A row can also carry `lanes` — stacked, mutually-exclusive sub-rows ' +
           'sharing one row label, e.g. a "System" state lane above a "Tool" event lane (see ' +
-          '"Mutually exclusive sub-rows" below).'
+          '"Mutually exclusive sub-rows" below). Hovering any bar or marker shows a tooltip with its ' +
+          'label, duration, and start–end time range; `showDurationOnBar` additionally prints each ' +
+          'bar\'s own duration directly on the bar, skipped where a segment is too narrow/short to ' +
+          'hold the text legibly (see "Duration labels on bar" below).'
       }
     }
   }
@@ -85,6 +89,28 @@ export const WithSegmentLabels: Story = {
         ]
       }
     ]
+  }
+};
+
+export const DurationLabelsOnBar: Story = {
+  name: 'Duration labels on bar (showDurationOnBar)',
+  args: {
+    showDurationOnBar: true
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'With `showDurationOnBar` enabled, each bar prints its own duration ("6.5h") centered on ' +
+          'it — white text with a dark outline so it reads over any state color or hatch pattern. ' +
+          'The label is skipped wherever a segment (or a merged same-state run) is too narrow, or ' +
+          "the lane too short, to fit the text without spilling out of the bar — e.g. the ~0.7h " +
+          'standby blip on MON 05-04 below has no label. Off by default. The hover tooltip (present ' +
+          'in every story) already shows duration plus the exact start–end time for any segment or ' +
+          'marker regardless of this flag — `showDurationOnBar` is for when the duration needs to be ' +
+          'visible at a glance, without hovering.'
+      }
+    }
   }
 };
 

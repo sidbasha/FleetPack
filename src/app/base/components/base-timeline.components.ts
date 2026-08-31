@@ -242,6 +242,13 @@ function defaultDurationLabel(span: number): string {
   return Number.isInteger(span) ? `${span}h` : `${span.toFixed(1)}h`;
 }
 
+/** Fallback for `timeFormat` — same HH:MM-of-day rendering the axis ticks use by default. */
+function defaultTimeLabel(v: number): string {
+  const hh = Math.floor(((v % 24) + 24) % 24).toString().padStart(2, '0');
+  const mm = Math.round((v % 1) * 60).toString().padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
 function resolveBadgeTone(badge: string): string {
   const pct = parseFloat(badge);
   if (Number.isNaN(pct)) return 'text-ink-600';
@@ -257,7 +264,9 @@ function drawGanttRow(
   domainStart: number,
   domainEnd: number,
   tiles: Map<BaseMachineState, HTMLCanvasElement>,
-  filteredStates: ReadonlySet<BaseMachineState>
+  filteredStates: ReadonlySet<BaseMachineState>,
+  showDurationOnBar: boolean,
+  durationFormat: (span: number) => string
 ): (BaseGanttSegment | null)[] {
   const cssWidth = Math.max(1, Math.round(canvas.clientWidth));
   const cssHeight = Math.max(1, Math.round(canvas.clientHeight));
@@ -293,6 +302,7 @@ function drawGanttRow(
     // a sliver of the track's background between the two blocks so it reads as two discrete
     // segments rather than one bar that happens to change color, matching the reference design.
     const boundaryGapPx = 1;
+    if (showDurationOnBar) ctx.font = '600 9px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
     let runStart = 0;
     for (let px = 1; px <= cssWidth; px++) {
       const sameRun = px < cssWidth && buckets[px]?.state === buckets[runStart]?.state;
@@ -308,8 +318,41 @@ function drawGanttRow(
             ctx.fillStyle = pattern ?? resolveCssColor(canvas, BASE_MACHINE_STATE_META[seg.state].colorVar);
             // Click-to-toggle-a-state (multi-select): everything outside the selected set
             // dims, matching the opacity-based dimming used for row/series filters elsewhere.
-            ctx.globalAlpha = filteredStates.size === 0 || filteredStates.has(seg.state) ? 1 : 0.2;
+            const alpha = filteredStates.size === 0 || filteredStates.has(seg.state) ? 1 : 0.2;
+            ctx.globalAlpha = alpha;
             ctx.fillRect(runStart, 0, width, barHeight);
+
+            // Optional in-bar duration label ("6.5h") — the *real* total duration of the segment(s)
+            // that make up this run (same-state segments merged into one run share a single summed
+            // label rather than stacking one per source segment), read back off the segment data
+            // rather than the run's on-screen pixel width. That keeps the number stable across
+            // zoom/pan — the rendered width of a run changes as the visible window narrows or clips
+            // it, which made a pixel-derived duration drift or jump as you zoomed; the underlying
+            // segment duration doesn't. White fill with a dark outline keeps it legible over any
+            // state color/pattern; skipped when the run is too narrow or short to hold the text
+            // without spilling out of the bar.
+            if (showDurationOnBar) {
+              let trueSpan = 0;
+              for (let p = runStart, prevSeg: BaseGanttSegment | null = null; p < px - gap; p++) {
+                const b = buckets[p];
+                if (b && b !== prevSeg) { trueSpan += b.endHour - b.startHour; prevSeg = b; }
+              }
+              const text = durationFormat(trueSpan);
+              const textWidth = ctx.measureText(text).width;
+              if (barHeight >= 11 && width >= textWidth + 6) {
+                const cx = runStart + width / 2;
+                const cy = barHeight / 2;
+                ctx.globalAlpha = alpha;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.lineJoin = 'round';
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = 'rgba(15, 23, 42, 0.6)';
+                ctx.strokeText(text, cx, cy);
+                ctx.fillStyle = '#fff';
+                ctx.fillText(text, cx, cy);
+              }
+            }
             ctx.globalAlpha = 1;
           }
         }
@@ -381,7 +424,7 @@ interface LaneHover { laneIndex: number; kind: 'segment' | 'marker'; data: BaseG
 
       <div class="flex-1 min-w-0 flex flex-col justify-center" [style.gap.px]="lanes().length > 1 ? 3 : 0">
         @for (lane of lanes(); track $index; let li = $index) {
-          <div class="flex items-center gap-sp-2" [style.height.px]="laneHeightPx()">
+          <div class="relative flex items-center gap-sp-2" [style.height.px]="laneHeightPx()">
             <div class="relative flex-1 h-full rounded-r-xs overflow-hidden bg-neutral-100">
               <canvas #laneCanvas class="absolute inset-0 block w-full h-full"
                       role="img" [attr.aria-label]="laneAriaLabel(lane)"
@@ -391,17 +434,28 @@ interface LaneHover { laneIndex: number; kind: 'segment' | 'marker'; data: BaseG
                   No telemetry
                 </div>
               }
-              @if (hover(); as h) {
-                @if (h.laneIndex === li) {
-                  <div class="absolute pointer-events-none z-10 bg-ink-900 text-neutral-0 text-[11px] font-semibold rounded-r-xs px-sp-2 py-1 mono-data whitespace-nowrap"
-                       [style.left.px]="h.left" style="bottom: 100%; margin-bottom: 4px; transform: translateX(-50%);">
-                    {{ hoverText(h) }}
-                  </div>
-                }
-              }
             </div>
             @if (lane.label) {
               <span class="w-16 shrink-0 text-[10px] font-semibold text-ink-500 truncate text-right">{{ lane.label }}</span>
+            }
+            <!-- Sibling to (not nested inside) the overflow-hidden canvas box above: that box clips
+                 anything crossing its own edges, and this tooltip deliberately sits above the lane
+                 (bottom: 100%) — nested inside overflow-hidden it would render with zero visible
+                 pixels. Positioned against this row's own "relative", [style.left.px] still lines up
+                 since the canvas box starts flush at this row's left edge (no leading gap before it).
+                 The virtual-scroll viewport clips just like that canvas box did — for the very first
+                 row there's no row above it to pop over, so popping "above" would land outside the
+                 viewport's own top edge and disappear the same way. Flipped to drop below instead. -->
+            @if (hover(); as h) {
+              @if (h.laneIndex === li) {
+                <div class="absolute pointer-events-none z-20 bg-ink-900 text-neutral-0 text-[11px] font-semibold rounded-r-xs px-sp-2 py-1 mono-data whitespace-nowrap"
+                     [style.left.px]="h.left"
+                     [style.bottom]="isFirstRow() ? null : '100%'" [style.marginBottom.px]="isFirstRow() ? null : 4"
+                     [style.top]="isFirstRow() ? '100%' : null" [style.marginTop.px]="isFirstRow() ? 4 : null"
+                     style="transform: translateX(-50%);">
+                  {{ hoverText(h) }}
+                </div>
+              }
             }
           </div>
         }
@@ -420,12 +474,17 @@ export class BaseGanttRowCanvasComponent implements OnDestroy {
   readonly domainEnd = input.required<number>();
   readonly tiles = input.required<Map<BaseMachineState, HTMLCanvasElement>>();
   readonly durationFormat = input<(span: number) => string>(defaultDurationLabel);
+  readonly timeFormat = input<(v: number) => string>(defaultTimeLabel);
   readonly selected = input(false);
   readonly filterable = input(true);
   readonly dragging = input(false);
   readonly filteredStates = input<ReadonlySet<BaseMachineState>>(new Set());
   /** Vertical budget shared across this row's lane(s); a single-lane row ignores it (fixed 20px, as before). */
   readonly rowHeight = input(32);
+  /** Draws each bar's own duration ("6.5h") centered on it, skipped where a run is too narrow/short to fit the text. */
+  readonly showDurationOnBar = input(false);
+  /** First row in the (virtualized) list — flips the hover tooltip to drop below the lane instead of popping above it, since there's no room above the viewport's own top edge. */
+  readonly isFirstRow = input(false);
   readonly labelClick = output<string>();
 
   protected readonly lanes = computed<BaseGanttLane[]>(() => rowLanes(this.row()));
@@ -454,13 +513,15 @@ export class BaseGanttRowCanvasComponent implements OnDestroy {
       const end = this.domainEnd();
       const tiles = this.tiles();
       const filteredStates = this.filteredStates();
+      const showDurationOnBar = this.showDurationOnBar();
+      const durationFormat = this.durationFormat();
       this.redrawTick();
       this.laneBuckets = refs.map((ref, i) => {
         const lane = lanes[i];
         if (!lane) return [];
         return lane.markers
           ? drawGanttMarkers(ref.nativeElement, lane.markers, start, end)
-          : drawGanttRow(ref.nativeElement, lane.segments ?? [], lane.noData ?? false, start, end, tiles, filteredStates);
+          : drawGanttRow(ref.nativeElement, lane.segments ?? [], lane.noData ?? false, start, end, tiles, filteredStates, showDurationOnBar, durationFormat);
       });
     });
 
@@ -509,7 +570,9 @@ export class BaseGanttRowCanvasComponent implements OnDestroy {
   hoverText(h: LaneHover): string {
     if (h.kind === 'segment') {
       const seg = h.data as BaseGanttSegment;
-      return `${seg.label || this.meta(seg.state).label} · ${this.durationFormat()(seg.endHour - seg.startHour)}`;
+      const duration = this.durationFormat()(seg.endHour - seg.startHour);
+      const time = this.timeFormat();
+      return `${seg.label || this.meta(seg.state).label} · ${duration} · ${time(seg.startHour)}–${time(seg.endHour)}`;
     }
     const marker = h.data as BaseGanttMarker;
     return marker.label ?? 'Event';
@@ -534,12 +597,12 @@ export class BaseGanttRowCanvasComponent implements OnDestroy {
       }
 
       <cdk-virtual-scroll-viewport [itemSize]="rowHeight()" [style.height.px]="viewportHeightPx()" class="gantt-viewport">
-        <div *cdkVirtualFor="let row of visibleRows(); trackBy: trackByLabel" [style.height.px]="rowHeight()">
+        <div *cdkVirtualFor="let row of visibleRows(); trackBy: trackByLabel; let i = index" [style.height.px]="rowHeight()">
           <base-gantt-row-canvas
             [row]="row" [domainStart]="visibleDomain().start" [domainEnd]="visibleDomain().end"
-            [tiles]="tiles()" [durationFormat]="durationFormat() ?? defaultDurationFn" [rowHeight]="rowHeight()"
+            [tiles]="tiles()" [durationFormat]="durationFormat() ?? defaultDurationFn" [timeFormat]="resolvedTimeFormat()" [rowHeight]="rowHeight()"
             [selected]="filteredLabels().has(row.label)" [filterable]="filterable()" [dragging]="isDragging()"
-            [filteredStates]="filteredStates()"
+            [filteredStates]="filteredStates()" [showDurationOnBar]="showDurationOnBar()" [isFirstRow]="i === 0"
             (labelClick)="onLabelClick($event)" />
         </div>
       </cdk-virtual-scroll-viewport>
@@ -598,8 +661,17 @@ export class BaseGanttTimelineComponent {
   readonly rowHeight = input(32);
   /** Rows viewport caps out at this height and scrolls — keeps hundreds of rows smooth. */
   readonly maxViewportHeight = input(420);
+  /** Draws each bar's own duration ("6.5h") centered on it — off by default; skipped where a run is too narrow/short to hold the text. */
+  readonly showDurationOnBar = input(false);
 
   protected readonly defaultDurationFn = defaultDurationLabel;
+  /** Tooltip time-range formatter — reuses `axisTickFormat` (fed the full domain span) when set, so it renders the same way the axis does; falls back to HH:MM-of-day otherwise. */
+  protected readonly resolvedTimeFormat = computed<(v: number) => string>(() => {
+    const custom = this.axisTickFormat();
+    if (!custom) return defaultTimeLabel;
+    const span = this.totalHours();
+    return (v: number) => custom(v, span);
+  });
   private readonly host = inject(ElementRef<HTMLElement>);
   protected readonly trackRef = viewChild<ElementRef<HTMLElement>>('trackRef');
 

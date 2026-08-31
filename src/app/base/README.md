@@ -148,6 +148,13 @@ stops short of the lane's bottom edge (roughly an 18% inset, 1–4px) rather tha
 edge-to-edge, leaving a baseline gap under the color — hover hit-testing stays keyed on x only, so
 the inset doesn't affect it.
 
+Hovering a bar or marker always shows a tooltip: label, formatted duration, and the start–end time
+range (`timeFormat`, reusing `axisTickFormat` when one is set so the tooltip matches the axis's
+formatting, else HH:MM-of-day). Set `showDurationOnBar` to also print each bar's own duration
+directly on it (white text with a dark outline so it reads over any state color/pattern) — off by
+default, and skipped per-run wherever a segment (or a merged same-state run) is too narrow or the
+lane too short to hold the text — see `DurationLabelsOnBar` in `gantt-timeline.stories.ts`.
+
 A row's `lanes` (`BaseGanttLane[]`) stack sub-rows under one shared row label instead of forcing
 every track into its own top-level row — each lane gets its own canvas and hover, drawn and
 hit-tested independently (no `STATE_PRIORITY` collision handling across lanes, only within one
